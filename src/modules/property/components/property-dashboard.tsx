@@ -4,14 +4,19 @@ import * as React from "react";
 import Link from "next/link";
 import { MotionConfig } from "motion/react";
 import {
+  ChevronDown,
   Building2,
   Home,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Pencil,
   Plus,
   X,
   ArrowLeft,
   ArrowRight,
   Search,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +49,42 @@ function subscribeDesktop(callback: () => void) {
 }
 const desktopSnapshot = () => window.matchMedia("(min-width: 1100px)").matches;
 
+const sidebarEvent = "rental-house:sidebar";
+const sidebarStorageKey = "rental-house:sidebar-collapsed";
+
+function subscribeSidebar(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(sidebarEvent, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(sidebarEvent, callback);
+  };
+}
+
+function sidebarSnapshot() {
+  return window.localStorage.getItem(sidebarStorageKey) === "true";
+}
+
+function useSidebarCollapsed() {
+  const collapsed = React.useSyncExternalStore(
+    subscribeSidebar,
+    sidebarSnapshot,
+    () => false,
+  );
+  const setCollapsed = (value: boolean) => {
+    window.localStorage.setItem(sidebarStorageKey, String(value));
+    window.dispatchEvent(new Event(sidebarEvent));
+  };
+  return [collapsed, setCollapsed] as const;
+}
+
+const navigationGroups = [
+  {
+    label: "Property",
+    items: [{ label: "Building", href: "#building", icon: Building2 }],
+  },
+] as const;
+
 export function PropertyDashboard({
   property,
 }: {
@@ -52,6 +93,8 @@ export function PropertyDashboard({
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [editing, setEditing] = React.useState(false);
   const [search, setSearch] = React.useState("");
+  const [mobileNavigationOpen, setMobileNavigationOpen] = React.useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useSidebarCollapsed();
   const desktop = React.useSyncExternalStore(
     subscribeDesktop,
     desktopSnapshot,
@@ -88,25 +131,41 @@ export function PropertyDashboard({
 
   return (
     <MotionConfig reducedMotion="user">
-      <main className="property-app">
-        <aside className="property-rail" aria-label="Property navigation">
-          <Link href="/" className="rail-brand" title="Property overview">
-            <Home aria-hidden="true" />
-            <span className="sr-only">Property overview</span>
-          </Link>
-          <a
-            href="#building"
-            className="rail-current"
-            aria-label="Building"
-            title="Building"
-          >
-            <Building2 aria-hidden="true" />
-          </a>
-        </aside>
+      <main
+        className={`property-app${sidebarCollapsed ? " sidebar-collapsed" : ""}`}
+      >
+        <AppSidebar
+          property={property}
+          collapsed={sidebarCollapsed}
+          onCollapsedChange={setSidebarCollapsed}
+        />
+        {mobileNavigationOpen && (
+          <div className="mobile-navigation-layer">
+            <button
+              type="button"
+              className="mobile-navigation-backdrop"
+              aria-label="Close navigation"
+              onClick={() => setMobileNavigationOpen(false)}
+            />
+            <AppSidebar
+              property={property}
+              collapsed={false}
+              mobile
+              onClose={() => setMobileNavigationOpen(false)}
+            />
+          </div>
+        )}
         <div className="property-workspace">
           <header className="property-header">
+            <button
+              type="button"
+              className="mobile-menu-button"
+              aria-label="Open navigation"
+              onClick={() => setMobileNavigationOpen(true)}
+            >
+              <Menu />
+            </button>
             <div className="property-heading">
-              <p className="eyebrow">PROPERTY OVERVIEW</p>
               <h1>{property.name}</h1>
               <p>
                 {[property.addressLine1, property.city, property.country]
@@ -115,7 +174,6 @@ export function PropertyDashboard({
               </p>
             </div>
             <div className="property-controls">
-              <PropertyFormDialog property={property} />
               <Button
                 variant={editing ? "secondary" : "outline"}
                 aria-pressed={editing}
@@ -124,16 +182,7 @@ export function PropertyDashboard({
                 <Pencil />
                 {editing ? "Done editing" : "Edit building"}
               </Button>
-              <FloorFormDialog
-                mode="create"
-                propertyId={property.id}
-                trigger={
-                  <Button>
-                    <Plus />
-                    Add floor
-                  </Button>
-                }
-              />
+              <AddMenu propertyId={property.id} floors={floors} />
             </div>
           </header>
           <div className="canvas-toolbar">
@@ -255,6 +304,143 @@ export function PropertyDashboard({
         )}
       </main>
     </MotionConfig>
+  );
+}
+
+function AppSidebar({
+  property,
+  collapsed,
+  mobile = false,
+  onCollapsedChange,
+  onClose,
+}: {
+  property: DashboardProperty;
+  collapsed: boolean;
+  mobile?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
+  onClose?: () => void;
+}) {
+  return (
+    <aside
+      className={`property-sidebar${mobile ? " mobile-sidebar" : ""}`}
+      aria-label="Property navigation"
+    >
+      <div className="sidebar-brand">
+        <Link href="/" className="sidebar-brand-mark" title={property.name}>
+          <Home aria-hidden="true" />
+        </Link>
+        <span>{property.name}</span>
+        {mobile && (
+          <button
+            type="button"
+            className="sidebar-icon-button"
+            aria-label="Close navigation"
+            onClick={onClose}
+          >
+            <X />
+          </button>
+        )}
+      </div>
+      <nav className="sidebar-navigation">
+        {navigationGroups.map((group) => (
+          <div className="sidebar-group" key={group.label}>
+            <p className="sidebar-group-label">{group.label}</p>
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="sidebar-nav-item is-active"
+                  title={collapsed ? item.label : undefined}
+                  onClick={onClose}
+                >
+                  <Icon aria-hidden="true" />
+                  <span>{item.label}</span>
+                </a>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+      <div className="sidebar-footer">
+        <PropertyFormDialog
+          property={property}
+          trigger={
+            <button
+              type="button"
+              className="sidebar-nav-item"
+              title={collapsed ? "Property settings" : undefined}
+            >
+              <Settings aria-hidden="true" />
+              <span>Property settings</span>
+            </button>
+          }
+        />
+        {!mobile && (
+          <button
+            type="button"
+            className="sidebar-collapse"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            onClick={() => onCollapsedChange?.(!collapsed)}
+          >
+            {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+            <span>Collapse</span>
+          </button>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+function AddMenu({
+  propertyId,
+  floors,
+}: {
+  propertyId: string;
+  floors: DashboardFloor[];
+}) {
+  return (
+    <details className="add-menu">
+      <summary>
+        <Plus />
+        Add
+        <ChevronDown className="add-menu-chevron" />
+      </summary>
+      <div className="add-menu-content">
+        <p>Add to building</p>
+        <FloorFormDialog
+          mode="create"
+          propertyId={propertyId}
+          trigger={
+            <button type="button" className="add-menu-item">
+              <Building2 />
+              Floor
+            </button>
+          }
+        />
+        {floors.length > 0 && (
+          <>
+            <div className="add-menu-separator" />
+            <p>Space on floor</p>
+            {floors.map((floor) => (
+              <SpaceFormDialog
+                key={floor.id}
+                mode="create"
+                floor={floor}
+                trigger={
+                  <button type="button" className="add-menu-item">
+                    <Plus />
+                    {floor.name}
+                  </button>
+                }
+              />
+            ))}
+          </>
+        )}
+      </div>
+    </details>
   );
 }
 

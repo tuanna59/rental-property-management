@@ -43,7 +43,25 @@ test("fresh seed, dynamic floor and spaces, order, refresh, and mobile", async (
   ).toBeVisible();
   await expect(building.locator(".space-visual")).toHaveCount(11);
 
-  await page.getByRole("button", { name: "Add floor" }).first().click();
+  const sidebar = page.getByRole("complementary", {
+    name: "Property navigation",
+  });
+  expect((await sidebar.boundingBox())!.width).toBeGreaterThan(200);
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await expect(sidebar).toHaveCSS("width", "68px");
+  expect((await sidebar.boundingBox())!.width).toBeLessThanOrEqual(72);
+  await page.reload();
+  await expect(sidebar).toHaveCSS("width", "68px");
+  expect((await sidebar.boundingBox())!.width).toBeLessThanOrEqual(72);
+  await page.getByRole("button", { name: "Expand sidebar" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(sidebar).toHaveCSS("width", "232px");
+
+  await page.locator(".add-menu summary").click();
+  await page
+    .locator(".add-menu-content")
+    .getByRole("button", { name: "Floor", exact: true })
+    .click();
   await page.getByRole("dialog").getByLabel("Name").fill("Floor 4");
   await page
     .getByRole("dialog")
@@ -54,6 +72,13 @@ test("fresh seed, dynamic floor and spaces, order, refresh, and mobile", async (
     .filter({ has: page.getByRole("heading", { name: "Floor 4" }) });
   await expect(floor).toBeVisible();
   await expect(floor.getByText("No spaces")).toBeVisible();
+  const referenceFloor = page
+    .locator("section[data-floor-id]")
+    .filter({ has: page.getByRole("heading", { name: "Floor 3" }) });
+  expect((await floor.boundingBox())!.width).toBeCloseTo(
+    (await referenceFloor.boundingBox())!.width,
+    0,
+  );
 
   await page.getByRole("button", { name: "Edit building" }).click();
   for (const name of ["P09", "P10"]) {
@@ -67,9 +92,26 @@ test("fresh seed, dynamic floor and spaces, order, refresh, and mobile", async (
       floor.getByRole("button", { name: `Select ${name}` }),
     ).toBeVisible();
   }
+  const fourSpaceRoom = await building
+    .getByRole("button", { name: "Select P05" })
+    .boundingBox();
+  const twoSpaceRoom = await building
+    .getByRole("button", { name: "Select P09" })
+    .boundingBox();
+  expect(fourSpaceRoom && twoSpaceRoom).toBeTruthy();
+  expect(twoSpaceRoom!.width).toBeGreaterThan(fourSpaceRoom!.width * 1.8);
+
+  await floor.getByRole("button", { name: "Add space" }).click();
+  await page.getByRole("dialog").getByLabel("Name or identifier").fill("P11");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Add space" })
+    .click();
+  await expect(floor.getByRole("button", { name: "Select P11" })).toBeVisible();
   await page.reload();
   await expect(floor.getByRole("button", { name: "Select P09" })).toBeVisible();
   await expect(floor.getByRole("button", { name: "Select P10" })).toBeVisible();
+  await expect(floor.getByRole("button", { name: "Select P11" })).toBeVisible();
   await expect(floor.locator(".space-visual").first()).toContainText("P09");
   await floor.getByRole("button", { name: "Select P10" }).click();
   await expect(
@@ -96,7 +138,12 @@ test("fresh seed, dynamic floor and spaces, order, refresh, and mobile", async (
     expect(shell && canvas && room && addedRoom && panel).toBeTruthy();
     expect(shell!.width).toBeLessThanOrEqual(1020);
     expect(room!.width).toBeLessThan(260);
-    expect(addedRoom!.width).toBeLessThan(260);
+    expect(addedRoom!.width).toBeGreaterThan(room!.width * 1.2);
+    expect(addedRoom!.width).toBeLessThan(room!.width * 1.5);
+    expect((await floor.boundingBox())!.width).toBeCloseTo(
+      (await referenceFloor.boundingBox())!.width,
+      0,
+    );
     expect(shell!.x + shell!.width).toBeLessThan(panel!.x);
     expect(canvas!.width).toBeGreaterThan(shell!.width);
     await page.screenshot({
@@ -118,6 +165,7 @@ test("fresh seed, dynamic floor and spaces, order, refresh, and mobile", async (
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
+  await expect(floor.locator(".space-visual").first()).toContainText("P10");
   await page.getByRole("button", { name: "Select P09" }).click();
   await expect(page.getByRole("dialog", { name: "P09" })).toBeVisible();
   await page.screenshot({

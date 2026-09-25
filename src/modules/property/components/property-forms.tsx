@@ -115,8 +115,10 @@ export function FloorActions({
 
 export function PropertyFormDialog({
   property,
+  trigger,
 }: {
   property: DashboardProperty;
+  trigger?: React.ReactNode;
 }) {
   const [open, setOpen] = React.useState(false);
   const [state, formAction] = React.useActionState(
@@ -131,10 +133,12 @@ export function PropertyFormDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
-          <Pencil />
-          Property settings
-        </Button>
+        {trigger ?? (
+          <Button variant="outline">
+            <Pencil />
+            Property settings
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

@@ -15,11 +15,19 @@ import { FloorActions, FloorFormDialog } from "./property-forms";
 type Selection = (id: string, target: HTMLButtonElement) => void;
 
 function floorUnits(floor: DashboardFloor) {
-  return floor.spaces.reduce(
-    (sum, space) =>
-      sum + (space.type === "OWNER_HOME" || space.type === "GARAGE" ? 2 : 1),
-    0,
-  );
+  return floor.spaces.reduce((sum, space) => sum + spaceWeight(space), 0);
+}
+
+function spaceWeight(space: DashboardSpace) {
+  return {
+    ROOM: 1,
+    OWNER_HOME: 1.6,
+    GARAGE: 1.2,
+    ROOFTOP: 1,
+    COMMON_AREA: 1.35,
+    STORAGE: 0.85,
+    OTHER: 1,
+  }[space.type];
 }
 
 export function BuildingCanvas({
@@ -114,9 +122,11 @@ function FloorVisual({
   const spaces = [...floor.spaces].sort((a, b) => a.sortOrder - b.sortOrder);
   const rooftop =
     spaces.length > 0 && spaces.every((space) => space.type === "ROOFTOP");
-  const floorWidth = rooftop
-    ? "100%"
-    : `${Math.min(1020, Math.max(410, floorUnits(floor) * 205))}px`;
+  const wrapSpaces = spaces.length > 6;
+  const gridTemplateColumns =
+    spaces.length > 0 && !wrapSpaces
+      ? spaces.map((space) => `${spaceWeight(space)}fr`).join(" ")
+      : undefined;
   return (
     <motion.section
       layout="position"
@@ -124,7 +134,6 @@ function FloorVisual({
       className={cn("floor-visual", rooftop && "roof-floor")}
       aria-label={floor.name}
       data-floor-id={floor.id}
-      style={{ "--floor-width": floorWidth } as CSSProperties}
     >
       <div className="floor-label">
         <h2>{floor.name}</h2>
@@ -133,7 +142,10 @@ function FloorVisual({
         </span>
       </div>
       {editing && <FloorActions floor={floor} propertyId={propertyId} />}
-      <div className="floor-bays">
+      <div
+        className={cn("floor-bays", wrapSpaces && "wrap-spaces")}
+        style={{ gridTemplateColumns }}
+      >
         {spaces.length ? (
           spaces.map((space) => (
             <SpaceVisual
