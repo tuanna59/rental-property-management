@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 
 import type { SpaceTypeValue } from "../domain/types";
 import {
@@ -9,6 +10,29 @@ import {
   moveOrderedId,
   nextSortOrder,
 } from "../domain/rules";
+
+async function orderedTransaction<T>(
+  work: (tx: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await prisma.$transaction(work, {
+        isolationLevel: "Serializable",
+      });
+    } catch (error) {
+      const prismaConflict =
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2034";
+      const adapterConflict =
+        error instanceof Error &&
+        error.name === "DriverAdapterError" &&
+        (error as Error & { cause?: { kind?: string } }).cause?.kind ===
+          "TransactionWriteConflict";
+      if ((!prismaConflict && !adapterConflict) || attempt >= 6) throw error;
+      await new Promise((resolve) => setTimeout(resolve, (attempt + 1) * 15));
+    }
+  }
+}
 
 export async function updateProperty(input: {
   propertyId: string;
@@ -22,10 +46,10 @@ export async function updateProperty(input: {
     where: { id: input.propertyId, archivedAt: null },
     data: {
       name: input.name,
-      addressLine1: input.addressLine1,
-      city: input.city,
-      country: input.country,
-      description: input.description,
+      addressLine1: input.addressLine1 ?? null,
+      city: input.city ?? null,
+      country: input.country ?? null,
+      description: input.description ?? null,
     },
   });
 }
@@ -36,7 +60,7 @@ export async function createFloor(input: {
   level?: number;
   notes?: string;
 }) {
-  await prisma.$transaction(async (tx) => {
+  await orderedTransaction(async (tx) => {
     const property = await tx.property.findFirst({
       where: { id: input.propertyId, archivedAt: null },
       select: { id: true },
@@ -67,11 +91,15 @@ export async function updateFloor(input: {
   notes?: string;
 }) {
   await prisma.floor.update({
-    where: { id: input.floorId, archivedAt: null },
+    where: {
+      id: input.floorId,
+      archivedAt: null,
+      property: { archivedAt: null },
+    },
     data: {
       name: input.name,
-      level: input.level,
-      notes: input.notes,
+      level: input.level ?? null,
+      notes: input.notes ?? null,
     },
   });
 }
@@ -81,9 +109,13 @@ export async function reorderFloor(input: {
   floorId: string;
   direction: "up" | "down";
 }) {
-  await prisma.$transaction(async (tx) => {
+  await orderedTransaction(async (tx) => {
     const floors = await tx.floor.findMany({
-      where: { propertyId: input.propertyId, archivedAt: null },
+      where: {
+        propertyId: input.propertyId,
+        archivedAt: null,
+        property: { archivedAt: null },
+      },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       select: { id: true },
     });
@@ -106,7 +138,7 @@ export async function reorderFloor(input: {
 }
 
 export async function archiveFloor(input: { floorId: string }) {
-  await prisma.$transaction(async (tx) => {
+  await orderedTransaction(async (tx) => {
     const activeSpaceCount = await tx.space.count({
       where: { floorId: input.floorId, archivedAt: null },
     });
@@ -120,7 +152,7 @@ export async function archiveFloor(input: { floorId: string }) {
 }
 
 export async function deleteFloor(input: { floorId: string }) {
-  await prisma.$transaction(async (tx) => {
+  await orderedTransaction(async (tx) => {
     const spaceCount = await tx.space.count({
       where: { floorId: input.floorId },
     });
@@ -138,9 +170,13 @@ export async function createSpace(input: {
   type: SpaceTypeValue;
   notes?: string;
 }) {
-  await prisma.$transaction(async (tx) => {
+  await orderedTransaction(async (tx) => {
     const floor = await tx.floor.findFirst({
-      where: { id: input.floorId, archivedAt: null },
+      where: {
+        id: input.floorId,
+        archivedAt: null,
+        property: { archivedAt: null },
+      },
       select: { id: true },
     });
     assertActiveRecord(floor, "The selected floor was not found.");
@@ -169,11 +205,15 @@ export async function updateSpace(input: {
   notes?: string;
 }) {
   await prisma.space.update({
-    where: { id: input.spaceId, archivedAt: null },
+    where: {
+      id: input.spaceId,
+      archivedAt: null,
+      floor: { archivedAt: null, property: { archivedAt: null } },
+    },
     data: {
       name: input.name,
       type: input.type,
-      notes: input.notes,
+      notes: input.notes ?? null,
     },
   });
 }
@@ -183,9 +223,13 @@ export async function reorderSpace(input: {
   spaceId: string;
   direction: "up" | "down";
 }) {
-  await prisma.$transaction(async (tx) => {
+  await orderedTransaction(async (tx) => {
     const space = await tx.space.findFirst({
-      where: { id: input.spaceId, archivedAt: null },
+      where: {
+        id: input.spaceId,
+        archivedAt: null,
+        floor: { archivedAt: null, property: { archivedAt: null } },
+      },
       select: { floorId: true },
     });
     assertActiveRecord(space, "The selected space was not found.");

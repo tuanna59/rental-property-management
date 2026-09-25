@@ -95,7 +95,11 @@ All mutations use server actions and Zod validation. The server:
 
 The home page is the property dashboard. It is not a table-first CRUD screen. The building uses a data-driven 2.5D CSS layout with Motion-powered subtle entry, hover, and tap feedback. The same component can render more floors or spaces without manual row edits.
 
-Desktop uses a wide building view plus a sticky detail panel. Mobile stacks the same building and details vertically, keeps tiles tap-friendly, and avoids horizontal scrolling as the main interaction.
+The cutaway is composed from reusable SVG room interiors plus CSS slabs, columns, labels, lighting, and environmental layers. Floor and space collections determine the rows and bays. Furnishing variation uses a stable hash of each space ID. A floor whose spaces are all `ROOFTOP` is rendered as a deck and pinned above other floors; non-rooftop floors follow persisted `sortOrder` in descending visual order. An empty floor remains visible with an add-space affordance in edit mode.
+
+The building width is computed from the largest active floor: `min(1020px, max(520px, weightedSpaceUnits * 205px))`, then constrained to the canvas width. A rental room contributes one unit; Owner Home and Garage contribute two. Each non-roof floor has its own width using the same units, so a new two-room floor does not stretch its rooms to match a four-room floor. The rooftop spans the building width. The composed structure is centered inside the expanding canvas so wide monitors show more environment. Bays use a 130px minimum before wrapping. A large number of rooms can therefore form another visual row within its floor instead of expanding the building without limit. SVG interiors preserve their aspect ratio, with side walls added to the wider Owner Home and Garage bays. Room height remains fixed at desktop scale; mobile uses a two-column floor layout where space allows and a full-width bottom sheet for details. The contextual panel has a dedicated desktop grid track and never overlays the building.
+
+Only Phase 1 data appears in the overlays and panel: name, type, floor, record activity, display order, and notes. `SpaceOverlay` accepts optional secondary text for future operational data, but none is synthesized in Phase 1.
 
 ## Future Module Readiness
 

@@ -51,77 +51,40 @@ const initialFloors = [
 ] as const;
 
 async function ensureSeedData() {
-  const property =
-    (await prisma.property.findFirst({
-      where: { name: "My Rental Property", archivedAt: null },
-      orderBy: { createdAt: "asc" },
-    })) ??
-    (await prisma.property.create({
-      data: {
-        name: "My Rental Property",
-        description: "Initial configurable rental property.",
-        city: "Ho Chi Minh City",
-        country: "Vietnam",
-      },
-    }));
-
-  for (const [floorIndex, floorSeed] of initialFloors.entries()) {
-    const floor =
-      (await prisma.floor.findFirst({
-        where: {
-          propertyId: property.id,
-          name: floorSeed.name,
-          archivedAt: null,
-        },
-      })) ??
-      (await prisma.floor.create({
+  return prisma.$transaction(
+    async (tx) => {
+      const existing = await tx.property.findFirst({
+        orderBy: { createdAt: "asc" },
+      });
+      if (existing) {
+        console.log("Existing property data preserved; seed skipped.");
+        return existing;
+      }
+      return tx.property.create({
         data: {
-          propertyId: property.id,
-          name: floorSeed.name,
-          level: floorSeed.level,
-          sortOrder: floorIndex + 1,
-        },
-      }));
-
-    await prisma.floor.update({
-      where: { id: floor.id },
-      data: {
-        level: floorSeed.level,
-        sortOrder: floorIndex + 1,
-      },
-    });
-
-    for (const [spaceIndex, spaceSeed] of floorSeed.spaces.entries()) {
-      const space = await prisma.space.findFirst({
-        where: {
-          floorId: floor.id,
-          name: spaceSeed.name,
-          archivedAt: null,
+          name: "My Rental Property",
+          description: "A place for everyday living.",
+          city: "Ho Chi Minh City",
+          country: "Vietnam",
+          floors: {
+            create: initialFloors.map((floor, index) => ({
+              name: floor.name,
+              level: floor.level,
+              sortOrder: index + 1,
+              spaces: {
+                create: floor.spaces.map((space, spaceIndex) => ({
+                  name: space.name,
+                  type: space.type,
+                  sortOrder: spaceIndex + 1,
+                })),
+              },
+            })),
+          },
         },
       });
-
-      if (space) {
-        await prisma.space.update({
-          where: { id: space.id },
-          data: {
-            type: spaceSeed.type,
-            sortOrder: spaceIndex + 1,
-          },
-        });
-      } else {
-        await prisma.space.create({
-          data: {
-            floorId: floor.id,
-            name: spaceSeed.name,
-            type: spaceSeed.type,
-            sortOrder: spaceIndex + 1,
-          },
-        });
-      }
-    }
-  }
-
-  return property;
+    },
+    { isolationLevel: "Serializable" },
+  );
 }
 
 ensureSeedData()

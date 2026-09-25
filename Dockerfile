@@ -4,7 +4,7 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN corepack enable
+RUN npm install --global pnpm@11.19.0
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 RUN pnpm prisma:generate
-RUN pnpm build
+RUN DATABASE_URL=postgresql://build:build@localhost:5432/build pnpm build
 
 EXPOSE 3000
 
