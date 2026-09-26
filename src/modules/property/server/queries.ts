@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import {
+  getCurrentOccupancyBySpaceIds,
+  getUpcomingOccupancyBySpaceIds,
+} from "@/modules/tenancy/server/queries";
 
 import type { DashboardProperty } from "../domain/types";
 
@@ -24,6 +28,18 @@ export async function getPrimaryPropertyDashboard(): Promise<DashboardProperty |
     return null;
   }
 
+  const spaceIds = property.floors.flatMap((floor) =>
+    floor.spaces.map((space) => space.id),
+  );
+  const now = new Date();
+  const businessDate = new Date(
+    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()),
+  );
+  const [occupancy, upcomingOccupancy] = await Promise.all([
+    getCurrentOccupancyBySpaceIds(spaceIds, businessDate),
+    getUpcomingOccupancyBySpaceIds(spaceIds, businessDate),
+  ]);
+
   return {
     id: property.id,
     name: property.name,
@@ -45,7 +61,54 @@ export async function getPrimaryPropertyDashboard(): Promise<DashboardProperty |
         type: space.type,
         sortOrder: space.sortOrder,
         notes: space.notes,
+        occupancy: toDashboardOccupancy(occupancy.get(space.id)),
+        upcomingOccupancy: toDashboardOccupancy(
+          upcomingOccupancy.get(space.id),
+        ),
       })),
     })),
   };
+}
+
+function toDashboardOccupancy(
+  occupancy: Awaited<
+    ReturnType<typeof getCurrentOccupancyBySpaceIds>
+  > extends Map<string, infer TValue>
+    ? TValue | undefined
+    : never,
+) {
+  if (!occupancy) return null;
+  const date = (value: Date | null) =>
+    value ? value.toISOString().slice(0, 10) : null;
+  return {
+    tenancyId: occupancy.tenancyId,
+    moveInDate: date(occupancy.moveInDate)!,
+    moveOutDate: date(occupancy.moveOutDate),
+    monthlyRentVnd: occupancy.monthlyRentVnd.toString(),
+    depositVnd: occupancy.depositVnd?.toString() ?? null,
+    moveInNotes: occupancy.moveInNotes,
+    occupantCount: occupancy.occupantCount,
+    responsible: occupancy.responsible
+      ? {
+          personId: occupancy.responsible.personId,
+          fullName: occupancy.responsible.fullName,
+        }
+      : null,
+    occupants: occupancy.occupants.map((occupant) => ({
+      membershipId: occupant.membershipId,
+      personId: occupant.personId,
+      fullName: occupant.fullName,
+      role: occupant.role,
+      startDate: date(occupant.startDate)!,
+      endDate: date(occupant.endDate),
+    })),
+  };
+}
+
+export async function getActivePersonOptions() {
+  return prisma.person.findMany({
+    where: { archivedAt: null },
+    orderBy: { fullName: "asc" },
+    select: { id: true, fullName: true },
+  });
 }

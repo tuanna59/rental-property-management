@@ -19,8 +19,8 @@ const initialFloors = [
     name: "Floor 1",
     level: 1,
     spaces: [
-      { name: "Owner Home", type: "OWNER_HOME" },
       { name: "Garage", type: "GARAGE" },
+      { name: "Owner Home", type: "OWNER_HOME" },
     ],
   },
   {

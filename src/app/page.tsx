@@ -2,15 +2,22 @@ import { Building2, DatabaseZap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PropertyDashboard } from "@/modules/property/components/property-dashboard";
-import { getPrimaryPropertyDashboard } from "@/modules/property/server/queries";
+import {
+  getActivePersonOptions,
+  getPrimaryPropertyDashboard,
+} from "@/modules/property/server/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   let property;
+  let people;
 
   try {
-    property = await getPrimaryPropertyDashboard();
+    [property, people] = await Promise.all([
+      getPrimaryPropertyDashboard(),
+      getActivePersonOptions(),
+    ]);
   } catch (error) {
     if (isDatabaseUnavailable(error)) {
       console.error(
@@ -43,7 +50,7 @@ export default async function Home() {
     );
   }
 
-  return <PropertyDashboard property={property} />;
+  return <PropertyDashboard property={property} people={people} />;
 }
 
 function isDatabaseUnavailable(error: unknown) {

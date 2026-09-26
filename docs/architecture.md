@@ -12,6 +12,12 @@ Property -> Floor -> Space
 
 The application is currently single-owner and single-property oriented in the UX. The database and server code do not assume there can only ever be one property.
 
+Phase 2 introduces the independent `Person` identity. The UI may call people tenants, but a Person does not belong to a room and is not named `Tenant` in the database. `Tenancy` records a dated rental period and historical rent/deposit snapshot for one Space. `TenancyOccupant` records each Person's dated participation as either the one responsible renter or an additional occupant. Restrictive relationships preserve this history.
+
+Citizen IDs are never stored as plaintext. The people server module normalizes 12-digit CCCD and 9-digit legacy CMND values, encrypts them with AES-256-GCM using a random nonce, and creates a deterministic HMAC-SHA-256 lookup value with a separate key. Normal person queries expose only whether an ID exists and its final four digits. Encryption keys are read only when citizen-ID operations run, so deployments that have not enabled that optional data can still start without placeholder secrets.
+
+Neither occupancy nor rental status is persisted. Relative to the business date, a Person is Current when a participation period is active, Upcoming when only a future period exists, Former when only historical periods exist, and No rental when no participation exists. `archivedAt` is a separate Person record lifecycle flag. Archiving is blocked for Current or Upcoming people; restore reactivates the same identity without changing tenancy history.
+
 ## Dynamic Building Model
 
 The physical building is represented as data:
@@ -45,11 +51,19 @@ There are no tables such as `Floor1`, `Floor2`, `Room1`, or `Room2`. The buildin
 - Ordering updates run in transactions.
 - Safe deletion is intentionally stricter than archiving. A floor can only be deleted when it has no spaces.
 
+The Phase 2A tenancy migration owns PostgreSQL constraints that Prisma cannot represent in the schema. `btree_gist` exclusion constraints prevent overlapping tenancies for one space, overlapping membership segments for one person within one tenancy, and overlapping responsible-person segments. Check constraints protect period ordering and nonnegative money. Future migrations and drift reviews must preserve the explicitly named constraints in `20260925190000_phase2a_tenancy_foundation`.
+
+Cross-table rules are enforced by the tenancy service: occupant periods must fit inside their tenancy, only active `ROOM` spaces may receive tenancies, and one person may not occupy different rooms during overlapping periods. Move-in and occupant changes run at serializable isolation and lock involved Person rows before checking occupancy. Friendly checks provide stable domain errors; PostgreSQL exclusion constraints remain the final authority during a race. A current tenancy can add or end additional occupants, and a cross-room move atomically closes the old participation and creates an adjacent one in an existing destination tenancy. Responsible-renter reassignment is intentionally deferred.
+
+Move-out closes open or later-ending memberships without extending earlier history. A scheduled future move-in remains a reservation until its date and can be cancelled only while never-started. A scheduled future move-out keeps the tenancy Current until its half-open end date. Cancelling it reopens only occupant periods that were closed by that move-out and is rejected when a future room tenancy or occupant period would overlap. Rooms with Current or Upcoming tenancies cannot be archived.
+
+The Building reads current and next-upcoming tenancy projections in batched queries for all spaces. Occupancy, occupant count, responsible renter, reservations, and scheduled departures are derived at a business date using `[start, end)` boundaries. The Tenants directory uses the same dated membership records for rental-state filters, current placement, future placement, and history.
+
 ## Money Convention
 
-Future monetary values will be VND. Do not use JavaScript floating point for money. Store money as integer minor units or whole VND integer values, depending on the business rule for the future module. VND has no routinely used fractional minor unit, so the expected convention is integer VND stored in the database as `BigInt` or a fixed precision `Decimal`, and exposed to the UI as formatted strings.
+Monetary values are VND. Do not use JavaScript floating point for money. The agreed monthly rent and optional deposit are stored on each tenancy as whole-VND `BigInt` historical snapshots and must be exposed to future UI as formatted strings.
 
-No billing, invoices, deposits, payments, expenses, or analytics tables are created in Phase 0 or Phase 1.
+No billing, invoices, deposit transactions, payments, expenses, or analytics tables exist yet.
 
 ## Date and Time Convention
 
@@ -59,14 +73,14 @@ Use timestamps for system events:
 - `updatedAt`
 - `archivedAt`
 
-Future business dates should be modeled separately from timestamps:
+Business dates are modeled separately from timestamps:
 
 - move-in date
 - move-out date
 - billing month
 - meter-reading date
 
-Business dates should use date-only fields or explicit month fields where the time of day is not meaningful. User-facing timezone handling should be decided at the module boundary when those future modules are implemented.
+Move-in, move-out, occupant start, and occupant end use PostgreSQL `DATE` with half-open semantics. A record is current on date `D` when its start is on or before `D` and its end is null or later than `D`. Adjacent periods therefore do not overlap. Future billing months and meter-reading dates should likewise avoid timestamps where time of day is not meaningful.
 
 ## Folder Structure
 
@@ -76,6 +90,8 @@ Business dates should use date-only fields or explicit month fields where the ti
 - `src/modules/property/domain` contains property module types, validation, and pure business rules.
 - `src/modules/property/server` contains property module database queries and mutations.
 - `src/modules/property/components` contains property module UI.
+- `src/modules/people` contains the independent Person domain, identity validation, protected citizen-ID service, and persistence operations.
+- `src/modules/tenancy` owns move-in, move-out, dated occupancy queries, and tenancy UI actions.
 - `prisma` contains schema, migrations, and seed data.
 
 This keeps business behavior near the feature that owns it without adding generic repository abstractions before they are needed.
@@ -107,9 +123,8 @@ Only Phase 1 data appears in the overlays and panel: name, type, floor, record a
 
 ## Future Module Readiness
 
-The Phase 1 schema leaves clear extension points:
+The schema leaves clear extension points:
 
-- `Space -> Tenancy`
 - `Space -> Assets`
 - `Space -> Meters`
 - `Space -> Tasks`
@@ -131,3 +146,13 @@ Reserved for future object storage:
 - `S3_SECRET_ACCESS_KEY`
 
 No secrets should be committed. `.env.example` documents the expected shape.
+
+## Private Person Media
+
+Avatar and citizen-ID front/back images use three explicit private media slots on Person. Their storage keys contain only the Person ID, fixed document kind, a UUID, and a detected extension. Files are stored under `PRIVATE_DATA_DIR`, outside Next.js `public`, and Docker mounts that location as the persistent `private-data` volume. A provider-neutral `PrivateStorage` interface isolates the local filesystem adapter so S3-compatible storage can replace it later without changing Person or tenancy semantics.
+
+Uploads accept JPEG, PNG, and WebP, enforce an 8 MB limit, compare declared MIME type with file signatures, and resolve only validated opaque keys beneath the configured root. Replacement writes the new object before changing the database reference, then removes the old object on a best-effort basis so a cleanup problem cannot destroy the valid image. Application routes stream thumbnails and previews with private, no-store and nosniff headers; raw storage paths never leave the server.
+
+Citizen-ID plaintext is decrypted only by an explicit reveal server action addressed by Person ID. It is absent from normal queries and initial page payloads, URLs, browser storage, and logs. The client retains a revealed value only in component memory and discards it on Hide, profile change, unmount, or refresh. Encryption and lookup-HMAC keys remain server-only.
+
+Authentication remains intentionally deferred. Any deployment containing real identity data or documents must remain on a trusted private network until access control is implemented.

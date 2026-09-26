@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { MotionConfig } from "motion/react";
 import {
   ChevronDown,
@@ -17,21 +18,27 @@ import {
   ArrowRight,
   Search,
   Settings,
+  Users,
+  CalendarDays,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { archiveSpaceAction, deleteSpaceAction } from "../actions";
 import {
   SPACE_TYPE_LABELS,
   type DashboardProperty,
   type DashboardFloor,
   type DashboardSpace,
+  type DashboardPersonOption,
 } from "../domain/types";
+import {
+  AddOccupantDialog,
+  CancelScheduledMoveOutButton,
+  CancelUpcomingMoveInButton,
+  EndOccupancyDialog,
+  MoveInDialog,
+  MoveOutDialog,
+} from "@/modules/tenancy/components/tenancy-dialogs";
 import { BuildingCanvas } from "./building-canvas";
 import {
   PropertyFormDialog,
@@ -81,14 +88,19 @@ function useSidebarCollapsed() {
 const navigationGroups = [
   {
     label: "Property",
-    items: [{ label: "Building", href: "#building", icon: Building2 }],
+    items: [
+      { label: "Building", href: "/", icon: Building2 },
+      { label: "Tenants", href: "/tenants", icon: Users },
+    ],
   },
 ] as const;
 
 export function PropertyDashboard({
   property,
+  people,
 }: {
   property: DashboardProperty;
+  people: DashboardPersonOption[];
 }) {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [editing, setEditing] = React.useState(false);
@@ -251,7 +263,11 @@ export function PropertyDashboard({
                     >
                       <X size={18} />
                     </button>
-                    <SpaceDetails key={selected.space.id} {...selected} />
+                    <SpaceDetails
+                      key={selected.space.id}
+                      {...selected}
+                      people={people}
+                    />
                   </>
                 ) : (
                   <div className="panel-empty">
@@ -265,49 +281,42 @@ export function PropertyDashboard({
             )}
           </div>
         </div>
-        {!desktop && (
-          <Dialog
-            open={Boolean(selected)}
-            onOpenChange={(open) => {
-              if (!open) close();
-            }}
-          >
-            <DialogContent
+        {!desktop && selected && (
+          <div className="mobile-space-layer">
+            <button
+              type="button"
+              className="mobile-space-backdrop"
+              aria-label="Close space details"
+              onClick={close}
+            />
+            <section
               className="space-sheet"
-              style={{
-                left: 0,
-                top: "auto",
-                bottom: 0,
-                width: "100%",
-                maxWidth: "none",
-                maxHeight: "85dvh",
-                transform: "none",
-                translate: "none",
-                overflowY: "auto",
-              }}
-              onCloseAutoFocus={(event) => {
-                event.preventDefault();
-                lastSelected.current?.focus();
-              }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${selected.space.name} details`}
             >
-              <DialogTitle className="sr-only">
-                {selected?.space.name ?? "Space details"}
-              </DialogTitle>
-              <DialogDescription className="sr-only">
-                Space information and management
-              </DialogDescription>
-              {selected && (
-                <SpaceDetails key={selected.space.id} {...selected} />
-              )}
-            </DialogContent>
-          </Dialog>
+              <button
+                type="button"
+                className="panel-close"
+                onClick={close}
+                aria-label="Close space details"
+              >
+                <X />
+              </button>
+              <SpaceDetails
+                key={selected.space.id}
+                {...selected}
+                people={people}
+              />
+            </section>
+          </div>
         )}
       </main>
     </MotionConfig>
   );
 }
 
-function AppSidebar({
+export function AppSidebar({
   property,
   collapsed,
   mobile = false,
@@ -320,6 +329,7 @@ function AppSidebar({
   onCollapsedChange?: (collapsed: boolean) => void;
   onClose?: () => void;
 }) {
+  const pathname = usePathname();
   return (
     <aside
       className={`property-sidebar${mobile ? " mobile-sidebar" : ""}`}
@@ -348,16 +358,16 @@ function AppSidebar({
             {group.items.map((item) => {
               const Icon = item.icon;
               return (
-                <a
+                <Link
                   key={item.href}
                   href={item.href}
-                  className="sidebar-nav-item is-active"
+                  className={`sidebar-nav-item${pathname === item.href ? " is-active" : ""}`}
                   title={collapsed ? item.label : undefined}
                   onClick={onClose}
                 >
                   <Icon aria-hidden="true" />
                   <span>{item.label}</span>
-                </a>
+                </Link>
               );
             })}
           </div>
@@ -447,19 +457,138 @@ function AddMenu({
 function SpaceDetails({
   floor,
   space,
+  people,
 }: {
   floor: DashboardFloor;
   space: DashboardSpace;
+  people: DashboardPersonOption[];
 }) {
+  const isRoom = space.type === "ROOM";
+  const occupied = Boolean(space.occupancy);
   return (
     <div className="space-details">
       <p className="eyebrow">SPACE OVERVIEW</p>
       <h2>{space.name}</h2>
       <p className="space-type">{SPACE_TYPE_LABELS[space.type]}</p>
-      <div className="active-status">
-        <i />
-        Active
-      </div>
+      {isRoom ? (
+        <div
+          className={`active-status ${occupied ? "status-occupied" : "status-available"}`}
+        >
+          <span>
+            <i />
+            {occupied ? "Occupied" : "Available"}
+          </span>
+          <small>
+            {occupied
+              ? `${space.occupancy?.occupantCount} ${space.occupancy?.occupantCount === 1 ? "person" : "people"} living here`
+              : space.upcomingOccupancy
+                ? "No current tenant"
+                : "No current or upcoming tenant"}
+          </small>
+        </div>
+      ) : (
+        <div className="active-status non-rental-status">Active space</div>
+      )}
+      {isRoom && space.occupancy?.moveOutDate && (
+        <ScheduledEvent
+          kind="move-out"
+          details={[["Move-out", formatDate(space.occupancy.moveOutDate)]]}
+          action={
+            <CancelScheduledMoveOutButton
+              tenancyId={space.occupancy.tenancyId}
+            />
+          }
+        />
+      )}
+      {isRoom && !space.occupancy && space.upcomingOccupancy && (
+        <ScheduledEvent
+          kind="move-in"
+          details={[
+            [
+              "Responsible",
+              space.upcomingOccupancy.responsible?.fullName ?? "Not assigned",
+            ],
+            ["Move-in", formatDate(space.upcomingOccupancy.moveInDate)],
+            [
+              "Expected occupants",
+              String(space.upcomingOccupancy.occupantCount),
+            ],
+          ]}
+          action={
+            <CancelUpcomingMoveInButton
+              tenancyId={space.upcomingOccupancy.tenancyId}
+            />
+          }
+        />
+      )}
+      {isRoom && space.occupancy && (
+        <>
+          <section className="tenancy-summary">
+            <h3>Current tenancy</h3>
+            <dl>
+              <DetailLine
+                label="Move-in"
+                value={formatDate(space.occupancy.moveInDate)}
+              />
+              <DetailLine
+                label="Monthly rent"
+                value={formatVnd(space.occupancy.monthlyRentVnd)}
+              />
+              <DetailLine
+                label="Deposit"
+                value={
+                  space.occupancy.depositVnd
+                    ? formatVnd(space.occupancy.depositVnd)
+                    : "Not recorded"
+                }
+              />
+            </dl>
+            {space.occupancy.moveInNotes && (
+              <p className="space-notes">{space.occupancy.moveInNotes}</p>
+            )}
+          </section>
+          <section className="occupants-section">
+            <div className="section-heading-row">
+              <h3>Occupants ({space.occupancy.occupantCount})</h3>
+              <AddOccupantDialog
+                compact
+                space={space}
+                people={people.filter(
+                  (person) =>
+                    !space.occupancy?.occupants.some(
+                      (occupant) => occupant.personId === person.id,
+                    ),
+                )}
+              />
+            </div>
+            <div className="occupant-summary">
+              {space.occupancy.occupants.reverse().map((occupant) => (
+                <p key={`${occupant.personId}-${occupant.startDate}`}>
+                  <span>
+                    <strong>{occupant.fullName}</strong>
+                    {occupant.role === "RESPONSIBLE" ?
+                      <small className="!text-emerald-700">
+                        Responsible
+                      </small>
+                      :
+                      <small>
+                        Additional
+                      </small>
+                    }
+                    
+                  </span>
+                  {occupant.role === "ADDITIONAL" && (
+                    <EndOccupancyDialog
+                      membershipId={occupant.membershipId}
+                      personName={occupant.fullName}
+                    />
+                  )}
+                </p>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
       <section>
         <h3>Basic information</h3>
         <dl>
@@ -474,6 +603,14 @@ function SpaceDetails({
         <p className="space-notes">{space.notes || "No notes"}</p>
       </section>
       <div className="space-management">
+        {isRoom &&
+          (space.occupancy ? (
+            <>
+              {!space.occupancy.moveOutDate && <MoveOutDialog space={space} />}
+            </>
+          ) : !space.upcomingOccupancy ? (
+            <MoveInDialog space={space} people={people} />
+          ) : null)}
         <SpaceFormDialog
           mode="edit"
           floor={floor}
@@ -513,6 +650,49 @@ function SpaceDetails({
       </div>
     </div>
   );
+}
+
+function ScheduledEvent({
+  kind,
+  details,
+  action,
+}: {
+  kind: "move-in" | "move-out";
+  details: Array<[label: string, value: string]>;
+  action: React.ReactNode;
+}) {
+  const Icon = kind === "move-in" ? CalendarDays : LogOut;
+  return (
+    <section className={`scheduled-event scheduled-${kind}`}>
+      <div className="scheduled-event-title">
+        <span className="scheduled-event-icon">
+          <Icon aria-hidden="true" />
+        </span>
+        <h3>
+          {kind === "move-in" ? "Upcoming move-in" : "Scheduled move-out"}
+        </h3>
+      </div>
+      <dl>
+        {details.map(([label, value]) => (
+          <DetailLine key={label} label={label} value={value} />
+        ))}
+      </dl>
+      {action}
+    </section>
+  );
+}
+
+function formatVnd(value: string) {
+  return `${new Intl.NumberFormat("vi-VN").format(BigInt(value))} đ`;
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T00:00:00.000Z`));
 }
 
 function DetailLine({ label, value }: { label: string; value: string }) {

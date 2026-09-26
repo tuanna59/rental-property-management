@@ -25,8 +25,14 @@ services:
     environment:
       DATABASE_URL: postgresql://rental_user:rental_password@postgres:5432/rental_house?schema=public
       NODE_ENV: production
+      PRIVATE_DATA_DIR: /app/private-data
+      PERSON_CITIZEN_ID_ENCRYPTION_KEY: ${PERSON_CITIZEN_ID_ENCRYPTION_KEY}
+      PERSON_CITIZEN_ID_LOOKUP_HMAC_KEY: ${PERSON_CITIZEN_ID_LOOKUP_HMAC_KEY}
     ports:
       - "3000:3000"
+    volumes:
+      - private-data:/app/private-data
 
 volumes:
   postgres-data:
+  private-data:

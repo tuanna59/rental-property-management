@@ -17,6 +17,11 @@ enum SpaceType {
   OTHER
 }
 
+enum TenancyOccupantRole {
+  RESPONSIBLE
+  ADDITIONAL
+}
+
 model Property {
   id           String    @id @default(cuid())
   name         String
@@ -56,10 +61,68 @@ model Space {
   name       String
   sortOrder  Int
   notes      String?
+  tenancies  Tenancy[]
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   archivedAt DateTime?
 
   @@index([floorId, archivedAt, sortOrder])
   @@index([type])
+}
+
+model Person {
+  id                  String            @id @default(cuid())
+  fullName            String
+  phone               String?
+  phoneNormalized     String?
+  dateOfBirth         DateTime?         @db.Date
+  citizenIdEncrypted  String?
+  citizenIdLookupHash String?           @unique
+  citizenIdLast4      String?
+  avatarStorageKey    String?
+  citizenIdFrontKey   String?
+  citizenIdBackKey    String?
+  notes               String?
+  tenancyOccupancies  TenancyOccupant[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  archivedAt          DateTime?
+
+  @@index([phoneNormalized])
+  @@index([archivedAt, createdAt])
+}
+
+model Tenancy {
+  id             String            @id @default(cuid())
+  spaceId        String
+  space          Space             @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  moveInDate     DateTime          @db.Date
+  moveOutDate    DateTime?         @db.Date
+  monthlyRentVnd BigInt
+  depositVnd     BigInt?
+  moveInNotes    String?
+  moveOutNotes   String?
+  occupants      TenancyOccupant[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([spaceId, moveInDate])
+}
+
+model TenancyOccupant {
+  id        String              @id @default(cuid())
+  tenancyId String
+  tenancy   Tenancy             @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
+  personId  String
+  person    Person              @relation(fields: [personId], references: [id], onDelete: Restrict)
+  role      TenancyOccupantRole
+  startDate DateTime            @db.Date
+  endDate   DateTime?           @db.Date
+  endedByTenancyMoveOut Boolean @default(false)
+  notes     String?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@index([tenancyId, startDate])
+  @@index([personId, startDate])
 }

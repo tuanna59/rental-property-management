@@ -2,7 +2,7 @@
 
 import { useId, type CSSProperties } from "react";
 import { motion } from "motion/react";
-import { Building2, Plus } from "lucide-react";
+import { Building2, CalendarDays, LogOut, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -202,27 +202,81 @@ function SpaceVisual({
     >
       <RoomInterior type={space.type} variant={variant} />
       <span className="space-light" aria-hidden="true" />
-      <SpaceOverlay name={space.name} />
+      <SpaceOverlay
+        name={space.name}
+        room={space.type === "ROOM"}
+        occupantName={space.occupancy?.responsible?.fullName}
+        occupantCount={space.occupancy?.occupantCount}
+        scheduledDate={
+          space.occupancy?.moveOutDate ??
+          space.upcomingOccupancy?.moveInDate ??
+          undefined
+        }
+        scheduledKind={
+          space.occupancy?.moveOutDate
+            ? "move-out"
+            : space.upcomingOccupancy
+              ? "move-in"
+              : undefined
+        }
+      />
     </button>
   );
 }
 
 function SpaceOverlay({
   name,
-  secondary,
+  room,
+  occupantName,
+  occupantCount,
+  scheduledDate,
+  scheduledKind,
 }: {
   name: string;
-  secondary?: string;
+  room: boolean;
+  occupantName?: string;
+  occupantCount?: number;
+  scheduledDate?: string;
+  scheduledKind?: "move-in" | "move-out";
 }) {
+  const occupied = occupantCount !== undefined;
+  const ScheduledIcon = scheduledKind === "move-out" ? LogOut : CalendarDays;
   return (
-    <span className="space-overlay">
-      <i aria-hidden="true" />
+    <span className={cn("space-overlay", room && "rental-room-overlay")}>
       <span className="overlay-copy">
-        <strong>{name}</strong>
-        {secondary && <small>{secondary}</small>}
+        <span className="overlay-heading">
+          <strong>{name}</strong>
+          {scheduledDate && scheduledKind && (
+            <span className={cn("overlay-event", `event-${scheduledKind}`)}>
+              <ScheduledIcon aria-hidden="true" />
+              <span>{formatCompactDate(scheduledDate)}</span>
+            </span>
+          )}
+        </span>
+        {room && (
+          <small
+            className={cn(
+              "overlay-status",
+              occupied ? "status-occupied" : "status-available",
+            )}
+          >
+            <i aria-hidden="true" />
+            {occupied
+              ? `${occupantCount} ${occupantCount === 1 ? "person" : "people"}`
+              : "Available"}
+          </small>
+        )}
       </span>
     </span>
   );
+}
+
+function formatCompactDate(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T00:00:00.000Z`));
 }
 
 function RoomInterior({

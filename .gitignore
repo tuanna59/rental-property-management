@@ -19,6 +19,7 @@
 
 # production
 /build
+/private-data
 
 # misc
 .DS_Store

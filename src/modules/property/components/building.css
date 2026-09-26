@@ -451,12 +451,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
   background: #fffffff2;
   box-shadow: 0 3px 10px #283b3329;
   color: #35473a;
   border: 1px solid #ffffff;
-  padding: 7px 11px;
+  padding: 7px 10px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
@@ -465,29 +464,79 @@
   line-height: 1.25;
 }
 .overlay-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
+}
+.overlay-heading {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
-  overflow-wrap: anywhere;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   min-width: 0;
 }
 .overlay-copy strong {
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .overlay-copy small {
   font-size: 10px;
   font-weight: 400;
   color: #66776a;
 }
-.space-overlay i,
+.rental-room-overlay {
+  min-width: min(132px, calc(100% - 20px));
+}
+.overlay-event {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.overlay-event svg {
+  width: 11px;
+  height: 11px;
+}
+.overlay-event.event-move-in {
+  color: #276aa7;
+}
+.overlay-event.event-move-out {
+  color: #b14945;
+}
+.overlay-occupant {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.overlay-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.overlay-status i,
 .active-status i,
 .canvas-legend i {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #59886a;
   flex-shrink: 0;
   display: inline-block;
+}
+.overlay-status.status-available i,
+.active-status.status-available i {
+  background: #d99b27;
+}
+.overlay-status.status-occupied i,
+.active-status.status-occupied i,
+.canvas-legend i {
+  background: #37915d;
 }
 .is-selected .space-overlay {
   background: #f5f9ee;
@@ -648,12 +697,31 @@
   margin-top: 8px;
 }
 .active-status {
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-  color: #507455;
-  font-size: 11px;
+  display: grid;
+  gap: 4px;
   margin: 17px 0 26px;
+}
+.active-status > span {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 650;
+}
+.active-status.status-occupied > span {
+  color: #34704d;
+}
+.active-status.status-available > span {
+  color: #8c641f;
+}
+.active-status small {
+  color: #78857e;
+  font-size: 11px;
+}
+.non-rental-status {
+  display: block;
+  color: #718075;
+  font-size: 11px;
 }
 .space-details h3 {
   font-size: 12px;
@@ -680,6 +748,56 @@
 .space-details section + section {
   margin-top: 24px;
 }
+.scheduled-event {
+  padding: 13px 14px;
+  border: 1px solid;
+  border-left-width: 3px;
+  border-radius: 5px;
+}
+.scheduled-event.scheduled-move-in {
+  border-color: #bed3e8;
+  border-left-color: #397bb8;
+  background: #f1f7fc;
+}
+.scheduled-event.scheduled-move-out {
+  border-color: #e8c8c5;
+  border-left-color: #bf514a;
+  background: #fcf3f2;
+}
+.scheduled-event-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 7px;
+}
+.scheduled-event-title h3 {
+  margin: 0;
+}
+.scheduled-event-icon {
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+}
+.scheduled-event-icon svg {
+  width: 15px;
+  height: 15px;
+}
+.scheduled-move-in .scheduled-event-icon {
+  color: #276aa7;
+  background: #dcecf8;
+}
+.scheduled-move-out .scheduled-event-icon {
+  color: #a63d38;
+  background: #f5dfdd;
+}
+.scheduled-event .detail-line {
+  border-color: color-mix(in srgb, currentColor 14%, transparent);
+}
+.scheduled-event .cancellation-action button {
+  background: #fff;
+}
 .space-notes {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -689,12 +807,112 @@
 }
 .space-management {
   margin-top: 28px;
+  display: grid;
+  gap: 10px;
 }
 .space-secondary-actions {
   display: flex;
   justify-content: center;
   gap: 12px;
   margin-top: 10px;
+}
+.occupant-summary {
+  display: grid;
+  gap: 7px;
+  margin-top: 8px;
+}
+.occupant-summary p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid #edf0e9;
+}
+.occupant-summary p > span {
+  display: grid;
+}
+.occupant-summary p small {
+  color: #748075;
+  font-size: 10px;
+}
+.occupant-summary span {
+  color: #748075;
+  text-align: left;
+}
+.section-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid #e7ebe6;
+  padding-bottom: 7px;
+}
+.section-heading-row h3 {
+  margin: 0;
+}
+.occupant-add-button {
+  height: 30px;
+  padding: 0 7px;
+  color: #32684c;
+  font-size: 11px;
+}
+.occupant-add-button svg {
+  width: 14px;
+}
+.cancellation-action {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+.tenancy-form {
+  display: grid;
+  gap: 16px;
+}
+.tenancy-form select {
+  height: 40px;
+  border: 1px solid #d8ded8;
+  border-radius: 5px;
+  background: white;
+  padding: 0 11px;
+  font-size: 14px;
+}
+.new-person-fields {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+  padding: 14px;
+  background: #f4f7f4;
+}
+.new-person-fields > :last-child {
+  grid-column: 1 / -1;
+}
+.occupant-picker {
+  display: grid;
+  gap: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid #dce3de;
+}
+.occupant-picker legend {
+  padding: 0 5px;
+  font-size: 12px;
+  font-weight: 650;
+}
+.occupant-picker label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.form-error {
+  color: #a43d32;
+  font-size: 12px;
+}
+.form-success {
+  color: #267551;
+  font-size: 12px;
 }
 .canvas-legend {
   display: flex;
@@ -771,15 +989,28 @@
     flex-shrink: 1;
   }
   .space-sheet {
-    top: auto;
-    bottom: 0;
-    left: 0;
-    transform: none;
+    position: fixed;
+    z-index: 52;
+    inset: auto 0 0;
     width: 100%;
     max-width: none;
     max-height: 85dvh;
     overflow-y: auto;
+    padding: 26px 22px;
+    background: white;
     border-radius: 8px 8px 0 0;
+  }
+  .mobile-space-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+  }
+  .mobile-space-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: #12231d80;
   }
   .space-details {
     max-width: 560px;

@@ -9,6 +9,7 @@ import {
   assertSpaceBelongsToFloor,
   moveOrderedId,
   nextSortOrder,
+  DomainError,
 } from "../domain/rules";
 
 async function orderedTransaction<T>(
@@ -259,9 +260,27 @@ export async function reorderSpace(input: {
 }
 
 export async function archiveSpace(input: { spaceId: string }) {
-  await prisma.space.update({
-    where: { id: input.spaceId, archivedAt: null },
-    data: { archivedAt: new Date() },
+  await orderedTransaction(async (tx) => {
+    const now = new Date();
+    const businessDate = new Date(
+      Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()),
+    );
+    const currentOrUpcomingTenancy = await tx.tenancy.findFirst({
+      where: {
+        spaceId: input.spaceId,
+        OR: [{ moveOutDate: null }, { moveOutDate: { gt: businessDate } }],
+      },
+      select: { id: true },
+    });
+    if (currentOrUpcomingTenancy) {
+      throw new DomainError(
+        "A room with a current or upcoming tenancy cannot be archived.",
+      );
+    }
+    await tx.space.update({
+      where: { id: input.spaceId, archivedAt: null },
+      data: { archivedAt: new Date() },
+    });
   });
 }
 
