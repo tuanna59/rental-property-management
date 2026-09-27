@@ -23,6 +23,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatDate, formatVnd } from "@/lib/presentation";
 import { archiveSpaceAction, deleteSpaceAction } from "../actions";
 import {
   SPACE_TYPE_LABELS,
@@ -562,20 +563,15 @@ function SpaceDetails({
               />
             </div>
             <div className="occupant-summary">
-              {space.occupancy.occupants.reverse().map((occupant) => (
+              {[...space.occupancy.occupants].reverse().map((occupant) => (
                 <p key={`${occupant.personId}-${occupant.startDate}`}>
                   <span>
                     <strong>{occupant.fullName}</strong>
-                    {occupant.role === "RESPONSIBLE" ?
-                      <small className="!text-emerald-700">
-                        Responsible
-                      </small>
-                      :
-                      <small>
-                        Additional
-                      </small>
-                    }
-                    
+                    {occupant.role === "RESPONSIBLE" ? (
+                      <small className="!text-emerald-700">Responsible</small>
+                    ) : (
+                      <small>Additional</small>
+                    )}
                   </span>
                   {occupant.role === "ADDITIONAL" && (
                     <EndOccupancyDialog
@@ -680,19 +676,6 @@ function ScheduledEvent({
       {action}
     </section>
   );
-}
-
-function formatVnd(value: string) {
-  return `${new Intl.NumberFormat("vi-VN").format(BigInt(value))} đ`;
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${value}T00:00:00.000Z`));
 }
 
 function DetailLine({ label, value }: { label: string; value: string }) {

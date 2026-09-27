@@ -5,7 +5,7 @@ import { PropertyDashboard } from "@/modules/property/components/property-dashbo
 import {
   getActivePersonOptions,
   getPrimaryPropertyDashboard,
-} from "@/modules/property/server/queries";
+} from "@/modules/property/server/property.queries";
 
 export const dynamic = "force-dynamic";
 

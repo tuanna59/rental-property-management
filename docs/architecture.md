@@ -88,10 +88,11 @@ Move-in, move-out, occupant start, and occupant end use PostgreSQL `DATE` with h
 - `src/components/ui` contains shared UI primitives.
 - `src/lib` contains app-wide utilities and infrastructure clients.
 - `src/modules/property/domain` contains property module types, validation, and pure business rules.
-- `src/modules/property/server` contains property module database queries and mutations.
+- Each module's `server/*.service.ts` file contains its application commands; `actions.ts` only validates request input, calls those commands, and revalidates the affected views.
+- Each module's `server/*.queries.ts` file owns read projections. The property query returns a `BuildingProjection`, so the building UI does not receive a Prisma relation graph.
 - `src/modules/property/components` contains property module UI.
-- `src/modules/people` contains the independent Person domain, identity validation, protected citizen-ID service, and persistence operations.
-- `src/modules/tenancy` owns move-in, move-out, dated occupancy queries, and tenancy UI actions.
+- `src/modules/people` contains the independent Person domain, identity validation, protected citizen-ID capability, and people service/query boundaries.
+- `src/modules/tenancy` owns move-in, move-out, dated occupancy queries, and tenancy UI actions. Its service retains the serializable transaction boundary.
 - `prisma` contains schema, migrations, and seed data.
 
 This keeps business behavior near the feature that owns it without adding generic repository abstractions before they are needed.

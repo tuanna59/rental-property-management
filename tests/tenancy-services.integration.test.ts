@@ -9,7 +9,7 @@ import {
   getCurrentOccupancyBySpaceIds,
   getCurrentResponsiblePerson,
   getCurrentTenancyForSpace,
-} from "../src/modules/tenancy/server/queries";
+} from "../src/modules/tenancy/server/tenancy.queries";
 import {
   addAdditionalOccupant,
   cancelScheduledMoveOut,
@@ -18,7 +18,7 @@ import {
   moveAdditionalOccupant,
   moveIn,
   moveOut,
-} from "../src/modules/tenancy/server/services";
+} from "../src/modules/tenancy/server/tenancy.service";
 
 const fixturePrefix = "Phase 2A.3 Fictional";
 const day = (value: string) => new Date(`${value}T00:00:00.000Z`);

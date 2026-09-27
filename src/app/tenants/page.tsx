@@ -1,6 +1,6 @@
 import { PeopleDirectory } from "@/modules/people/components/people-directory";
-import { getPeopleDirectory } from "@/modules/people/server/queries";
-import { getPrimaryPropertyDashboard } from "@/modules/property/server/queries";
+import { getPeopleDirectory } from "@/modules/people/server/people.queries";
+import { getPrimaryPropertyDashboard } from "@/modules/property/server/property.queries";
 
 export const dynamic = "force-dynamic";
 

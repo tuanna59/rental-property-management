@@ -71,3 +71,6 @@ export type DashboardProperty = {
   country: string | null;
   floors: DashboardFloor[];
 };
+
+/** Screen-oriented building data. Prisma payloads never cross into the UI. */
+export type BuildingProjection = DashboardProperty;

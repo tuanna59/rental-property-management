@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { Building2, CalendarDays, LogOut, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { formatCompactDate } from "@/lib/presentation";
 import {
   SPACE_TYPE_LABELS,
   type DashboardFloor,
@@ -205,7 +206,6 @@ function SpaceVisual({
       <SpaceOverlay
         name={space.name}
         room={space.type === "ROOM"}
-        occupantName={space.occupancy?.responsible?.fullName}
         occupantCount={space.occupancy?.occupantCount}
         scheduledDate={
           space.occupancy?.moveOutDate ??
@@ -227,14 +227,12 @@ function SpaceVisual({
 function SpaceOverlay({
   name,
   room,
-  occupantName,
   occupantCount,
   scheduledDate,
   scheduledKind,
 }: {
   name: string;
   room: boolean;
-  occupantName?: string;
   occupantCount?: number;
   scheduledDate?: string;
   scheduledKind?: "move-in" | "move-out";
@@ -269,14 +267,6 @@ function SpaceOverlay({
       </span>
     </span>
   );
-}
-
-function formatCompactDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${value}T00:00:00.000Z`));
 }
 
 function RoomInterior({

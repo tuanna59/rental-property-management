@@ -11,5 +11,5 @@ export {
   getCurrentOccupancyBySpaceIds,
   getCurrentResponsiblePerson,
   getCurrentTenancyForSpace,
-} from "./server/queries";
-export { moveIn, moveOut } from "./server/services";
+} from "./server/tenancy.queries";
+export { moveIn, moveOut } from "./server/tenancy.service";

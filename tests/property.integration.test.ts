@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "../src/lib/prisma";
-import * as mutations from "../src/modules/property/server/mutations";
+import * as mutations from "../src/modules/property/server/property.service";
 
 let propertyId: string;
 let floorId: string;

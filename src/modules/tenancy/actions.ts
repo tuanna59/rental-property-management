@@ -3,20 +3,20 @@
 import { revalidatePath } from "next/cache";
 
 import type { ActionState } from "@/lib/action-state";
-import { createPerson } from "@/modules/people/server/mutations";
 import { PeopleDomainError } from "@/modules/people/domain/identity";
-import { prisma } from "@/lib/prisma";
 
 import { TenancyDomainError } from "./domain/errors";
 import {
   addAdditionalOccupant,
+  addNewAdditionalOccupant,
   cancelScheduledMoveOut,
   cancelUpcomingMoveIn,
   endAdditionalOccupancy,
   moveAdditionalOccupant,
   moveIn,
+  moveInWithNewResponsible,
   moveOut,
-} from "./server/services";
+} from "./server/tenancy.service";
 
 function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -26,52 +26,54 @@ export async function moveInAction(
   _state: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  let createdPersonId: string | null = null;
   try {
-    let responsiblePersonId = value(formData, "responsiblePersonId");
-    if (responsiblePersonId === "__new") {
-      const created = await createPerson({
-        fullName: value(formData, "newPersonName"),
-        phone: value(formData, "newPersonPhone") || undefined,
-        citizenId: value(formData, "newPersonCitizenId") || undefined,
-      });
-      responsiblePersonId = created.id;
-      createdPersonId = created.id;
-    }
     const moveOutDate = value(formData, "moveOutDate") || null;
     const startDate = value(formData, "moveInDate");
-    const occupants = [
-      {
-        personId: responsiblePersonId,
-        role: "RESPONSIBLE" as const,
-        startDate,
-        endDate: moveOutDate,
-      },
-      ...formData.getAll("additionalPersonIds").map((personId) => ({
-        personId: String(personId),
-        role: "ADDITIONAL" as const,
-        startDate,
-        endDate: moveOutDate,
-      })),
-    ];
-    await moveIn({
+    const baseInput = {
       spaceId: value(formData, "spaceId"),
       moveInDate: startDate,
       moveOutDate,
       monthlyRentVnd: value(formData, "monthlyRentVnd"),
       depositVnd: value(formData, "depositVnd") || null,
       moveInNotes: value(formData, "moveInNotes") || undefined,
-      occupants,
-    });
+    };
+    const responsiblePersonId = value(formData, "responsiblePersonId");
+    if (responsiblePersonId === "__new") {
+      await moveInWithNewResponsible({
+        ...baseInput,
+        person: {
+          fullName: value(formData, "newPersonName"),
+          phone: value(formData, "newPersonPhone") || undefined,
+          citizenId: value(formData, "newPersonCitizenId") || undefined,
+        },
+        responsible: { role: "RESPONSIBLE", startDate, endDate: moveOutDate },
+        additionalPersonIds: formData.getAll("additionalPersonIds").map(String),
+      });
+    } else {
+      await moveIn({
+        ...baseInput,
+        occupants: [
+          {
+            personId: responsiblePersonId,
+            role: "RESPONSIBLE",
+            startDate,
+            endDate: moveOutDate,
+          },
+          ...formData
+            .getAll("additionalPersonIds")
+            .map((personId) => ({
+              personId: String(personId),
+              role: "ADDITIONAL" as const,
+              startDate,
+              endDate: moveOutDate,
+            })),
+        ],
+      });
+    }
     revalidatePath("/");
     revalidatePath("/tenants");
     return { ok: true, message: "Move-in recorded." };
   } catch (error) {
-    if (createdPersonId) {
-      await prisma.person
-        .delete({ where: { id: createdPersonId } })
-        .catch(() => undefined);
-    }
     if (
       error instanceof TenancyDomainError ||
       error instanceof PeopleDomainError
@@ -130,31 +132,26 @@ export async function addOccupantAction(
   _state: ActionState,
   formData: FormData,
 ) {
-  let createdPersonId: string | null = null;
   return tenancyAction(async () => {
-    let personId = value(formData, "personId");
+    const occupancy = {
+      tenancyId: value(formData, "tenancyId"),
+      startDate: value(formData, "startDate"),
+      notes: value(formData, "notes") || undefined,
+    };
+    const personId = value(formData, "personId");
     if (personId === "__new") {
-      const created = await createPerson({
-        fullName: value(formData, "newPersonName"),
-        phone: value(formData, "newPersonPhone") || undefined,
-      });
-      personId = created.id;
-      createdPersonId = created.id;
-    }
-    try {
+      await addNewAdditionalOccupant(
+        {
+          fullName: value(formData, "newPersonName"),
+          phone: value(formData, "newPersonPhone") || undefined,
+        },
+        occupancy,
+      );
+    } else {
       await addAdditionalOccupant({
-        tenancyId: value(formData, "tenancyId"),
+        ...occupancy,
         personId,
-        startDate: value(formData, "startDate"),
-        notes: value(formData, "notes") || undefined,
       });
-    } catch (error) {
-      if (createdPersonId) {
-        await prisma.person
-          .delete({ where: { id: createdPersonId } })
-          .catch(() => undefined);
-      }
-      throw error;
     }
   }, "Occupant added.");
 }

@@ -18,8 +18,8 @@ import {
   createPerson,
   restorePerson,
   updatePerson,
-} from "./server/mutations";
-import { revealPersonCitizenId } from "./server/queries";
+} from "./server/people.service";
+import { revealPersonCitizenId } from "./server/people.queries";
 
 async function personAction<T extends z.ZodType>(
   schema: T,

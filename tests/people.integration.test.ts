@@ -5,8 +5,8 @@ import {
   archivePerson,
   createPerson,
   updatePerson,
-} from "../src/modules/people/server/mutations";
-import { getPersonById } from "../src/modules/people/server/queries";
+} from "../src/modules/people/server/people.service";
+import { getPersonById } from "../src/modules/people/server/people.queries";
 
 const fixturePrefix = "Phase 2A Fictional";
 

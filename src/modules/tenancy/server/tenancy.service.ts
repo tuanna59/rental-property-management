@@ -1,4 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
+import { prisma } from "@/lib/prisma";
+import { createPerson } from "@/modules/people/server/people.service";
+import type { CreatePersonInput } from "@/modules/people/domain/types";
 
 import { TenancyDomainError } from "../domain/errors";
 import { assertMoveInRules, assertMoveOutRules } from "../domain/rules";
@@ -6,6 +9,7 @@ import type {
   AddOccupantInput,
   EndOccupancyInput,
   MoveInInput,
+  MoveInOccupantInput,
   MoveAdditionalOccupantInput,
   MoveOutInput,
   NormalizedMoveInInput,
@@ -16,6 +20,12 @@ import {
   normalizeBusinessDate,
 } from "../domain/validation";
 import { tenancyTransaction } from "./transaction";
+
+type MoveInWithNewResponsibleInput = Omit<MoveInInput, "occupants"> & {
+  person: CreatePersonInput;
+  responsible: Omit<MoveInOccupantInput, "personId">;
+  additionalPersonIds: string[];
+};
 
 type LockedPerson = { id: string; archivedAt: Date | null };
 
@@ -199,6 +209,37 @@ export async function moveIn(input: MoveInInput) {
   });
 }
 
+/** Creates an identity only when the move-in workflow successfully uses it. */
+export async function moveInWithNewResponsible(
+  input: MoveInWithNewResponsibleInput,
+) {
+  const created = await createPerson(input.person);
+  try {
+    return await moveIn({
+      spaceId: input.spaceId,
+      moveInDate: input.moveInDate,
+      moveOutDate: input.moveOutDate,
+      monthlyRentVnd: input.monthlyRentVnd,
+      depositVnd: input.depositVnd,
+      moveInNotes: input.moveInNotes,
+      occupants: [
+        { ...input.responsible, personId: created.id },
+        ...input.additionalPersonIds.map((personId) => ({
+          personId,
+          role: "ADDITIONAL" as const,
+          startDate: input.responsible.startDate,
+          endDate: input.responsible.endDate,
+        })),
+      ],
+    });
+  } catch (error) {
+    await prisma.person
+      .delete({ where: { id: created.id } })
+      .catch(() => undefined);
+    throw error;
+  }
+}
+
 export async function moveOut(input: MoveOutInput) {
   const normalized = normalizeMoveOutInput(input);
 
@@ -331,6 +372,22 @@ export async function addAdditionalOccupant(input: AddOccupantInput) {
       throw error;
     }
   });
+}
+
+/** Keeps the optional "new person" path inside the occupancy command workflow. */
+export async function addNewAdditionalOccupant(
+  person: CreatePersonInput,
+  occupancy: Omit<AddOccupantInput, "personId">,
+) {
+  const created = await createPerson(person);
+  try {
+    return await addAdditionalOccupant({ ...occupancy, personId: created.id });
+  } catch (error) {
+    await prisma.person
+      .delete({ where: { id: created.id } })
+      .catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function endAdditionalOccupancy(input: EndOccupancyInput) {

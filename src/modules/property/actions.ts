@@ -31,7 +31,7 @@ import {
   updateFloor,
   updateProperty,
   updateSpace,
-} from "./server/mutations";
+} from "./server/property.service";
 
 async function runAction<TSchema extends z.ZodType>(
   schema: TSchema,

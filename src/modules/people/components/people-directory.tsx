@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { emptyActionState, type ActionState } from "@/lib/action-state";
+import { formatDate, toDateOnly } from "@/lib/presentation";
 import type { DashboardProperty } from "@/modules/property/domain/types";
 import { AppSidebar } from "@/modules/property/components/property-dashboard";
 import {
@@ -644,12 +645,7 @@ function ProfileEmpty() {
   );
 }
 
-const isoDate = (value: Date) => new Date(value).toISOString().slice(0, 10);
-const formatDate = (value: Date) =>
-  new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeZone: "UTC",
-  }).format(new Date(value));
+const isoDate = toDateOnly;
 const roleLabel = (role: HistoryItem["role"]) =>
   role === "RESPONSIBLE" ? "Responsible renter" : "Additional occupant";
 const titleCase = (value: string) =>

@@ -1,12 +1,14 @@
 import { prisma } from "@/lib/prisma";
+import { toDateOnly } from "@/lib/presentation";
 import {
   getCurrentOccupancyBySpaceIds,
   getUpcomingOccupancyBySpaceIds,
-} from "@/modules/tenancy/server/queries";
+} from "@/modules/tenancy/server/tenancy.queries";
 
-import type { DashboardProperty } from "../domain/types";
+import type { BuildingProjection } from "../domain/types";
 
-export async function getPrimaryPropertyDashboard(): Promise<DashboardProperty | null> {
+/** Builds the read model consumed by the interactive building and space overview. */
+export async function getPrimaryPropertyDashboard(): Promise<BuildingProjection | null> {
   const property = await prisma.property.findFirst({
     where: { archivedAt: null },
     orderBy: { createdAt: "asc" },
@@ -78,8 +80,7 @@ function toDashboardOccupancy(
     : never,
 ) {
   if (!occupancy) return null;
-  const date = (value: Date | null) =>
-    value ? value.toISOString().slice(0, 10) : null;
+  const date = (value: Date | null) => (value ? toDateOnly(value) : null);
   return {
     tenancyId: occupancy.tenancyId,
     moveInDate: date(occupancy.moveInDate)!,
