@@ -51,16 +51,16 @@ const initialFloors = [
 ] as const;
 
 const initialPeople = [
-  "Nguyễn Văn An",
-  "Trần Minh Hoàng",
-  "Lê Quốc Bảo",
-  "Phạm Gia Huy",
-  "Võ Thanh Tùng",
-  "Đặng Minh Khang",
-  "Bùi Anh Tuấn",
-  "Nguyễn Thị Lan",
-  "Trần Ngọc Mai",
-  "Lê Thu Trang",
+  "Xuân Quỳnh",
+  "Hoàng Ni",
+  "Ben",
+  "Bin",
+  "Thẩm",
+  "Quang Thành",
+  "Hana",
+  "Linh",
+  "Quyên",
+  "Trọng Nghĩa",
 ] as const;
 
 async function ensurePropertySeedData() {

@@ -10,8 +10,32 @@ const decimal = z
       .regex(/^\d+(\.\d+)?$/),
   ])
   .transform(String);
+
+const businessMonthSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}$/, "Billing month must use YYYY-MM format.")
+  .transform((value, context) => {
+    const date = new Date(`${value}-01T00:00:00.000Z`);
+
+    if (
+      Number.isNaN(date.getTime()) ||
+      date.toISOString().slice(0, 7) !== value
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Billing month is invalid.",
+      });
+
+      return z.NEVER;
+    }
+
+    return date;
+  });
 export function date(value: string | Date) {
   return normalizeBusinessDate(value);
+}
+export function month(value: unknown) {
+  return businessMonthSchema.parse(value);
 }
 export function reading(value: string | number) {
   return decimal.parse(value);

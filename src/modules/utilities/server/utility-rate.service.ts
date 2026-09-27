@@ -1,7 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { monthStart } from "../domain/rules";
-import { date, reading, requiredText } from "../domain/validation";
+import { date, month, reading, requiredText } from "../domain/validation";
 import type { AddRateInput, ElectricityOverrideInput } from "../domain/types";
 
 export async function addRate(input: AddRateInput) {
@@ -47,7 +47,7 @@ export async function addRate(input: AddRateInput) {
 
 export async function setElectricityOverride(input: ElectricityOverrideInput) {
   requiredText(input.reason, "An override reason is required.");
-  const billingMonth = monthStart(date(input.billingMonth));
+  const billingMonth = monthStart(month(input.billingMonth));
   return prisma.electricityRateOverride.upsert({
     where: { spaceId_billingMonth: { spaceId: input.spaceId, billingMonth } },
     create: {
