@@ -58,6 +58,8 @@ const moveInSchema = z.object({
   monthlyRentVnd: vndSchema,
   depositVnd: optionalVndSchema,
   moveInNotes: optionalTextSchema,
+  electricityReading: z.union([z.string(), z.number()]).nullable().optional(),
+  electricityPhoto: z.instanceof(File).optional(),
   occupants: z.array(
     z.object({
       personId: idSchema,
@@ -73,6 +75,10 @@ const moveOutSchema = z.object({
   tenancyId: idSchema,
   moveOutDate: businessDateSchema,
   moveOutNotes: optionalTextSchema,
+  electricityReading: z.union([z.string(), z.number()]).nullable().optional(),
+  electricityPhoto: z.instanceof(File).optional(),
+  electricityReadingSource: z.enum(["MEASURED", "ESTIMATED"]).optional(),
+  electricityReadingReason: optionalTextSchema,
 });
 
 function invalidMoveInInput(error: z.ZodError): never {

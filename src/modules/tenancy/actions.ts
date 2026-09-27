@@ -21,6 +21,10 @@ import {
 function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
 }
+function file(formData: FormData, name: string) {
+  const candidate = formData.get(name);
+  return candidate instanceof File && candidate.size ? candidate : undefined;
+}
 
 export async function moveInAction(
   _state: ActionState,
@@ -36,6 +40,8 @@ export async function moveInAction(
       monthlyRentVnd: value(formData, "monthlyRentVnd"),
       depositVnd: value(formData, "depositVnd") || null,
       moveInNotes: value(formData, "moveInNotes") || undefined,
+      electricityReading: value(formData, "electricityReading") || null,
+      electricityPhoto: file(formData, "electricityPhoto"),
     };
     const responsiblePersonId = value(formData, "responsiblePersonId");
     if (responsiblePersonId === "__new") {
@@ -59,14 +65,12 @@ export async function moveInAction(
             startDate,
             endDate: moveOutDate,
           },
-          ...formData
-            .getAll("additionalPersonIds")
-            .map((personId) => ({
-              personId: String(personId),
-              role: "ADDITIONAL" as const,
-              startDate,
-              endDate: moveOutDate,
-            })),
+          ...formData.getAll("additionalPersonIds").map((personId) => ({
+            personId: String(personId),
+            role: "ADDITIONAL" as const,
+            startDate,
+            endDate: moveOutDate,
+          })),
         ],
       });
     }
@@ -94,6 +98,12 @@ export async function moveOutAction(
       tenancyId: value(formData, "tenancyId"),
       moveOutDate: value(formData, "moveOutDate"),
       moveOutNotes: value(formData, "moveOutNotes") || undefined,
+      electricityReading: value(formData, "electricityReading") || null,
+      electricityPhoto: file(formData, "electricityPhoto"),
+      electricityReadingSource: value(formData, "electricityReadingSource") as
+        "MEASURED" | "ESTIMATED",
+      electricityReadingReason:
+        value(formData, "electricityReadingReason") || undefined,
     });
     revalidatePath("/");
     revalidatePath("/tenants");

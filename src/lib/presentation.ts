@@ -25,5 +25,10 @@ export function formatCompactDate(value: string) {
 }
 
 export function formatVnd(value: string | bigint) {
+  if (typeof value === "string" && value.includes(".")) {
+    return `${new Intl.NumberFormat("vi-VN", {
+      maximumFractionDigits: 2,
+    }).format(Number(value))} đ`;
+  }
   return `${new Intl.NumberFormat("vi-VN").format(BigInt(value))} đ`;
 }

@@ -17,6 +17,8 @@ export type MoveInInput = {
   monthlyRentVnd: VndInput;
   depositVnd?: VndInput | null;
   moveInNotes?: string;
+  electricityReading?: string | number | null;
+  electricityPhoto?: File;
   occupants: MoveInOccupantInput[];
 };
 
@@ -24,6 +26,10 @@ export type MoveOutInput = {
   tenancyId: string;
   moveOutDate: BusinessDateInput;
   moveOutNotes?: string;
+  electricityReading?: string | number | null;
+  electricityPhoto?: File;
+  electricityReadingSource?: "MEASURED" | "ESTIMATED";
+  electricityReadingReason?: string;
 };
 
 export type AddOccupantInput = {

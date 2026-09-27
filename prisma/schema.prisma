@@ -22,16 +22,71 @@ enum TenancyOccupantRole {
   ADDITIONAL
 }
 
+enum MeterType {
+  ELECTRICITY
+}
+
+enum MeterReadingType {
+  MONTHLY
+  MOVE_IN
+  MOVE_OUT
+  METER_INSTALL
+  METER_REMOVAL
+  MANUAL
+}
+
+enum MeterReadingSource {
+  MEASURED
+  ESTIMATED
+}
+
+enum UtilityType {
+  ELECTRICITY
+  WATER
+}
+
+enum InvoiceStatus {
+  DRAFT
+  FINALIZED
+}
+
+enum InvoiceLineType {
+  RENT
+  ELECTRICITY
+  WATER
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  OTHER
+}
+
+enum DepositTransactionType {
+  RECEIPT
+  REFUND
+  DEDUCTION
+  APPLIED_TO_INVOICE
+}
+
+enum DepositDeductionCategory {
+  DAMAGE
+  CLEANING
+  OUTSTANDING_INVOICE
+  OTHER
+}
+
 model Property {
-  id           String    @id @default(cuid())
+  id           String        @id @default(cuid())
   name         String
   description  String?
   addressLine1 String?
   city         String?
   country      String?
   floors       Floor[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  utilityRates UtilityRate[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   archivedAt   DateTime?
 
   @@index([archivedAt, createdAt])
@@ -54,17 +109,19 @@ model Floor {
 }
 
 model Space {
-  id         String    @id @default(cuid())
-  floorId    String
-  floor      Floor     @relation(fields: [floorId], references: [id], onDelete: Restrict)
-  type       SpaceType
-  name       String
-  sortOrder  Int
-  notes      String?
-  tenancies  Tenancy[]
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  archivedAt DateTime?
+  id                       String                    @id @default(cuid())
+  floorId                  String
+  floor                    Floor                     @relation(fields: [floorId], references: [id], onDelete: Restrict)
+  type                     SpaceType
+  name                     String
+  sortOrder                Int
+  notes                    String?
+  tenancies                Tenancy[]
+  meters                   Meter[]
+  electricityRateOverrides ElectricityRateOverride[]
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  archivedAt               DateTime?
 
   @@index([floorId, archivedAt, sortOrder])
   @@index([type])
@@ -93,36 +150,176 @@ model Person {
 }
 
 model Tenancy {
-  id             String            @id @default(cuid())
-  spaceId        String
-  space          Space             @relation(fields: [spaceId], references: [id], onDelete: Restrict)
-  moveInDate     DateTime          @db.Date
-  moveOutDate    DateTime?         @db.Date
-  monthlyRentVnd BigInt
-  depositVnd     BigInt?
-  moveInNotes    String?
-  moveOutNotes   String?
-  occupants      TenancyOccupant[]
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  id                  String               @id @default(cuid())
+  spaceId             String
+  space               Space                @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  moveInDate          DateTime             @db.Date
+  moveOutDate         DateTime?            @db.Date
+  monthlyRentVnd      BigInt
+  depositVnd          BigInt?
+  moveInNotes         String?
+  moveOutNotes        String?
+  occupants           TenancyOccupant[]
+  invoices            Invoice[]
+  depositTransactions DepositTransaction[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@index([spaceId, moveInDate])
 }
 
+model Invoice {
+  id                   String               @id @default(cuid())
+  tenancyId            String
+  tenancy              Tenancy              @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
+  billingPeriod        DateTime             @db.Date
+  serviceStart         DateTime             @db.Date
+  serviceEnd           DateTime             @db.Date
+  status               InvoiceStatus        @default(DRAFT)
+  propertyNameSnapshot String
+  roomNameSnapshot     String
+  renterNameSnapshot   String
+  finalizedAt          DateTime?
+  lines                InvoiceLine[]
+  payments             Payment[]
+  depositTransactions  DepositTransaction[]
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  @@unique([tenancyId, billingPeriod])
+  @@index([billingPeriod, status])
+}
+
+model InvoiceLine {
+  id               String          @id @default(cuid())
+  invoiceId        String
+  invoice          Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  type             InvoiceLineType
+  description      String
+  calculatedAmount Decimal         @db.Decimal(16, 3)
+  finalAmount      Decimal         @db.Decimal(16, 0)
+  isOverridden     Boolean         @default(false)
+  overrideReason   String?
+  metadata         Json
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@unique([invoiceId, type])
+}
+
+model Payment {
+  id                   String        @id @default(cuid())
+  invoiceId            String
+  invoice              Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  amount               Decimal       @db.Decimal(16, 0)
+  paymentDate          DateTime      @db.Date
+  method               PaymentMethod
+  reference            String?
+  notes                String?
+  isDepositApplication Boolean       @default(false)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@index([invoiceId, paymentDate])
+  @@index([paymentDate])
+}
+
+model DepositTransaction {
+  id              String                    @id @default(cuid())
+  tenancyId       String
+  tenancy         Tenancy                   @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
+  type            DepositTransactionType
+  amount          Decimal                   @db.Decimal(16, 0)
+  transactionDate DateTime                  @db.Date
+  category        DepositDeductionCategory?
+  invoiceId       String?
+  invoice         Invoice?                  @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  reference       String?
+  notes           String?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@index([tenancyId, transactionDate])
+  @@index([invoiceId])
+}
+
 model TenancyOccupant {
-  id        String              @id @default(cuid())
-  tenancyId String
-  tenancy   Tenancy             @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
-  personId  String
-  person    Person              @relation(fields: [personId], references: [id], onDelete: Restrict)
-  role      TenancyOccupantRole
-  startDate DateTime            @db.Date
-  endDate   DateTime?           @db.Date
-  endedByTenancyMoveOut Boolean @default(false)
-  notes     String?
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
+  id                    String              @id @default(cuid())
+  tenancyId             String
+  tenancy               Tenancy             @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
+  personId              String
+  person                Person              @relation(fields: [personId], references: [id], onDelete: Restrict)
+  role                  TenancyOccupantRole
+  startDate             DateTime            @db.Date
+  endDate               DateTime?           @db.Date
+  endedByTenancyMoveOut Boolean             @default(false)
+  notes                 String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
 
   @@index([tenancyId, startDate])
   @@index([personId, startDate])
+}
+
+model Meter {
+  id          String         @id @default(cuid())
+  spaceId     String
+  space       Space          @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  type        MeterType      @default(ELECTRICITY)
+  meterNumber String?
+  installedAt DateTime       @db.Date
+  removedAt   DateTime?      @db.Date
+  notes       String?
+  readings    MeterReading[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([spaceId, type, installedAt])
+}
+
+model MeterReading {
+  id              String             @id @default(cuid())
+  meterId         String
+  meter           Meter              @relation(fields: [meterId], references: [id], onDelete: Restrict)
+  readingDate     DateTime           @db.Date
+  billingMonth    DateTime?          @db.Date
+  readingValue    Decimal            @db.Decimal(16, 3)
+  readingType     MeterReadingType
+  source          MeterReadingSource @default(MEASURED)
+  photoStorageKey String?
+  notes           String?
+  reason          String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@unique([meterId, billingMonth])
+  @@index([meterId, readingDate])
+}
+
+model UtilityRate {
+  id            String      @id @default(cuid())
+  propertyId    String
+  property      Property    @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  utilityType   UtilityType
+  rate          Decimal     @db.Decimal(16, 3)
+  effectiveFrom DateTime    @db.Date
+  effectiveTo   DateTime?   @db.Date
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([propertyId, utilityType, effectiveFrom])
+}
+
+model ElectricityRateOverride {
+  id           String   @id @default(cuid())
+  spaceId      String
+  space        Space    @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  billingMonth DateTime @db.Date
+  rate         Decimal  @db.Decimal(16, 3)
+  reason       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([spaceId, billingMonth])
 }

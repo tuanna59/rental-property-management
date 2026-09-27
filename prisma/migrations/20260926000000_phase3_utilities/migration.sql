@@ -1,0 +1,16 @@
+CREATE TYPE "MeterType" AS ENUM ('ELECTRICITY');
+CREATE TYPE "MeterReadingType" AS ENUM ('MONTHLY', 'MOVE_IN', 'MOVE_OUT', 'METER_INSTALL', 'METER_REMOVAL', 'MANUAL');
+CREATE TYPE "MeterReadingSource" AS ENUM ('MEASURED', 'ESTIMATED');
+CREATE TYPE "UtilityType" AS ENUM ('ELECTRICITY', 'WATER');
+CREATE TABLE "Meter" ("id" TEXT NOT NULL, "spaceId" TEXT NOT NULL, "type" "MeterType" NOT NULL DEFAULT 'ELECTRICITY', "meterNumber" TEXT, "installedAt" DATE NOT NULL, "removedAt" DATE, "notes" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL, CONSTRAINT "Meter_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "MeterReading" ("id" TEXT NOT NULL, "meterId" TEXT NOT NULL, "readingDate" DATE NOT NULL, "readingValue" DECIMAL(16,3) NOT NULL, "readingType" "MeterReadingType" NOT NULL, "source" "MeterReadingSource" NOT NULL DEFAULT 'MEASURED', "photoStorageKey" TEXT, "notes" TEXT, "reason" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL, CONSTRAINT "MeterReading_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "UtilityRate" ("id" TEXT NOT NULL, "propertyId" TEXT NOT NULL, "utilityType" "UtilityType" NOT NULL, "rate" DECIMAL(16,3) NOT NULL, "effectiveFrom" DATE NOT NULL, "effectiveTo" DATE, "notes" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL, CONSTRAINT "UtilityRate_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "ElectricityRateOverride" ("id" TEXT NOT NULL, "spaceId" TEXT NOT NULL, "billingMonth" DATE NOT NULL, "rate" DECIMAL(16,3) NOT NULL, "reason" TEXT NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL, CONSTRAINT "ElectricityRateOverride_pkey" PRIMARY KEY ("id"));
+CREATE INDEX "Meter_spaceId_type_installedAt_idx" ON "Meter"("spaceId", "type", "installedAt");
+CREATE INDEX "MeterReading_meterId_readingDate_idx" ON "MeterReading"("meterId", "readingDate");
+CREATE INDEX "UtilityRate_propertyId_utilityType_effectiveFrom_idx" ON "UtilityRate"("propertyId", "utilityType", "effectiveFrom");
+CREATE UNIQUE INDEX "ElectricityRateOverride_spaceId_billingMonth_key" ON "ElectricityRateOverride"("spaceId", "billingMonth");
+ALTER TABLE "Meter" ADD CONSTRAINT "Meter_spaceId_fkey" FOREIGN KEY ("spaceId") REFERENCES "Space"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "MeterReading" ADD CONSTRAINT "MeterReading_meterId_fkey" FOREIGN KEY ("meterId") REFERENCES "Meter"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "UtilityRate" ADD CONSTRAINT "UtilityRate_propertyId_fkey" FOREIGN KEY ("propertyId") REFERENCES "Property"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "ElectricityRateOverride" ADD CONSTRAINT "ElectricityRateOverride_spaceId_fkey" FOREIGN KEY ("spaceId") REFERENCES "Space"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

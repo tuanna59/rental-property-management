@@ -20,7 +20,9 @@ import {
   Settings,
   Users,
   CalendarDays,
+  Zap,
   LogOut,
+  ReceiptText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatVnd } from "@/lib/presentation";
@@ -86,14 +88,21 @@ function useSidebarCollapsed() {
   return [collapsed, setCollapsed] as const;
 }
 
-const navigationGroups = [
-  {
-    label: "Property",
-    items: [
-      { label: "Building", href: "/", icon: Building2 },
-      { label: "Tenants", href: "/tenants", icon: Users },
-    ],
-  },
+const navigationItems = [
+  { label: "Building", href: "/", icon: Building2 },
+  { label: "Tenants", href: "/tenants", icon: Users },
+] as const;
+
+const utilitiesItems = [
+  { label: "Overview", href: "/utilities" },
+  { label: "Meters", href: "/utilities/meters" },
+  { label: "Rates", href: "/utilities/rates" },
+] as const;
+
+const billingItems = [
+  { label: "Invoices", href: "/billing/invoices" },
+  { label: "Payments", href: "/billing/payments" },
+  { label: "Deposits", href: "/billing/deposits" },
 ] as const;
 
 export function PropertyDashboard({
@@ -331,6 +340,16 @@ export function AppSidebar({
   onClose?: () => void;
 }) {
   const pathname = usePathname();
+  const utilitiesActive = pathname.startsWith("/utilities");
+  const billingActive = pathname.startsWith("/billing");
+  const [utilitiesOpen, setUtilitiesOpen] = React.useState(utilitiesActive);
+  const [billingOpen, setBillingOpen] = React.useState(billingActive);
+  React.useEffect(() => {
+    if (utilitiesActive) setUtilitiesOpen(true);
+  }, [utilitiesActive]);
+  React.useEffect(() => {
+    if (billingActive) setBillingOpen(true);
+  }, [billingActive]);
   return (
     <aside
       className={`property-sidebar${mobile ? " mobile-sidebar" : ""}`}
@@ -353,26 +372,70 @@ export function AppSidebar({
         )}
       </div>
       <nav className="sidebar-navigation">
-        {navigationGroups.map((group) => (
-          <div className="sidebar-group" key={group.label}>
-            <p className="sidebar-group-label">{group.label}</p>
-            {group.items.map((item) => {
-              const Icon = item.icon;
-              return (
+        <div className="sidebar-group">
+          {navigationItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`sidebar-nav-item${pathname === item.href ? " is-active" : ""}`}
+                title={collapsed ? item.label : undefined}
+                onClick={onClose}
+              >
+                <Icon aria-hidden="true" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            className={`sidebar-nav-item sidebar-utilities-parent${utilitiesActive ? " is-contextual" : ""}`}
+            aria-expanded={utilitiesOpen}
+            title={collapsed ? "Utilities" : undefined}
+            onClick={() => setUtilitiesOpen((open) => !open)}
+          >
+            <Zap aria-hidden="true" />
+            <span>Utilities</span>
+            {!collapsed && (
+              <ChevronDown className={utilitiesOpen ? "rotate-180" : ""} />
+            )}
+          </button>
+          {utilitiesOpen && !collapsed && (
+            <div className="sidebar-utilities-children">
+              {utilitiesItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`sidebar-nav-item${pathname === item.href ? " is-active" : ""}`}
-                  title={collapsed ? item.label : undefined}
+                  className={`sidebar-nav-item sidebar-nav-child${pathname === item.href ? " is-active" : ""}`}
                   onClick={onClose}
                 >
-                  <Icon aria-hidden="true" />
                   <span>{item.label}</span>
                 </Link>
-              );
-            })}
-          </div>
-        ))}
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            className={`sidebar-nav-item sidebar-utilities-parent${billingActive ? " is-contextual" : ""}`}
+            aria-expanded={billingOpen}
+            title={collapsed ? "Billing" : undefined}
+            onClick={() => setBillingOpen((open) => !open)}
+          >
+            <ReceiptText aria-hidden="true" />
+            <span>Billing</span>
+            {!collapsed && <ChevronDown className={billingOpen ? "rotate-180" : ""} />}
+          </button>
+          {billingOpen && !collapsed && (
+            <div className="sidebar-utilities-children">
+              {billingItems.map((item) => (
+                <Link key={item.href} href={item.href} className={`sidebar-nav-item sidebar-nav-child${pathname === item.href ? " is-active" : ""}`} onClick={onClose}>
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
       </nav>
       <div className="sidebar-footer">
         <PropertyFormDialog

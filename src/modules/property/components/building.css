@@ -95,6 +95,34 @@
   background: #e5efe9;
   color: #2c6954;
 }
+.sidebar-utilities-parent {
+  justify-content: flex-start;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.sidebar-utilities-parent > svg:last-child {
+  width: 15px;
+  height: 15px;
+  margin-left: auto;
+  transition: transform 0.15s ease;
+}
+.sidebar-utilities-parent.is-contextual {
+  color: #2c6954;
+}
+.sidebar-utilities-children {
+  display: grid;
+  gap: 1px;
+  margin: 1px 0 5px 22px;
+  padding-left: 12px;
+  border-left: 1px solid #dce6df;
+}
+.sidebar-nav-child {
+  height: 34px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+}
 .sidebar-footer {
   margin-top: auto;
   display: grid;

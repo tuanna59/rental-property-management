@@ -158,6 +158,29 @@ export function MoveInDialog({
             <Label htmlFor={`move-in-notes-${space.id}`}>Notes</Label>
             <Textarea id={`move-in-notes-${space.id}`} name="moveInNotes" />
           </div>
+          <fieldset className="rounded-md border border-[#e0e7e1] p-3">
+            <legend className="px-1 text-sm font-medium">
+              Electricity meter
+            </legend>
+            <p className="mb-3 text-xs text-[#65756d]">
+              Optional boundary reading. If no active meter exists, move-in
+              continues normally.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field
+                label="Current reading"
+                name="electricityReading"
+                type="number"
+                step="0.001"
+              />
+              <Field
+                label="Meter photo"
+                name="electricityPhoto"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+              />
+            </div>
+          </fieldset>
           {state.message && (
             <p className={state.ok ? "form-success" : "form-error"}>
               {state.message}
@@ -223,6 +246,43 @@ export function MoveOutDialog({ space }: { space: DashboardSpace }) {
             <Label htmlFor={`move-out-notes-${space.id}`}>Notes</Label>
             <Textarea id={`move-out-notes-${space.id}`} name="moveOutNotes" />
           </div>
+          <fieldset className="rounded-md border border-[#e0e7e1] p-3">
+            <legend className="px-1 text-sm font-medium">
+              Electricity meter
+            </legend>
+            <p className="mb-3 text-xs text-[#65756d]">
+              Optional final boundary reading. If the meter cannot be read,
+              leave this blank.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field
+                label="Final reading"
+                name="electricityReading"
+                type="number"
+                step="0.001"
+              />
+              <div className="grid gap-2">
+                <Label htmlFor={`move-out-source-${space.id}`}>Source</Label>
+                <select
+                  id={`move-out-source-${space.id}`}
+                  name="electricityReadingSource"
+                >
+                  <option value="MEASURED">Measured</option>
+                  <option value="ESTIMATED">Estimated</option>
+                </select>
+              </div>
+              <Field
+                label="Meter photo"
+                name="electricityPhoto"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+              />
+              <Field
+                label="Reason if estimated"
+                name="electricityReadingReason"
+              />
+            </div>
+          </fieldset>
           {state.message && (
             <p className={state.ok ? "form-success" : "form-error"}>
               {state.message}

@@ -1,5 +1,6 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { recordTenancyBoundaryInTransaction } from "@/modules/utilities/server/meter.service";
 import { createPerson } from "@/modules/people/server/people.service";
 import type { CreatePersonInput } from "@/modules/people/domain/types";
 
@@ -205,6 +206,15 @@ export async function moveIn(input: MoveInInput) {
       throw error;
     }
 
+    await recordTenancyBoundaryInTransaction(
+      tx,
+      normalized.spaceId,
+      normalized.moveInDate,
+      normalized.electricityReading ?? null,
+      "MOVE_IN",
+      normalized.electricityPhoto,
+      normalized.moveInNotes,
+    );
     return tenancy;
   });
 }
@@ -222,6 +232,8 @@ export async function moveInWithNewResponsible(
       monthlyRentVnd: input.monthlyRentVnd,
       depositVnd: input.depositVnd,
       moveInNotes: input.moveInNotes,
+      electricityReading: input.electricityReading,
+      electricityPhoto: input.electricityPhoto,
       occupants: [
         { ...input.responsible, personId: created.id },
         ...input.additionalPersonIds.map((personId) => ({
@@ -254,6 +266,7 @@ export async function moveOut(input: MoveOutInput) {
       where: { id: normalized.tenancyId },
       select: {
         id: true,
+        spaceId: true,
         moveInDate: true,
         moveOutDate: true,
         occupants: { select: { startDate: true } },
@@ -296,6 +309,17 @@ export async function moveOut(input: MoveOutInput) {
       },
     });
 
+    await recordTenancyBoundaryInTransaction(
+      tx,
+      tenancy.spaceId,
+      normalized.moveOutDate,
+      normalized.electricityReading ?? null,
+      "MOVE_OUT",
+      normalized.electricityPhoto,
+      normalized.moveOutNotes,
+      normalized.electricityReadingSource,
+      normalized.electricityReadingReason,
+    );
     return { id: tenancy.id };
   });
 }

@@ -50,16 +50,31 @@ const initialFloors = [
   },
 ] as const;
 
-async function ensureSeedData() {
+const initialPeople = [
+  "Nguyễn Văn An",
+  "Trần Minh Hoàng",
+  "Lê Quốc Bảo",
+  "Phạm Gia Huy",
+  "Võ Thanh Tùng",
+  "Đặng Minh Khang",
+  "Bùi Anh Tuấn",
+  "Nguyễn Thị Lan",
+  "Trần Ngọc Mai",
+  "Lê Thu Trang",
+] as const;
+
+async function ensurePropertySeedData() {
   return prisma.$transaction(
     async (tx) => {
       const existing = await tx.property.findFirst({
         orderBy: { createdAt: "asc" },
       });
+
       if (existing) {
-        console.log("Existing property data preserved; seed skipped.");
+        console.log("Existing property data preserved; property seed skipped.");
         return existing;
       }
+
       return tx.property.create({
         data: {
           name: "My Rental Property",
@@ -87,10 +102,49 @@ async function ensureSeedData() {
   );
 }
 
-ensureSeedData()
-  .then((property) => {
-    console.log(`Seeded ${property.name}`);
-  })
+async function ensurePeopleSeedData() {
+  const existingPeople = await prisma.person.findMany({
+    where: {
+      fullName: {
+        in: [...initialPeople],
+      },
+    },
+    select: {
+      fullName: true,
+    },
+  });
+
+  const existingNames = new Set(
+    existingPeople.map((person) => person.fullName),
+  );
+
+  const peopleToCreate = initialPeople
+    .filter((fullName) => !existingNames.has(fullName))
+    .map((fullName) => ({
+      fullName,
+    }));
+
+  if (peopleToCreate.length === 0) {
+    console.log("Seed people already exist; people seed skipped.");
+    return;
+  }
+
+  await prisma.person.createMany({
+    data: peopleToCreate,
+  });
+
+  console.log(`Seeded ${peopleToCreate.length} people.`);
+}
+
+async function seed() {
+  const property = await ensurePropertySeedData();
+
+  await ensurePeopleSeedData();
+
+  console.log(`Seeded property: ${property.name}`);
+}
+
+seed()
   .catch((error: unknown) => {
     console.error(error);
     process.exitCode = 1;
