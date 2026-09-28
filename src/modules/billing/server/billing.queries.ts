@@ -51,11 +51,19 @@ export async function getBillingCandidates(
       moveInDate: true,
       moveOutDate: true,
       monthlyRentVnd: true,
+      rentRates: { orderBy: { effectiveFrom: "desc" } },
       space: {
         select: {
           id: true,
           name: true,
           floor: { select: { property: { select: { name: true } } } },
+        },
+      },
+      responsibleHistory: {
+        orderBy: { effectiveFrom: "desc" },
+        select: {
+          effectiveFrom: true,
+          occupant: { select: { person: { select: { fullName: true } } } },
         },
       },
       occupants: {
@@ -107,7 +115,12 @@ export async function getBillingCandidates(
   const candidates = [];
 
   for (const tenancy of tenancies) {
-    const renterName = tenancy.occupants[0]?.person.fullName ?? "Tenant";
+    const renterName =
+      tenancy.responsibleHistory.find(
+        (assignment) => assignment.effectiveFrom <= billingPeriod,
+      )?.occupant.person.fullName ??
+      tenancy.occupants[0]?.person.fullName ??
+      "Tenant";
     const common = {
       tenancyId: tenancy.id,
       propertyName: tenancy.space.floor.property.name,
@@ -130,9 +143,12 @@ export async function getBillingCandidates(
           0,
           Math.round((rentEnd.getTime() - rentStart.getTime()) / DAY),
         );
+    const effectiveRent =
+      tenancy.rentRates.find((rate) => rate.effectiveFrom <= rentStart)
+        ?.monthlyRentVnd ?? tenancy.monthlyRentVnd;
     const rentCalculated = fullMonth
-      ? new Prisma.Decimal(tenancy.monthlyRentVnd.toString())
-      : new Prisma.Decimal(tenancy.monthlyRentVnd.toString())
+      ? new Prisma.Decimal(effectiveRent.toString())
+      : new Prisma.Decimal(effectiveRent.toString())
           .div(30)
           .mul(billableDays);
     const occupiedUtilityMonth =
@@ -160,7 +176,7 @@ export async function getBillingCandidates(
         calculatedAmount: money(rentCalculated),
         finalAmount: money(roundVnd(rentCalculated)),
         metadata: {
-          monthlyRentVnd: tenancy.monthlyRentVnd.toString(),
+          monthlyRentVnd: effectiveRent.toString(),
           fullMonth,
           billableDays,
           serviceStart: toDateOnly(rentStart),
@@ -351,6 +367,7 @@ function utilityLines(
               }
             : null,
           hasEstimatedReading: segment.hasEstimatedReading,
+          sourceReadingIds: segment.sourceReadingIds,
         })),
       },
     });

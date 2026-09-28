@@ -3,10 +3,14 @@ import { revalidatePath } from "next/cache";
 import type { ActionState } from "@/lib/action-state";
 import {
   installMeter,
+  appendMeterReadingPhoto,
+  markAllCurrentReadingsClosed,
+  markReadingAsMonthlyClosing,
   recordMissingBoundary,
   recordReading,
   replaceMeter,
   saveMonthlyReading,
+  updateMeterReading,
 } from "./server/meter.service";
 import { addRate, setElectricityOverride } from "./server/utility-rate.service";
 const text = (data: FormData, key: string) =>
@@ -49,31 +53,78 @@ export async function installMeterAction(_: ActionState, data: FormData) {
   );
 }
 export async function recordReadingAction(_: ActionState, data: FormData) {
-  const readingType = text(data, "readingType");
   return action(
     () =>
-      readingType === "MONTHLY"
-        ? saveMonthlyReading({
-            meterId: text(data, "meterId"),
-            billingMonth: text(data, "billingMonth"),
-            readingDate: text(data, "readingDate"),
-            readingValue: text(data, "readingValue"),
-            source: text(data, "source") as "MEASURED" | "ESTIMATED",
-            reason: text(data, "reason") || undefined,
-            photo: file(data, "photo"),
-            notes: text(data, "notes") || undefined,
-          })
-        : recordReading({
-            meterId: text(data, "meterId"),
-            readingDate: text(data, "readingDate"),
-            readingValue: text(data, "readingValue"),
-            readingType: "MANUAL",
-            source: text(data, "source") as "MEASURED" | "ESTIMATED",
-            reason: text(data, "reason") || undefined,
-            photo: file(data, "photo"),
-            notes: text(data, "notes") || undefined,
-          }),
+      recordReading({
+        meterId: text(data, "meterId"),
+        readingDate: text(data, "readingDate"),
+        readingValue: text(data, "readingValue"),
+        readingType: "MANUAL",
+        source: (text(data, "source") || "MEASURED") as
+          | "MEASURED"
+          | "ESTIMATED",
+        reason: text(data, "reason") || undefined,
+        photo: file(data, "photo"),
+        notes: text(data, "notes") || undefined,
+      }),
     "Reading recorded.",
+  );
+}
+
+export async function markCurrentReadingClosedAction(
+  _: ActionState,
+  data: FormData,
+) {
+  return action(
+    () =>
+      markReadingAsMonthlyClosing({
+        meterId: text(data, "meterId"),
+        readingId: text(data, "readingId"),
+        billingMonth: text(data, "billingMonth"),
+      }),
+    "Month marked as closed.",
+  );
+}
+
+export async function markAllCurrentReadingsClosedAction(
+  _: ActionState,
+  data: FormData,
+) {
+  return action(
+    () =>
+      markAllCurrentReadingsClosed({
+        propertyId: text(data, "propertyId"),
+        billingMonth: text(data, "billingMonth"),
+      }),
+    "Eligible rooms marked as closed.",
+  );
+}
+
+export async function updateMeterReadingAction(
+  _: ActionState,
+  data: FormData,
+) {
+  return action(
+    () =>
+      updateMeterReading({
+        readingId: text(data, "readingId"),
+        readingDate: text(data, "readingDate"),
+        readingValue: text(data, "readingValue"),
+        source: text(data, "source") as "MEASURED" | "ESTIMATED",
+        reason: text(data, "reason") || undefined,
+        photo: file(data, "photo"),
+      }),
+    "Reading updated.",
+  );
+}
+
+export async function appendMeterReadingPhotoAction(
+  _: ActionState,
+  data: FormData,
+) {
+  return action(
+    () => appendMeterReadingPhoto(text(data, "readingId"), file(data, "photo")),
+    "Evidence photo added.",
   );
 }
 export async function recordMissingBoundaryAction(

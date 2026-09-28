@@ -37,6 +37,25 @@ const readingSelect = {
   notes: true,
   reason: true,
   createdAt: true,
+  monthlyClosings: {
+    orderBy: { billingMonth: "desc" },
+    select: { billingMonth: true },
+  },
+  evidencePhotos: { select: { id: true } },
+  invoiceEvidence: {
+    where: { invoice: { status: "FINALIZED" } },
+    take: 1,
+    select: {
+      invoice: {
+        select: {
+          id: true,
+          type: true,
+          billingPeriod: true,
+          roomNameSnapshot: true,
+        },
+      },
+    },
+  },
 } satisfies Prisma.MeterReadingSelect;
 
 type ReadingRow = Prisma.MeterReadingGetPayload<{
@@ -44,16 +63,32 @@ type ReadingRow = Prisma.MeterReadingGetPayload<{
 }>;
 
 function readingProjection(reading: ReadingRow) {
+  const closingMonth =
+    reading.monthlyClosings[0]?.billingMonth ?? reading.billingMonth;
+  const lockedBy = reading.invoiceEvidence[0]?.invoice ?? null;
+  const lifecycleManaged = [
+    "MOVE_IN",
+    "MOVE_OUT",
+    "METER_INSTALL",
+    "METER_REMOVAL",
+  ].includes(reading.readingType);
   return {
     id: reading.id,
     readingDate: reading.readingDate,
-    billingMonth: reading.billingMonth,
+    billingMonth: closingMonth,
     readingValue: decimal(reading.readingValue),
     readingType: reading.readingType,
     source: reading.source,
-    hasPhoto: Boolean(reading.photoStorageKey),
+    hasPhoto:
+      Boolean(reading.photoStorageKey) || reading.evidencePhotos.length > 0,
+    photoCount:
+      reading.evidencePhotos.length || (reading.photoStorageKey ? 1 : 0),
     notes: reading.notes,
     reason: reading.reason,
+    isClosing: Boolean(closingMonth),
+    isLocked: Boolean(lockedBy),
+    isManaged: lifecycleManaged,
+    lockInvoice: lockedBy,
   };
 }
 
@@ -114,16 +149,22 @@ function computePhysicalMeterSegment(
   const readings = [...meter.readings].sort(readingOrder);
   const monthlyReading = readings.find(
     (reading) =>
-      reading.readingType === "MONTHLY" &&
-      reading.billingMonth &&
-      sameDay(reading.billingMonth, start),
+      (reading.monthlyClosings.some((closing) =>
+        sameDay(closing.billingMonth, start),
+      ) ||
+        (reading.readingType === "MONTHLY" &&
+          reading.billingMonth &&
+          sameDay(reading.billingMonth, start))),
   );
   const priorMonthly = readings
     .filter(
       (reading) =>
-        reading.readingType === "MONTHLY" &&
-        reading.billingMonth &&
-        reading.billingMonth < start,
+        reading.monthlyClosings.some(
+          (closing) => closing.billingMonth < start,
+        ) ||
+        (reading.readingType === "MONTHLY" &&
+          reading.billingMonth &&
+          reading.billingMonth < start),
     )
     .at(-1);
   const startReading =
@@ -449,6 +490,7 @@ async function getMonthlySpaces(propertyId: string, start: Date, end: Date) {
     select: {
       id: true,
       name: true,
+      floor: { select: { name: true } },
       meters: {
         where: {
           type: "ELECTRICITY",
@@ -549,10 +591,20 @@ export async function getMonthlyMeterEntries(
       null;
     const monthlyReading = activeMeter?.readings.find(
       (reading) =>
-        reading.readingType === "MONTHLY" &&
-        reading.billingMonth &&
-        sameDay(reading.billingMonth, start),
+        reading.monthlyClosings.some((closing) =>
+          sameDay(closing.billingMonth, start),
+        ) ||
+        (reading.readingType === "MONTHLY" &&
+          reading.billingMonth &&
+          sameDay(reading.billingMonth, start)),
     );
+    const currentReading = monthlyReading ?? activeMeter?.readings
+      .filter(
+        (reading) =>
+          reading.readingType === "MANUAL" &&
+          reading.readingDate >= start,
+      )
+      .at(-1);
     const targetDate = monthlyReading?.readingDate ?? end;
     const previousReading = activeMeter?.readings
       .filter(
@@ -620,6 +672,7 @@ export async function getMonthlyMeterEntries(
     return {
       spaceId: space.id,
       room: space.name,
+      floorName: space.floor.name,
       activeMeter: activeMeter
         ? {
             id: activeMeter.id,
@@ -636,6 +689,7 @@ export async function getMonthlyMeterEntries(
         ? readingProjection(previousReading)
         : null,
       monthlyReading: monthlyReading ? readingProjection(monthlyReading) : null,
+      currentReading: currentReading ? readingProjection(currentReading) : null,
       previous: previousReading ? decimal(previousReading.readingValue) : null,
       current: monthlyReading ? decimal(monthlyReading.readingValue) : null,
       readingDate: monthlyReading?.readingDate ?? null,

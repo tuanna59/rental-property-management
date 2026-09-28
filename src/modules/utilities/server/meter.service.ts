@@ -75,9 +75,15 @@ export async function recordReading(input: RecordReadingInput) {
   return tenancyTransaction(async (tx) => {
     const meter = await tx.meter.findUnique({
       where: { id: input.meterId },
-      select: { id: true },
+      select: { id: true, installedAt: true, removedAt: true },
     });
     if (!meter) throw new Error("The selected meter was not found.");
+    if (
+      readingDate < meter.installedAt ||
+      (meter.removedAt && readingDate > meter.removedAt)
+    ) {
+      throw new Error("The reading date is outside this meter's active period.");
+    }
     if (input.source === "MEASURED") {
       const [prior, next] = await Promise.all([
         tx.meterReading.findFirst({
@@ -109,9 +115,169 @@ export async function recordReading(input: RecordReadingInput) {
         photoStorageKey,
         notes: input.notes || null,
         reason: input.reason || null,
+        ...(photoStorageKey
+          ? { evidencePhotos: { create: { storageKey: photoStorageKey } } }
+          : {}),
       },
     });
   });
+}
+
+export async function markReadingAsMonthlyClosing(input: {
+  meterId: string;
+  readingId: string;
+  billingMonth: string;
+}) {
+  const billingMonth = monthStart(date(input.billingMonth));
+  return tenancyTransaction(async (tx) => {
+    const reading = await tx.meterReading.findFirst({
+      where: {
+        id: input.readingId,
+        meterId: input.meterId,
+        readingType: { in: ["MANUAL", "MONTHLY"] },
+      },
+      select: { id: true },
+    });
+    if (!reading) {
+      throw new Error("Choose an eligible manual reading before closing the month.");
+    }
+    const locked = await tx.invoiceMeterEvidence.findFirst({
+      where: { readingId: reading.id, invoice: { status: "FINALIZED" } },
+      select: { id: true },
+    });
+    if (locked) throw new Error("Finalized billing has locked this reading.");
+    return tx.meterMonthlyClosing.upsert({
+      where: { meterId_billingMonth: { meterId: input.meterId, billingMonth } },
+      create: {
+        meterId: input.meterId,
+        readingId: reading.id,
+        billingMonth,
+      },
+      update: { readingId: reading.id },
+    });
+  });
+}
+
+export async function markAllCurrentReadingsClosed(input: {
+  propertyId: string;
+  billingMonth: string;
+}) {
+  const billingMonth = monthStart(date(input.billingMonth));
+  return tenancyTransaction(async (tx) => {
+    const meters = await tx.meter.findMany({
+      where: {
+        type: "ELECTRICITY",
+        space: { type: "ROOM", floor: { propertyId: input.propertyId } },
+        installedAt: { lte: new Date() },
+        OR: [{ removedAt: null }, { removedAt: { gt: billingMonth } }],
+        monthlyClosings: { none: { billingMonth } },
+      },
+      select: {
+        id: true,
+        readings: {
+          where: {
+            readingType: "MANUAL",
+            readingDate: { gte: billingMonth },
+          },
+          orderBy: [{ readingDate: "desc" }, { createdAt: "desc" }],
+          take: 1,
+          select: { id: true },
+        },
+      },
+    });
+    const eligible = meters.filter((meter) => meter.readings[0]);
+    if (eligible.length) {
+      await tx.meterMonthlyClosing.createMany({
+        data: eligible.map((meter) => ({
+          meterId: meter.id,
+          readingId: meter.readings[0]!.id,
+          billingMonth,
+        })),
+        skipDuplicates: true,
+      });
+    }
+    return { closed: eligible.length, skipped: meters.length - eligible.length };
+  });
+}
+
+export async function updateMeterReading(input: {
+  readingId: string;
+  readingDate: string;
+  readingValue: string;
+  source: "MEASURED" | "ESTIMATED";
+  reason?: string;
+  photo?: File;
+}) {
+  const readingDate = date(input.readingDate);
+  const readingValue = new Prisma.Decimal(reading(input.readingValue));
+  if (input.source === "ESTIMATED") {
+    requiredText(input.reason || "", "Estimated readings require a reason.");
+  }
+  return tenancyTransaction(async (tx) => {
+    const existing = await tx.meterReading.findUnique({
+      where: { id: input.readingId },
+      select: {
+        id: true,
+        meterId: true,
+        readingType: true,
+        meter: { select: { installedAt: true, removedAt: true } },
+        invoiceEvidence: {
+          where: { invoice: { status: "FINALIZED" } },
+          take: 1,
+          select: { id: true },
+        },
+      },
+    });
+    if (!existing) throw new Error("The reading was not found.");
+    if (existing.readingType !== "MANUAL" && existing.readingType !== "MONTHLY") {
+      throw new Error("Lifecycle readings are managed by their owning workflow.");
+    }
+    if (existing.invoiceEvidence.length) {
+      throw new Error("This reading is locked by finalized billing.");
+    }
+    if (
+      readingDate < existing.meter.installedAt ||
+      (existing.meter.removedAt && readingDate > existing.meter.removedAt)
+    ) {
+      throw new Error("The reading date is outside this meter's active period.");
+    }
+    const neighbors = await tx.meterReading.findMany({
+      where: { meterId: existing.meterId, id: { not: existing.id } },
+      orderBy: [{ readingDate: "asc" }, { createdAt: "asc" }],
+      select: { readingDate: true, readingValue: true },
+    });
+    const previous = neighbors.filter((item) => item.readingDate <= readingDate).at(-1);
+    const next = neighbors.find((item) => item.readingDate >= readingDate);
+    assertReadingDoesNotDecrease(previous?.readingValue ?? null, readingValue);
+    if (next && readingValue.greaterThan(next.readingValue)) {
+      throw new Error("The reading cannot be higher than the next reading on this meter.");
+    }
+    const photoStorageKey = await saveMeterPhoto(existing.meterId, input.photo);
+    return tx.meterReading.update({
+      where: { id: existing.id },
+      data: {
+        readingDate,
+        readingValue,
+        source: input.source,
+        reason: input.source === "ESTIMATED" ? input.reason || null : null,
+        ...(photoStorageKey
+          ? { evidencePhotos: { create: { storageKey: photoStorageKey } } }
+          : {}),
+      },
+    });
+  });
+}
+
+export async function appendMeterReadingPhoto(readingId: string, photo?: File) {
+  if (!photo) throw new Error("Choose a photo to upload.");
+  const existing = await prisma.meterReading.findUnique({
+    where: { id: readingId },
+    select: { meterId: true },
+  });
+  if (!existing) throw new Error("The reading was not found.");
+  const storageKey = await saveMeterPhoto(existing.meterId, photo);
+  if (!storageKey) throw new Error("Choose a photo to upload.");
+  return prisma.meterReadingPhoto.create({ data: { readingId, storageKey } });
 }
 
 export async function saveMonthlyReading(input: SaveMonthlyReadingInput) {

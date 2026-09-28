@@ -137,7 +137,7 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
 
       <nav className="invoice-tabs" aria-label="Invoice detail sections">
         {(
-          ["charges", "services", "electricity", "payments", "history"] as Tab[]
+          ["charges", "electricity", "services", "payments", "history"] as Tab[]
         ).map((item) => (
           <button
             key={item}
@@ -152,8 +152,8 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
 
       <section className="invoice-tab-panel">
         {tab === "charges" && <ChargesTab invoice={invoice} />}
-        {tab === "services" && <ServicesTab invoice={invoice} />}
         {tab === "electricity" && <ElectricityTab invoice={invoice} />}
+        {tab === "services" && <ServicesTab invoice={invoice} />}
         {tab === "payments" && <PaymentsTab invoice={invoice} />}
         {tab === "history" && <HistoryTab invoice={invoice} />}
       </section>
@@ -499,9 +499,6 @@ function ElectricityTab({ invoice }: { invoice: Invoice }) {
         tenancies, and vacant/property time. Only this invoice&apos;s
         attributable usage is billed here.
       </p>
-      <Button asChild size="sm" variant="ghost">
-        <Link href="/utilities/meters">View utility breakdown →</Link>
-      </Button>
       <h3>Physical meter evidence</h3>
       <div className="utility-table-wrap">
         <table className="utility-table">
@@ -567,7 +564,7 @@ function PaymentsTab({ invoice }: { invoice: Invoice }) {
     );
   return (
     <>
-      <div className="evidence-summary">
+      <div className="evidence-summary service-summary">
         <ContextCard
           label="Invoice total"
           value={formatVnd(invoice.total)}

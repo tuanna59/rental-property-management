@@ -23,14 +23,14 @@ import { BoundaryReadingDialog } from "./boundary-reading-dialog";
 type Entry = Awaited<ReturnType<typeof getMonthlyMeterEntries>>[number];
 type Tab = "breakdown" | "history" | "previous";
 
-export function MeterDetails({ entry }: { entry: Entry }) {
-  const [tab, setTab] = React.useState<Tab>("breakdown");
+export function MeterDetails({ entry, triggerLabel = "Manage", initialTab = "breakdown" }: { entry: Entry; triggerLabel?: string; initialTab?: Tab }) {
+  const [tab, setTab] = React.useState<Tab>(initialTab);
   if (!entry.activeMeter) return null;
   return (
     <Dialog>
       <DialogTrigger asChild>
         <Button size="sm" variant="ghost">
-          <Gauge /> Manage
+          <Gauge /> {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent className="meter-details-dialog">
@@ -66,7 +66,6 @@ export function MeterDetails({ entry }: { entry: Entry }) {
         <div className="meter-detail-actions">
           <MeterReadingDialog
             meterId={entry.activeMeter.id}
-            billingMonth={entry.billingMonth.toISOString().slice(0, 7)}
           />
           <ReplaceMeterDialog spaceId={entry.spaceId} />
         </div>

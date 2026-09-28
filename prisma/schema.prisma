@@ -160,34 +160,49 @@ model Person {
 }
 
 model Tenancy {
-  id                  String               @id @default(cuid())
+  id                  String                         @id @default(cuid())
   spaceId             String
-  space               Space                @relation(fields: [spaceId], references: [id], onDelete: Restrict)
-  moveInDate          DateTime             @db.Date
-  moveOutDate         DateTime?            @db.Date
+  space               Space                          @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  moveInDate          DateTime                       @db.Date
+  moveOutDate         DateTime?                      @db.Date
   monthlyRentVnd      BigInt
   depositVnd          BigInt?
   moveInNotes         String?
   moveOutNotes        String?
   occupants           TenancyOccupant[]
+  rentRates           TenancyRentRate[]
+  responsibleHistory  TenancyResponsibleAssignment[]
   invoices            Invoice[]
   depositTransactions DepositTransaction[]
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  createdAt           DateTime                       @default(now())
+  updatedAt           DateTime                       @updatedAt
 
   @@index([spaceId, moveInDate])
 }
 
+model TenancyRentRate {
+  id             String   @id @default(cuid())
+  tenancyId      String
+  tenancy        Tenancy  @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+  monthlyRentVnd BigInt
+  effectiveFrom  DateTime @db.Date
+  reason         String
+  createdAt      DateTime @default(now())
+
+  @@unique([tenancyId, effectiveFrom])
+  @@index([tenancyId, effectiveFrom])
+}
+
 model Invoice {
-  id                   String               @id @default(cuid())
+  id                   String                 @id @default(cuid())
   tenancyId            String
-  tenancy              Tenancy              @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
-  billingPeriod        DateTime             @db.Date
-  invoiceDate          DateTime             @default(now()) @db.Date
-  type                 InvoiceType          @default(REGULAR)
-  serviceStart         DateTime?            @db.Date
-  serviceEnd           DateTime?            @db.Date
-  status               InvoiceStatus        @default(DRAFT)
+  tenancy              Tenancy                @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
+  billingPeriod        DateTime               @db.Date
+  invoiceDate          DateTime               @default(now()) @db.Date
+  type                 InvoiceType            @default(REGULAR)
+  serviceStart         DateTime?              @db.Date
+  serviceEnd           DateTime?              @db.Date
+  status               InvoiceStatus          @default(DRAFT)
   propertyNameSnapshot String
   roomNameSnapshot     String
   renterNameSnapshot   String
@@ -196,11 +211,24 @@ model Invoice {
   adjustments          InvoiceAdjustment[]
   payments             Payment[]
   depositTransactions  DepositTransaction[]
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  meterEvidence        InvoiceMeterEvidence[]
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
 
   @@unique([tenancyId, billingPeriod, type])
   @@index([billingPeriod, type, status])
+}
+
+model InvoiceMeterEvidence {
+  id        String       @id @default(cuid())
+  invoiceId String
+  invoice   Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  readingId String
+  reading   MeterReading @relation(fields: [readingId], references: [id], onDelete: Restrict)
+  createdAt DateTime     @default(now())
+
+  @@unique([invoiceId, readingId])
+  @@index([readingId])
 }
 
 model InvoiceLine {
@@ -274,56 +302,99 @@ model DepositTransaction {
 }
 
 model TenancyOccupant {
-  id                    String              @id @default(cuid())
-  tenancyId             String
-  tenancy               Tenancy             @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
-  personId              String
-  person                Person              @relation(fields: [personId], references: [id], onDelete: Restrict)
-  role                  TenancyOccupantRole
-  startDate             DateTime            @db.Date
-  endDate               DateTime?           @db.Date
-  endedByTenancyMoveOut Boolean             @default(false)
-  notes                 String?
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
+  id                     String                         @id @default(cuid())
+  tenancyId              String
+  tenancy                Tenancy                        @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
+  personId               String
+  person                 Person                         @relation(fields: [personId], references: [id], onDelete: Restrict)
+  responsibleAssignments TenancyResponsibleAssignment[]
+  role                   TenancyOccupantRole
+  startDate              DateTime                       @db.Date
+  endDate                DateTime?                      @db.Date
+  endedByTenancyMoveOut  Boolean                        @default(false)
+  notes                  String?
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
 
   @@index([tenancyId, startDate])
   @@index([personId, startDate])
 }
 
+model TenancyResponsibleAssignment {
+  id            String          @id @default(cuid())
+  tenancyId     String
+  tenancy       Tenancy         @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+  occupantId    String
+  occupant      TenancyOccupant @relation(fields: [occupantId], references: [id], onDelete: Restrict)
+  effectiveFrom DateTime        @db.Date
+  reason        String
+  createdAt     DateTime        @default(now())
+
+  @@unique([tenancyId, effectiveFrom])
+  @@index([occupantId, effectiveFrom])
+}
+
 model Meter {
-  id          String         @id @default(cuid())
-  spaceId     String
-  space       Space          @relation(fields: [spaceId], references: [id], onDelete: Restrict)
-  type        MeterType      @default(ELECTRICITY)
-  meterNumber String?
-  installedAt DateTime       @db.Date
-  removedAt   DateTime?      @db.Date
-  notes       String?
-  readings    MeterReading[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id              String                @id @default(cuid())
+  spaceId         String
+  space           Space                 @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  type            MeterType             @default(ELECTRICITY)
+  meterNumber     String?
+  installedAt     DateTime              @db.Date
+  removedAt       DateTime?             @db.Date
+  notes           String?
+  readings        MeterReading[]
+  monthlyClosings MeterMonthlyClosing[]
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
 
   @@index([spaceId, type, installedAt])
 }
 
 model MeterReading {
-  id              String             @id @default(cuid())
+  id              String                 @id @default(cuid())
   meterId         String
-  meter           Meter              @relation(fields: [meterId], references: [id], onDelete: Restrict)
-  readingDate     DateTime           @db.Date
-  billingMonth    DateTime?          @db.Date
-  readingValue    Decimal            @db.Decimal(16, 3)
+  meter           Meter                  @relation(fields: [meterId], references: [id], onDelete: Restrict)
+  readingDate     DateTime               @db.Date
+  billingMonth    DateTime?              @db.Date
+  readingValue    Decimal                @db.Decimal(16, 3)
   readingType     MeterReadingType
-  source          MeterReadingSource @default(MEASURED)
+  source          MeterReadingSource     @default(MEASURED)
   photoStorageKey String?
   notes           String?
   reason          String?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  monthlyClosings MeterMonthlyClosing[]
+  evidencePhotos  MeterReadingPhoto[]
+  invoiceEvidence InvoiceMeterEvidence[]
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
 
   @@unique([meterId, billingMonth])
   @@index([meterId, readingDate])
+}
+
+model MeterMonthlyClosing {
+  id           String       @id @default(cuid())
+  meterId      String
+  meter        Meter        @relation(fields: [meterId], references: [id], onDelete: Restrict)
+  readingId    String
+  reading      MeterReading @relation(fields: [readingId], references: [id], onDelete: Restrict)
+  billingMonth DateTime     @db.Date
+  createdAt    DateTime     @default(now())
+
+  @@unique([meterId, billingMonth])
+  @@unique([readingId, billingMonth])
+  @@index([readingId])
+}
+
+model MeterReadingPhoto {
+  id         String       @id @default(cuid())
+  readingId  String
+  reading    MeterReading @relation(fields: [readingId], references: [id], onDelete: Cascade)
+  storageKey String
+  createdAt  DateTime     @default(now())
+
+  @@index([readingId, createdAt])
 }
 
 model UtilityRate {

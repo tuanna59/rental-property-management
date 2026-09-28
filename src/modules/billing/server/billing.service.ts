@@ -173,10 +173,37 @@ export async function finalizeInvoice(invoiceId: string) {
   return tenancyTransaction(async (tx) => {
     const invoice = await tx.invoice.findUnique({
       where: { id: invoiceId },
-      select: { status: true },
+      select: {
+        status: true,
+        lines: {
+          where: { type: "ELECTRICITY" },
+          select: { metadata: true },
+        },
+      },
     });
     if (!invoice || invoice.status !== "DRAFT")
       throw new Error("Only draft invoices can be finalized.");
+    const readingIds = new Set<string>();
+    for (const line of invoice.lines) {
+      const metadata = line.metadata as Record<string, unknown>;
+      const segments = Array.isArray(metadata.meterSegments)
+        ? metadata.meterSegments
+        : [];
+      for (const segment of segments) {
+        if (!segment || typeof segment !== "object") continue;
+        const ids = (segment as Record<string, unknown>).sourceReadingIds;
+        if (!Array.isArray(ids)) continue;
+        ids.forEach((id) => {
+          if (typeof id === "string") readingIds.add(id);
+        });
+      }
+    }
+    if (readingIds.size) {
+      await tx.invoiceMeterEvidence.createMany({
+        data: [...readingIds].map((readingId) => ({ invoiceId, readingId })),
+        skipDuplicates: true,
+      });
+    }
     return tx.invoice.update({
       where: { id: invoiceId },
       data: { status: "FINALIZED", finalizedAt: new Date() },

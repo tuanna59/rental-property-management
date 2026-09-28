@@ -16,11 +16,19 @@ export async function saveMeterPhoto(meterId: string, file?: File) {
 export async function getMeterReadingPhoto(meterId: string, readingId: string) {
   const reading = await prisma.meterReading.findFirst({
     where: { id: readingId, meterId },
-    select: { photoStorageKey: true },
+    select: {
+      photoStorageKey: true,
+      evidencePhotos: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { storageKey: true },
+      },
+    },
   });
-  if (!reading?.photoStorageKey) return null;
+  const key = reading?.evidencePhotos[0]?.storageKey ?? reading?.photoStorageKey;
+  if (!key) return null;
   return {
-    key: reading.photoStorageKey,
-    bytes: await localPrivateStorage.get(reading.photoStorageKey),
+    key,
+    bytes: await localPrivateStorage.get(key),
   };
 }

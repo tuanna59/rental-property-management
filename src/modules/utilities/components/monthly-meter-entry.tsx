@@ -1,384 +1,106 @@
 "use client";
 
 import * as React from "react";
-import { Camera, CheckCircle2, Gauge, Plus } from "lucide-react";
-
+import Link from "next/link";
+import { ChevronLeft, ChevronRight, Ellipsis, Gauge, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { emptyActionState, type ActionState } from "@/lib/action-state";
-
-import { installMeterAction, saveMonthlyReadingAction } from "../actions";
+import { appendMeterReadingPhotoAction, installMeterAction, markAllCurrentReadingsClosedAction, markCurrentReadingClosedAction, recordReadingAction } from "../actions";
 import type { getMonthlyMeterEntries } from "../server/utility.queries";
 import { MeterDetails } from "./meter-details";
-import {
-  EmptyUtilitiesState,
-  MonthSelector,
-  UtilityStatusBadge,
-} from "./utility-ui";
+import { EmptyUtilitiesState } from "./utility-ui";
 
 type Entries = Awaited<ReturnType<typeof getMonthlyMeterEntries>>;
+type Filter = "OPEN" | "CLOSED" | "ALL";
 
-export function MonthlyMeterEntry({
-  entries,
-  month,
-}: {
-  entries: Entries;
-  month: string;
-}) {
-  const recorded = entries.filter(
-    (entry) =>
-      entry.readingStatus === "RECORDED" || entry.readingStatus === "ESTIMATED",
-  ).length;
-  return (
-    <div className="utilities-content">
-      <header className="utilities-header">
-        <div className="utilities-header-copy">
-          <p className="utilities-eyebrow">MONTHLY WORKFLOW</p>
-          <h1>Meter readings</h1>
-          <p>Enter monthly electricity readings for all rental rooms.</p>
+export function MonthlyMeterEntry({ entries, month, propertyId }: { entries: Entries; month: string; propertyId: string }) {
+  const [filter, setFilter] = React.useState<Filter>("OPEN");
+  const openEntries = entries.filter((entry) => !entry.monthlyReading);
+  const closedEntries = entries.filter((entry) => entry.monthlyReading);
+  const visible = filter === "OPEN" ? openEntries : filter === "CLOSED" ? closedEntries : entries;
+  const canClose = openEntries.filter((entry) => entry.currentReading).length;
+  const [, bulkAction, bulkPending] = React.useActionState(markAllCurrentReadingsClosedAction, emptyActionState);
+
+  return <div className="utilities-content">
+    <header className="utilities-header meter-fast-header">
+      <div className="utilities-header-copy"><p className="utilities-eyebrow">METER READINGS</p><h1>Meter readings</h1><p>Record current manual readings, then close the month when ready.</p></div>
+      <MonthNavigation month={month} />
+    </header>
+    <section className="utility-section meter-fast-section">
+      <div className="utility-section-header meter-fast-toolbar">
+        <div className="meter-filter-group" aria-label="Reading status filter">
+          {([["OPEN", "Open", openEntries.length], ["CLOSED", "Closed", closedEntries.length], ["ALL", "All", entries.length]] as const).map(([value, label, count]) => <button type="button" key={value} className={filter === value ? "is-active" : ""} onClick={() => setFilter(value)}>{label} <span>{count}</span></button>)}
         </div>
-        <MonthSelector month={month} />
-      </header>
-      <section className="utility-section meter-grid-section">
-        <div className="utility-section-header">
-          <div>
-            <h2>Monthly entry</h2>
-            <p>
-              Each room saves independently. Existing monthly readings are
-              updated in place.
-            </p>
-          </div>
-          <span className="utility-status is-complete">
-            <CheckCircle2 /> {recorded} recorded
-          </span>
-        </div>
-        {entries.length ? (
-          <div className="utility-table-wrap">
-            <table className="utility-table meter-grid">
-              <thead>
-                <tr>
-                  <th>Room</th>
-                  <th>Meter</th>
-                  <th>Previous closing</th>
-                  <th>Monthly closing</th>
-                  <th>Date</th>
-                  <th>Source</th>
-                  <th>Known usage</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((entry) =>
-                  entry.activeMeter ? (
-                    <ActiveMeterRow
-                      key={entry.spaceId}
-                      entry={entry}
-                      month={month}
-                    />
-                  ) : (
-                    <NoMeterRow key={entry.spaceId} entry={entry} />
-                  ),
-                )}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyUtilitiesState
-            title="No rental rooms"
-            description="Add a rental room before configuring utility meters."
-          />
-        )}
-      </section>
-      {entries.length > 0 && (
-        <p className="meter-grid-note">
-          <Gauge /> Usage compares readings on the same physical meter only.
-        </p>
-      )}
-    </div>
-  );
+        <form action={bulkAction}>
+          <input type="hidden" name="propertyId" value={propertyId} /><input type="hidden" name="billingMonth" value={`${month}-01`} />
+          <Button type="submit" variant="outline" disabled={!canClose || bulkPending}>{canClose ? `Mark ${canClose} current readings as closed` : "No readings can close"}</Button>
+        </form>
+      </div>
+      {visible.length ? <div className="utility-table-wrap"><table className="utility-table meter-fast-grid"><thead><tr><th>Room / meter</th><th>Last reading</th><th>Current reading</th><th>Reading date</th><th>Known usage</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+        {visible.map((entry) => entry.activeMeter ? <MeterEntryRow key={entry.spaceId} entry={entry} month={month} /> : <NoMeterRow key={entry.spaceId} entry={entry} />)}
+      </tbody></table></div> : <EmptyUtilitiesState title={filter === "OPEN" ? "No open rooms" : "No readings in this view"} description={filter === "OPEN" ? "All applicable rooms are closed for this billing month." : "Choose another status or billing month."} />}
+    </section>
+    <p className="meter-grid-note"><Gauge /> Usage compares readings on the same physical meter only.</p>
+  </div>;
 }
 
-function ActiveMeterRow({
-  entry,
-  month,
-}: {
-  entry: Entries[number];
-  month: string;
-}) {
+function MeterEntryRow({ entry, month }: { entry: Entries[number]; month: string }) {
+  const meter = entry.activeMeter;
+  if (!meter) return null;
   const formId = React.useId();
-  const [source, setSource] = React.useState<"MEASURED" | "ESTIMATED">(
-    entry.source,
-  );
-  const [state, action] = React.useActionState(
-    saveMonthlyReadingAction,
-    emptyActionState,
-  );
-  const status =
-    entry.readingStatus === "ESTIMATED"
-      ? "estimated"
-      : entry.readingStatus === "MISSING"
-        ? "missing"
-        : "complete";
-  return (
-    <tr>
-      <td>
-        <div className="utility-room">{entry.room}</div>
-      </td>
-      <td>
-        <strong>{entry.meterNumber || "Unnumbered"}</strong>
-        <div className="utility-subtle">
-          Installed{" "}
-          {entry.activeMeter
-            ? new Intl.DateTimeFormat("en", {
-                month: "short",
-                day: "numeric",
-                timeZone: "UTC",
-              }).format(entry.activeMeter.installedAt)
-            : "—"}
-        </div>
-      </td>
-      <td>
-        <strong>
-          {entry.previousReading
-            ? Number(entry.previousReading.readingValue).toLocaleString()
-            : "—"}
-        </strong>
-        {entry.previousReading && (
-          <div className="utility-subtle">
-            {new Intl.DateTimeFormat("en", {
-              month: "short",
-              day: "numeric",
-              timeZone: "UTC",
-            }).format(entry.previousReading.readingDate)}
-          </div>
-        )}
-      </td>
-      <td>
-        <form id={formId} action={action} className="meter-current-form">
-          <input type="hidden" name="meterId" value={entry.activeMeter!.id} />
-          <input type="hidden" name="billingMonth" value={`${month}-01`} />
-          <input
-            type="hidden"
-            name="monthlyReadingId"
-            value={entry.monthlyReading?.id ?? ""}
-          />
-          <Input
-            name="readingValue"
-            type="number"
-            step="0.001"
-            defaultValue={entry.current ?? ""}
-            placeholder="Reading"
-            required
-          />
-          {source === "ESTIMATED" && (
-            <Input
-              name="reason"
-              defaultValue={entry.monthlyReading?.reason ?? ""}
-              placeholder="Estimate reason"
-              required
-            />
-          )}
-          {state.message && (
-            <span className={state.ok ? "form-success" : "form-error"}>
-              {state.message}
-            </span>
-          )}
-        </form>
-      </td>
-      <td>
-        <Input
-          form={formId}
-          name="readingDate"
-          type="date"
-          defaultValue={
-            entry.readingDate
-              ? entry.readingDate.toISOString().slice(0, 10)
-              : monthEndDate(month)
-          }
-          required
-        />
-      </td>
-      <td>
-        <select
-          form={formId}
-          name="source"
-          value={source}
-          onChange={(event) =>
-            setSource(event.target.value as "MEASURED" | "ESTIMATED")
-          }
-        >
-          <option value="MEASURED">Measured</option>
-          <option value="ESTIMATED">Estimated</option>
-        </select>
-      </td>
-      <td>
-        <strong>
-          {entry.knownPhysicalUsage !== null
-            ? `${Number(entry.knownPhysicalUsage).toLocaleString()} kWh`
-            : "—"}
-        </strong>
-        {entry.knownPhysicalUsage !== null && (
-          <div className="utility-subtle">
-            {entry.isClosingComplete ? "Complete" : "Known so far"}
-          </div>
-        )}
-      </td>
-      <td>
-        <UtilityStatusBadge status={status} />
-        {entry.lateReadingDays ? (
-          <div className="utility-subtle">
-            Late +{entry.lateReadingDays} days
-          </div>
-        ) : null}
-      </td>
-      <td>
-        <div className="meter-row-actions">
-          <label
-            className="compact-photo-button"
-            title={
-              entry.monthlyReading?.hasPhoto ? "Replace photo" : "Attach photo"
-            }
-          >
-            <Camera />
-            <span>
-              {entry.monthlyReading?.hasPhoto ? "Photo" : "Add photo"}
-            </span>
-            <input
-              form={formId}
-              name="photo"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-            />
-          </label>
-          <Button form={formId} type="submit" size="sm">
-            {entry.monthlyReading ? "Update" : "Save"}
-          </Button>
-          <MeterDetails entry={entry} />
-        </div>
-      </td>
-    </tr>
-  );
+  const [source, setSource] = React.useState<"MEASURED" | "ESTIMATED">(entry.currentReading?.source ?? "MEASURED");
+  const [reason, setReason] = React.useState(entry.currentReading?.reason ?? "");
+  const [state, saveAction, pending] = React.useActionState(recordReadingAction, emptyActionState);
+  const current = entry.currentReading;
+  return <tr>
+    <td><div className="meter-identity"><strong>{entry.room}</strong><span>{entry.floorName} · {entry.meterNumber || "Unnumbered"}</span>{meter.installedAt >= entry.billingMonth && <small>Replaced {shortDate(meter.installedAt)}</small>}</div></td>
+    <td><strong>{entry.previousReading ? `${number(entry.previousReading.readingValue)} kWh` : "—"}</strong>{entry.previousReading && <div className="utility-subtle">{shortDate(entry.previousReading.readingDate)}</div>}</td>
+    <td><form id={formId} action={saveAction} className="meter-inline-form"><input type="hidden" name="meterId" value={meter.id} /><input type="hidden" name="source" value={source} /><input type="hidden" name="reason" value={reason} /><Input name="readingValue" type="number" step="0.001" placeholder="Reading" required />{state.message && <small className={state.ok ? "form-success" : "form-error"}>{state.message}</small>}</form></td>
+    <td><Input form={formId} name="readingDate" type="date" defaultValue={todayDate()} required /></td>
+    <td><strong>{entry.knownPhysicalUsage !== null ? `+${number(entry.knownPhysicalUsage)} kWh` : "—"}</strong>{source === "ESTIMATED" && <div className="utility-status is-estimated">Estimated</div>}</td>
+    <td><span className={`utility-status ${entry.monthlyReading ? "is-complete" : "is-incomplete"}`}>{entry.monthlyReading ? "Closed" : "Open"}</span></td>
+    <td><div className="meter-row-actions meter-primary-actions"><Button form={formId} type="submit" size="sm" disabled={pending}>Save</Button><details className="meter-overflow"><summary aria-label="More reading actions"><Ellipsis /></summary><div className="meter-overflow-menu">
+      {!entry.monthlyReading && current && <ClosingAction meterId={meter.id} readingId={current.id} month={month} />}
+      <ReadingOptions source={source} reason={reason} onChange={(nextSource, nextReason) => { setSource(nextSource); setReason(nextReason); }} />
+      {current ? <PhotoAction meterId={meter.id} readingId={current.id} hasPhoto={current.hasPhoto} /> : <span className="disabled-menu-item">Add photo after saving</span>}
+      <MeterDetails entry={entry} triggerLabel="View reading history" initialTab="history" /><MeterDetails entry={entry} triggerLabel="Manage meter" />
+    </div></details></div></td>
+  </tr>;
 }
 
-function NoMeterRow({ entry }: { entry: Entries[number] }) {
-  return (
-    <tr>
-      <td>
-        <div className="utility-room">{entry.room}</div>
-      </td>
-      <td colSpan={7}>
-        <strong>No meter installed</strong>
-        <div className="utility-subtle">
-          Configure an electricity meter to start monthly tracking.
-        </div>
-      </td>
-      <td>
-        <InstallMeterDialog spaceId={entry.spaceId} room={entry.room} />
-      </td>
-    </tr>
-  );
+function ClosingAction({ meterId, readingId, month }: { meterId: string; readingId: string; month: string }) {
+  const [, action] = React.useActionState(markCurrentReadingClosedAction, emptyActionState);
+  return <form action={action}><input type="hidden" name="meterId" value={meterId} /><input type="hidden" name="readingId" value={readingId} /><input type="hidden" name="billingMonth" value={`${month}-01`} /><button type="submit">Mark current as closed</button></form>;
 }
 
-function InstallMeterDialog({
-  spaceId,
-  room,
-}: {
-  spaceId: string;
-  room: string;
-}) {
+function ReadingOptions({ source, reason, onChange }: { source: "MEASURED" | "ESTIMATED"; reason: string; onChange: (source: "MEASURED" | "ESTIMATED", reason: string) => void }) {
+  const [open, setOpen] = React.useState(false), [draftSource, setDraftSource] = React.useState(source), [draftReason, setDraftReason] = React.useState(reason);
+  return <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><button type="button">Reading options</button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Reading options</DialogTitle><DialogDescription>Measured is the default for quick entry.</DialogDescription></DialogHeader><div className="dialog-form"><div className="field"><Label>Source</Label><select value={draftSource} onChange={(event) => setDraftSource(event.target.value as "MEASURED" | "ESTIMATED")}><option value="MEASURED">Measured</option><option value="ESTIMATED">Estimated</option></select></div>{draftSource === "ESTIMATED" && <div className="field"><Label>Estimated reason</Label><Input value={draftReason} onChange={(event) => setDraftReason(event.target.value)} required /></div>}</div><DialogFooter><Button type="button" disabled={draftSource === "ESTIMATED" && !draftReason.trim()} onClick={() => { onChange(draftSource, draftReason); setOpen(false); }}>Apply</Button></DialogFooter></DialogContent></Dialog>;
+}
+
+function PhotoAction({ meterId, readingId, hasPhoto }: { meterId: string; readingId: string; hasPhoto: boolean }) {
+  const [state, action] = React.useActionState(appendMeterReadingPhotoAction, emptyActionState);
+  return <Dialog><DialogTrigger asChild><button type="button">{hasPhoto ? "Add / view photo" : "Add photo"}</button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Reading evidence</DialogTitle><DialogDescription>New evidence is appended and existing evidence is preserved.</DialogDescription></DialogHeader><form action={action} className="dialog-form"><input type="hidden" name="readingId" value={readingId} />{hasPhoto && <a href={`/api/meters/${meterId}/media/${readingId}`} target="_blank">View existing photo</a>}<Input name="photo" type="file" accept="image/jpeg,image/png,image/webp" required />{state.message && <p className={state.ok ? "form-success" : "form-error"}>{state.message}</p>}<Button type="submit">Add photo</Button></form></DialogContent></Dialog>;
+}
+
+function MonthNavigation({ month }: { month: string }) {
+  return <div className="meter-month-nav"><Link href={`/utilities/meters?month=${shiftMonth(month, -1)}`} aria-label="Previous month"><ChevronLeft /></Link><form action="/utilities/meters"><Input name="month" type="month" defaultValue={month} onChange={(event) => event.currentTarget.form?.requestSubmit()} /></form><Link href={`/utilities/meters?month=${shiftMonth(month, 1)}`} aria-label="Next month"><ChevronRight /></Link><Link className="current-month-link" href={`/utilities/meters?month=${new Date().toISOString().slice(0, 7)}`}>Current</Link></div>;
+}
+
+function NoMeterRow({ entry }: { entry: Entries[number] }) { return <tr><td><div className="meter-identity"><strong>{entry.room}</strong><span>{entry.floorName}</span></div></td><td colSpan={5}><strong>No meter installed</strong><div className="utility-subtle">Configure a meter to start recording.</div></td><td><InstallMeterDialog spaceId={entry.spaceId} room={entry.room} /></td></tr>; }
+
+function InstallMeterDialog({ spaceId, room }: { spaceId: string; room: string }) {
   const [open, setOpen] = React.useState(false);
-  const [state, action] = React.useActionState(
-    async (previous: ActionState, formData: FormData) => {
-      const result = await installMeterAction(previous, formData);
-      if (result.ok) setOpen(false);
-      return result;
-    },
-    emptyActionState,
-  );
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus /> Install meter
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Install electricity meter</DialogTitle>
-          <DialogDescription>
-            Configure the first meter for {room}. Its initial reading can be
-            non-zero.
-          </DialogDescription>
-        </DialogHeader>
-        <form action={action} className="dialog-form">
-          <input type="hidden" name="spaceId" value={spaceId} />
-          <div className="dialog-grid">
-            <Field
-              label="Meter number"
-              name="meterNumber"
-              placeholder="Optional"
-            />
-            <Field
-              label="Installed date"
-              name="installedAt"
-              type="date"
-              required
-            />
-            <Field
-              label="Initial reading"
-              name="initialReading"
-              type="number"
-              step="0.001"
-              required
-            />
-            <Field
-              label="Meter photo"
-              name="photo"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-            />
-          </div>
-          <div className="field">
-            <Label>Notes</Label>
-            <Textarea name="notes" />
-          </div>
-          {state.message && (
-            <p className={state.ok ? "form-success" : "form-error"}>
-              {state.message}
-            </p>
-          )}
-          <Button type="submit">Install meter</Button>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
+  const [state, action] = React.useActionState(async (previous: ActionState, data: FormData) => { const result = await installMeterAction(previous, data); if (result.ok) setOpen(false); return result; }, emptyActionState);
+  return <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button size="sm"><Plus /> Install meter</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Install electricity meter</DialogTitle><DialogDescription>Configure the first meter for {room}.</DialogDescription></DialogHeader><form action={action} className="dialog-form"><input type="hidden" name="spaceId" value={spaceId} /><Field label="Meter number" name="meterNumber" /><Field label="Installed date" name="installedAt" type="date" required /><Field label="Initial reading" name="initialReading" type="number" step="0.001" required /><div className="field"><Label>Notes</Label><Textarea name="notes" /></div>{state.message && <p className={state.ok ? "form-success" : "form-error"}>{state.message}</p>}<Button type="submit">Install meter</Button></form></DialogContent></Dialog>;
 }
 
-function Field({
-  label,
-  ...props
-}: React.ComponentProps<typeof Input> & { label: string }) {
-  const id = React.useId();
-  return (
-    <div className="field">
-      <Label htmlFor={id}>{label}</Label>
-      <Input id={id} {...props} />
-    </div>
-  );
-}
-
-function monthEndDate(month: string) {
-  const [year, monthNumber] = month.split("-").map(Number);
-  return new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10);
-}
+function Field({ label, ...props }: React.ComponentProps<typeof Input> & { label: string }) { const id = React.useId(); return <div className="field"><Label htmlFor={id}>{label}</Label><Input id={id} {...props} /></div>; }
+const number = (value: string) => Number(value).toLocaleString();
+const todayDate = () => new Date().toISOString().slice(0, 10);
+const shortDate = (value: Date) => new Intl.DateTimeFormat("en", { month: "short", day: "numeric", timeZone: "UTC" }).format(value);
+function shiftMonth(month: string, amount: number) { const [year, value] = month.split("-").map(Number); return new Date(Date.UTC(year, value - 1 + amount, 1)).toISOString().slice(0, 7); }

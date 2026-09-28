@@ -22,15 +22,10 @@ import { recordReadingAction } from "../actions";
 
 export function MeterReadingDialog({
   meterId,
-  billingMonth,
 }: {
   meterId: string;
-  billingMonth: string;
 }) {
   const [open, setOpen] = React.useState(false);
-  const [readingType, setReadingType] = React.useState<"MONTHLY" | "MANUAL">(
-    "MANUAL",
-  );
   const [source, setSource] = React.useState<"MEASURED" | "ESTIMATED">(
     "MEASURED",
   );
@@ -53,7 +48,7 @@ export function MeterReadingDialog({
         <DialogHeader>
           <DialogTitle>Record meter reading</DialogTitle>
           <DialogDescription>
-            Add a monthly closing or manual reading to this physical meter.
+            Add a manual observation to this physical meter.
           </DialogDescription>
         </DialogHeader>
         <form action={action} className="dialog-form">
@@ -73,21 +68,8 @@ export function MeterReadingDialog({
               required
             />
           </div>
+          <input type="hidden" name="readingType" value="MANUAL" />
           <div className="dialog-grid">
-            <div className="field">
-              <Label htmlFor="reading-type">Reading type</Label>
-              <select
-                id="reading-type"
-                name="readingType"
-                value={readingType}
-                onChange={(event) =>
-                  setReadingType(event.target.value as "MONTHLY" | "MANUAL")
-                }
-              >
-                <option value="MONTHLY">Monthly</option>
-                <option value="MANUAL">Manual</option>
-              </select>
-            </div>
             <div className="field">
               <Label htmlFor="reading-source">Source</Label>
               <select
@@ -103,15 +85,6 @@ export function MeterReadingDialog({
               </select>
             </div>
           </div>
-          {readingType === "MONTHLY" && (
-            <Field
-              label="Billing month"
-              name="billingMonth"
-              type="month"
-              defaultValue={billingMonth}
-              required
-            />
-          )}
           {source === "ESTIMATED" && (
             <Field
               label="Estimate reason"

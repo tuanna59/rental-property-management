@@ -84,6 +84,54 @@ export async function getPeopleDirectory(search = "") {
               id: true,
               moveInDate: true,
               moveOutDate: true,
+              monthlyRentVnd: true,
+              rentRates: { orderBy: { effectiveFrom: "desc" } },
+              responsibleHistory: {
+                orderBy: { effectiveFrom: "asc" },
+                select: {
+                  id: true,
+                  effectiveFrom: true,
+                  reason: true,
+                  occupant: {
+                    select: {
+                      id: true,
+                      person: { select: { id: true, fullName: true } },
+                    },
+                  },
+                },
+              },
+              occupants: {
+                orderBy: { startDate: "asc" },
+                select: {
+                  id: true,
+                  startDate: true,
+                  endDate: true,
+                  person: { select: { id: true, fullName: true } },
+                },
+              },
+              invoices: {
+                orderBy: [{ billingPeriod: "desc" }, { invoiceDate: "desc" }],
+                select: {
+                  id: true,
+                  billingPeriod: true,
+                  invoiceDate: true,
+                  type: true,
+                  status: true,
+                  roomNameSnapshot: true,
+                  lines: { select: { finalAmount: true } },
+                  adjustments: { select: { amount: true } },
+                  payments: {
+                    orderBy: { paymentDate: "desc" },
+                    select: {
+                      id: true,
+                      paymentDate: true,
+                      method: true,
+                      amount: true,
+                      isDepositApplication: true,
+                    },
+                  },
+                },
+              },
               space: {
                 select: {
                   id: true,
@@ -101,10 +149,30 @@ export async function getPeopleDirectory(search = "") {
   return people.map((person) => {
     const { tenancyOccupancies, ...personFields } = person;
     const safe = toPersonRecord(personFields);
-    const history = tenancyOccupancies.map((membership) => ({
+    const history = tenancyOccupancies.map((membership) => {
+      const rates = membership.tenancy.rentRates.map((rate) => ({
+        id: rate.id,
+        effectiveFrom: rate.effectiveFrom,
+        monthlyRentVnd: rate.monthlyRentVnd.toString(),
+        reason: rate.reason,
+      }));
+      const effectiveRate =
+        rates.find((rate) => rate.effectiveFrom <= date) ?? rates.at(-1) ?? null;
+      const scheduledRate =
+        [...rates].reverse().find((rate) => rate.effectiveFrom > date) ?? null;
+      const responsibility = membership.tenancy.responsibleHistory;
+      const currentAssignment =
+        [...responsibility]
+          .reverse()
+          .find((assignment) => assignment.effectiveFrom <= date) ?? null;
+      const resolvedRole =
+        currentAssignment?.occupant.id === membership.id
+          ? "RESPONSIBLE"
+          : "ADDITIONAL";
+      return {
       membershipId: membership.id,
       tenancyId: membership.tenancy.id,
-      role: membership.role,
+      role: resolvedRole as "RESPONSIBLE" | "ADDITIONAL",
       startDate: membership.startDate,
       endDate: membership.endDate,
       moveInDate: membership.tenancy.moveInDate,
@@ -112,7 +180,73 @@ export async function getPeopleDirectory(search = "") {
       spaceId: membership.tenancy.space.id,
       spaceName: membership.tenancy.space.name,
       floorName: membership.tenancy.space.floor.name,
-    }));
+      currentRent: effectiveRate ?? {
+        id: "legacy",
+        effectiveFrom: membership.tenancy.moveInDate,
+        monthlyRentVnd: membership.tenancy.monthlyRentVnd.toString(),
+        reason: "Initial rent",
+      },
+      scheduledRent: scheduledRate,
+      rentHistory: rates,
+      occupants: membership.tenancy.occupants.map((occupant) => ({
+        ...occupant,
+        personId: occupant.person.id,
+        personName: occupant.person.fullName,
+      })),
+      responsibilityHistory: responsibility.map((assignment, index) => ({
+        id: assignment.id,
+        effectiveFrom: assignment.effectiveFrom,
+        reason: assignment.reason,
+        occupantId: assignment.occupant.id,
+        personId: assignment.occupant.person.id,
+        personName: assignment.occupant.person.fullName,
+        previousPersonName:
+          index > 0
+            ? responsibility[index - 1].occupant.person.fullName
+            : null,
+      })),
+      invoices: membership.tenancy.invoices.map((invoice) => {
+        const total =
+          invoice.lines.reduce(
+            (sum, item) => sum + Number(item.finalAmount),
+            0,
+          ) +
+          invoice.adjustments.reduce(
+            (sum, item) => sum + Number(item.amount),
+            0,
+          );
+        const paid = invoice.payments.reduce(
+          (sum, payment) => sum + Number(payment.amount),
+          0,
+        );
+        const balance = Math.max(total - paid, 0);
+        return {
+          id: invoice.id,
+          billingPeriod: invoice.billingPeriod,
+          invoiceDate: invoice.invoiceDate,
+          type: invoice.type,
+          roomName: invoice.roomNameSnapshot,
+          amount: String(total),
+          balance: String(balance),
+          displayStatus:
+            balance === 0 && total > 0
+              ? "Paid"
+              : paid > 0
+                ? "Partial"
+                : invoice.status === "FINALIZED"
+                  ? "Unpaid"
+                  : "Draft",
+          payments: invoice.payments.map((payment) => ({
+            id: payment.id,
+            paymentDate: payment.paymentDate,
+            method: payment.method,
+            amount: payment.amount.toString(),
+            isDepositApplication: payment.isDepositApplication,
+          })),
+        };
+      }),
+    };
+    });
     const projection = projectRentalState(history, date);
     const match = (period: (typeof history)[number]) =>
       history.find((item) => item.membershipId === period.membershipId) ?? null;

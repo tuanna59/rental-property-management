@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { recordTenancyBoundaryInTransaction } from "@/modules/utilities/server/meter.service";
 import { createPerson } from "@/modules/people/server/people.service";
 import type { CreatePersonInput } from "@/modules/people/domain/types";
+import { roundVnd } from "@/lib/money";
 
 import { TenancyDomainError } from "../domain/errors";
 import { assertMoveInRules, assertMoveOutRules } from "../domain/rules";
@@ -206,6 +207,27 @@ export async function moveIn(input: MoveInInput) {
       throw error;
     }
 
+    await tx.tenancyRentRate.create({
+      data: {
+        tenancyId: tenancy.id,
+        monthlyRentVnd: normalized.monthlyRentVnd,
+        effectiveFrom: normalized.moveInDate,
+        reason: "Initial rent",
+      },
+    });
+    const responsible = await tx.tenancyOccupant.findFirstOrThrow({
+      where: { tenancyId: tenancy.id, role: "RESPONSIBLE" },
+      select: { id: true },
+    });
+    await tx.tenancyResponsibleAssignment.create({
+      data: {
+        tenancyId: tenancy.id,
+        occupantId: responsible.id,
+        effectiveFrom: normalized.moveInDate,
+        reason: "Initial responsible renter",
+      },
+    });
+
     await recordTenancyBoundaryInTransaction(
       tx,
       normalized.spaceId,
@@ -216,6 +238,95 @@ export async function moveIn(input: MoveInInput) {
       normalized.moveInNotes,
     );
     return tenancy;
+  });
+}
+
+export async function changeRent(input: {
+  tenancyId: string;
+  monthlyRentVnd: string;
+  effectiveFrom: string;
+  reason: string;
+}) {
+  const effectiveFrom = normalizeBusinessDate(input.effectiveFrom);
+  const today = todayBusinessDate();
+  const reason = input.reason.trim();
+  if (!reason) throw new Error("A reason is required.");
+  if (effectiveFrom.getUTCDate() !== 1) {
+    throw new Error("The rent change must take effect on the first day of a month.");
+  }
+  if (effectiveFrom < today) {
+    throw new Error("Rent changes can only take effect today or in the future.");
+  }
+  const rounded = roundVnd(input.monthlyRentVnd);
+  if (!rounded.isPositive()) throw new Error("Monthly rent must be positive.");
+
+  return tenancyTransaction(async (tx) => {
+    const tenancy = await tx.tenancy.findUnique({
+      where: { id: input.tenancyId },
+      select: { moveInDate: true, moveOutDate: true },
+    });
+    if (!tenancy) throw new Error("The tenancy was not found.");
+    if (
+      effectiveFrom < tenancy.moveInDate ||
+      (tenancy.moveOutDate && effectiveFrom >= tenancy.moveOutDate)
+    ) {
+      throw new Error("The effective date must be inside the tenancy period.");
+    }
+    return tx.tenancyRentRate.create({
+      data: {
+        tenancyId: input.tenancyId,
+        monthlyRentVnd: BigInt(rounded.toFixed(0)),
+        effectiveFrom,
+        reason,
+      },
+    });
+  });
+}
+
+export async function changeResponsible(input: {
+  tenancyId: string;
+  occupantId: string;
+  effectiveFrom: string;
+  reason: string;
+}) {
+  const effectiveFrom = normalizeBusinessDate(input.effectiveFrom);
+  const reason = input.reason.trim();
+  if (!reason) throw new Error("A reason is required.");
+  if (effectiveFrom < todayBusinessDate()) {
+    throw new Error("Responsibility changes can only take effect today or in the future.");
+  }
+  return tenancyTransaction(async (tx) => {
+    const tenancy = await tx.tenancy.findUnique({
+      where: { id: input.tenancyId },
+      select: { moveInDate: true, moveOutDate: true },
+    });
+    if (!tenancy) throw new Error("The tenancy was not found.");
+    if (
+      effectiveFrom < tenancy.moveInDate ||
+      (tenancy.moveOutDate && effectiveFrom >= tenancy.moveOutDate)
+    ) {
+      throw new Error("The effective date must be inside the tenancy period.");
+    }
+    const occupant = await tx.tenancyOccupant.findFirst({
+      where: {
+        id: input.occupantId,
+        tenancyId: input.tenancyId,
+        startDate: { lte: effectiveFrom },
+        OR: [{ endDate: null }, { endDate: { gt: effectiveFrom } }],
+      },
+      select: { id: true },
+    });
+    if (!occupant) {
+      throw new Error("The new responsible renter must be an active occupant of this tenancy.");
+    }
+    return tx.tenancyResponsibleAssignment.create({
+      data: {
+        tenancyId: input.tenancyId,
+        occupantId: occupant.id,
+        effectiveFrom,
+        reason,
+      },
+    });
   });
 }
 

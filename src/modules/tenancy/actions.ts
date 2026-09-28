@@ -11,6 +11,8 @@ import {
   addNewAdditionalOccupant,
   cancelScheduledMoveOut,
   cancelUpcomingMoveIn,
+  changeRent,
+  changeResponsible,
   endAdditionalOccupancy,
   moveAdditionalOccupant,
   moveIn,
@@ -20,6 +22,38 @@ import {
 
 function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
+}
+
+export async function changeRentAction(
+  _state: ActionState,
+  formData: FormData,
+) {
+  return tenancyAction(
+    () =>
+      changeRent({
+        tenancyId: value(formData, "tenancyId"),
+        monthlyRentVnd: value(formData, "monthlyRentVnd"),
+        effectiveFrom: value(formData, "effectiveFrom"),
+        reason: value(formData, "reason"),
+      }),
+    "New rent rate scheduled.",
+  );
+}
+
+export async function changeResponsibleAction(
+  _state: ActionState,
+  formData: FormData,
+) {
+  return tenancyAction(
+    () =>
+      changeResponsible({
+        tenancyId: value(formData, "tenancyId"),
+        occupantId: value(formData, "occupantId"),
+        effectiveFrom: value(formData, "effectiveFrom"),
+        reason: value(formData, "reason"),
+      }),
+    "Responsible renter changed.",
+  );
 }
 function file(formData: FormData, name: string) {
   const candidate = formData.get(name);

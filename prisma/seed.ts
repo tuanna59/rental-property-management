@@ -2,7 +2,10 @@ import "dotenv/config";
 
 import { PrismaPg } from "@prisma/adapter-pg";
 
-import { PrismaClient } from "../src/generated/prisma/client";
+import {
+  Prisma,
+  PrismaClient,
+} from "../src/generated/prisma/client";
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -13,6 +16,8 @@ if (!databaseUrl) {
 const prisma = new PrismaClient({
   adapter: new PrismaPg(databaseUrl),
 });
+
+const utilityStartDate = new Date("2026-01-01T00:00:00.000Z");
 
 const initialFloors = [
   {
@@ -63,6 +68,13 @@ const initialPeople = [
   "Trọng Nghĩa",
 ] as const;
 
+const initialElectricityMeters = [
+  { room: "P01", meterNumber: "CT01" },
+  { room: "P02", meterNumber: "CT02" },
+  { room: "P03", meterNumber: "CT03" },
+  { room: "P04", meterNumber: "CT04" },
+] as const;
+
 async function ensurePropertySeedData() {
   return prisma.$transaction(
     async (tx) => {
@@ -71,7 +83,10 @@ async function ensurePropertySeedData() {
       });
 
       if (existing) {
-        console.log("Existing property data preserved; property seed skipped.");
+        console.log(
+          "Existing property data preserved; property seed skipped.",
+        );
+
         return existing;
       }
 
@@ -136,12 +151,153 @@ async function ensurePeopleSeedData() {
   console.log(`Seeded ${peopleToCreate.length} people.`);
 }
 
+async function ensureUtilityRateSeedData(propertyId: string) {
+  const initialRates = [
+    {
+      utilityType: "ELECTRICITY" as const,
+      rate: new Prisma.Decimal("3800"),
+      notes: "Initial electricity rate",
+    },
+    {
+      utilityType: "WATER" as const,
+      rate: new Prisma.Decimal("50000"),
+      notes: "Initial water rate",
+    },
+  ];
+
+  for (const rate of initialRates) {
+    const existing = await prisma.utilityRate.findFirst({
+      where: {
+        propertyId,
+        utilityType: rate.utilityType,
+        effectiveFrom: utilityStartDate,
+      },
+    });
+
+    if (existing) {
+      console.log(
+        `${rate.utilityType} rate effective 2026-01-01 already exists; skipped.`,
+      );
+
+      continue;
+    }
+
+    await prisma.utilityRate.create({
+      data: {
+        propertyId,
+        utilityType: rate.utilityType,
+        rate: rate.rate,
+        effectiveFrom: utilityStartDate,
+        effectiveTo: null,
+        notes: rate.notes,
+      },
+    });
+
+    console.log(
+      `Seeded ${rate.utilityType} rate: ${rate.rate.toString()}.`,
+    );
+  }
+}
+
+async function ensureInitialMeterReading(meterId: string) {
+  const existingInstallReading = await prisma.meterReading.findFirst({
+    where: {
+      meterId,
+      readingType: "METER_INSTALL",
+    },
+    orderBy: {
+      readingDate: "asc",
+    },
+  });
+
+  if (existingInstallReading) {
+    return;
+  }
+
+  await prisma.meterReading.create({
+    data: {
+      meterId,
+      readingDate: utilityStartDate,
+      billingMonth: null,
+      readingValue: new Prisma.Decimal("0"),
+      readingType: "METER_INSTALL",
+      source: "MEASURED",
+      notes: "Initial seeded meter reading",
+    },
+  });
+
+  console.log(`Seeded initial 0 kWh reading for meter ${meterId}.`);
+}
+
+async function ensureElectricityMeterSeedData(propertyId: string) {
+  const property = await prisma.property.findUniqueOrThrow({
+    where: {
+      id: propertyId,
+    },
+    include: {
+      floors: {
+        include: {
+          spaces: true,
+        },
+      },
+    },
+  });
+
+  const spaces = property.floors.flatMap((floor) => floor.spaces);
+
+  for (const definition of initialElectricityMeters) {
+    const space = spaces.find(
+      (space) =>
+        space.name === definition.room &&
+        space.type === "ROOM",
+    );
+
+    if (!space) {
+      throw new Error(
+        `Seed room ${definition.room} was not found in property ${property.name}.`,
+      );
+    }
+
+    let meter = await prisma.meter.findFirst({
+      where: {
+        spaceId: space.id,
+        type: "ELECTRICITY",
+        meterNumber: definition.meterNumber,
+      },
+    });
+
+    if (!meter) {
+      meter = await prisma.meter.create({
+        data: {
+          spaceId: space.id,
+          type: "ELECTRICITY",
+          meterNumber: definition.meterNumber,
+          installedAt: utilityStartDate,
+          notes: "Initial seeded electricity meter",
+        },
+      });
+
+      console.log(
+        `Seeded ${definition.room} meter ${definition.meterNumber}.`,
+      );
+    } else {
+      console.log(
+        `${definition.room} meter ${definition.meterNumber} already exists; meter seed skipped.`,
+      );
+    }
+
+    await ensureInitialMeterReading(meter.id);
+  }
+}
+
 async function seed() {
   const property = await ensurePropertySeedData();
 
   await ensurePeopleSeedData();
+  await ensureUtilityRateSeedData(property.id);
+  await ensureElectricityMeterSeedData(property.id);
 
-  console.log(`Seeded property: ${property.name}`);
+  console.log(`Seed completed for property: ${property.name}`);
 }
 
 seed()

@@ -31,13 +31,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { emptyActionState, type ActionState } from "@/lib/action-state";
-import { formatDate, toDateOnly } from "@/lib/presentation";
+import { formatDate, formatVnd, toDateOnly } from "@/lib/presentation";
 import type { DashboardProperty } from "@/modules/property/domain/types";
 import { AppSidebar } from "@/modules/property/components/property-dashboard";
 import {
   EndOccupancyDialog,
   MoveOccupantDialog,
 } from "@/modules/tenancy/components/tenancy-dialogs";
+import {
+  changeRentAction,
+  changeResponsibleAction,
+} from "@/modules/tenancy/actions";
 
 import {
   archivePersonAction,
@@ -60,6 +64,51 @@ type HistoryItem = {
   spaceId: string;
   spaceName: string;
   floorName: string;
+  currentRent: RentRate;
+  scheduledRent: RentRate | null;
+  rentHistory: RentRate[];
+  occupants: Array<{
+    id: string;
+    personId: string;
+    personName: string;
+    startDate: Date;
+    endDate: Date | null;
+  }>;
+  responsibilityHistory: Array<{
+    id: string;
+    effectiveFrom: Date;
+    reason: string;
+    occupantId: string;
+    personId: string;
+    personName: string;
+    previousPersonName: string | null;
+  }>;
+  invoices: TenantInvoice[];
+};
+
+type RentRate = {
+  id: string;
+  effectiveFrom: Date;
+  monthlyRentVnd: string;
+  reason: string;
+};
+
+type TenantInvoice = {
+  id: string;
+  billingPeriod: Date;
+  invoiceDate: Date;
+  type: "REGULAR" | "FINAL_SETTLEMENT";
+  roomName: string;
+  amount: string;
+  balance: string;
+  displayStatus: string;
+  payments: Array<{
+    id: string;
+    paymentDate: Date;
+    method: "CASH" | "BANK_TRANSFER" | "OTHER";
+    amount: string;
+    isDepositApplication: boolean;
+  }>;
 };
 
 export type DirectoryPerson = {
@@ -319,34 +368,80 @@ function PersonProfile({
           />
         </div>
       </section>
-      <section className="profile-section">
-        <h3>Rental history</h3>
-        <div className="rental-history">
-          {person.rentalHistory.length ? (
-            person.rentalHistory.map((item) => (
-              <div className="history-row" key={item.membershipId}>
-                <ShieldCheck />
-                <span>
-                  <strong>{item.spaceName}</strong>
-                  <small>
-                    {item.floorName} · {roleLabel(item.role)}
-                  </small>
-                </span>
-                <time>
-                  {formatDate(item.startDate)} –{" "}
-                  {item.endDate ? formatDate(item.endDate) : "Present"}
-                </time>
-              </div>
-            ))
-          ) : (
-            <p className="muted-copy">No rental history yet.</p>
-          )}
-        </div>
-      </section>
+      <PersonTabs person={person} />
       <PersonLifecycle person={person} />
     </div>
   );
 }
+
+type PersonTab = "history" | "invoices" | "payments" | "documents";
+
+function PersonTabs({ person }: { person: DirectoryPerson }) {
+  const [tab, setTab] = React.useState<PersonTab>("history");
+  const invoices = uniqueBy(
+    person.rentalHistory.flatMap((item) => item.invoices),
+    (item) => item.id,
+  );
+  const payments = invoices.flatMap((invoice) =>
+    invoice.payments.map((payment) => ({ ...payment, invoice })),
+  ).sort((left, right) => right.paymentDate.getTime() - left.paymentDate.getTime());
+  return <section className="profile-section tenant-tab-section">
+    <nav className="tenant-tabs" aria-label="Tenant details">
+      {([['history', 'Rental history'], ['invoices', 'Invoices'], ['payments', 'Payments'], ['documents', 'Documents']] as const).map(([value, label]) => <button key={value} type="button" className={tab === value ? "is-active" : ""} onClick={() => setTab(value)}>{label}</button>)}
+    </nav>
+    {tab === "history" && <RentalHistoryTab person={person} />}
+    {tab === "invoices" && <InvoicesTab invoices={invoices} />}
+    {tab === "payments" && <PaymentsTab payments={payments} />}
+    {tab === "documents" && <p className="tenant-tab-empty">No documents yet.</p>}
+  </section>;
+}
+
+function RentalHistoryTab({ person }: { person: DirectoryPerson }) {
+  if (!person.rentalHistory.length) return <p className="tenant-tab-empty">No rental history yet.</p>;
+  return <div className="rental-history tenant-rental-history">{person.rentalHistory.map((item) => {
+    const upcomingChanges = item.responsibilityHistory.filter((event) => event.effectiveFrom > businessToday());
+    return <article className="tenant-tenancy-card" key={item.membershipId}>
+      <div className="tenant-tenancy-heading"><ShieldCheck /><div><strong>{item.spaceName}</strong><small>{item.floorName} · {tenancyState(item)} · {roleLabel(item.role)}</small></div><time>{formatDate(item.startDate)} – {item.endDate ? formatDate(item.endDate) : "Present"}</time></div>
+      <div className="tenant-rent-summary"><span><small>Monthly rent</small><strong>{formatVnd(item.currentRent.monthlyRentVnd)} / month</strong><em>Effective since {formatDate(item.currentRent.effectiveFrom)}</em></span>{item.scheduledRent && <span className="scheduled-rent"><small>Scheduled</small><strong>{formatVnd(item.scheduledRent.monthlyRentVnd)} / month</strong><em>From {formatDate(item.scheduledRent.effectiveFrom)}</em></span>}</div>
+      {upcomingChanges.map((event) => <div className="responsibility-event" key={event.id}><time>{formatDate(event.effectiveFrom)}</time><span><strong>Responsible renter changes</strong><small>{event.previousPersonName || "Current renter"} → {event.personName} · Upcoming</small></span></div>)}
+      <div className="tenant-tenancy-actions"><ChangeRentDialog tenancy={item} /><RentHistoryDialog tenancy={item} />{item.occupants.length > 1 && <ChangeResponsibleDialog tenancy={item} />}</div>
+    </article>;
+  })}</div>;
+}
+
+function InvoicesTab({ invoices }: { invoices: TenantInvoice[] }) {
+  if (!invoices.length) return <p className="tenant-tab-empty">No invoices yet.</p>;
+  return <div className="tenant-data-list">{invoices.map((invoice) => <Link href={`/billing/invoices/${invoice.id}`} className="tenant-data-row" key={invoice.id}><span><strong>{invoice.type === "REGULAR" ? monthLabel(invoice.billingPeriod) : formatDate(invoice.invoiceDate)}</strong><small>{invoice.type === "REGULAR" ? "Regular" : "Final Settlement"} · {invoice.roomName}</small></span><span><strong>{formatVnd(invoice.amount)}</strong><small>Balance {formatVnd(invoice.balance)}</small></span><span className="rental-badge">{invoice.displayStatus}</span></Link>)}</div>;
+}
+
+type TenantPayment = TenantInvoice["payments"][number] & { invoice: TenantInvoice };
+function PaymentsTab({ payments }: { payments: TenantPayment[] }) {
+  if (!payments.length) return <p className="tenant-tab-empty">No payments yet.</p>;
+  return <div className="tenant-data-list">{payments.map((payment) => <Link href={`/billing/invoices/${payment.invoice.id}`} className="tenant-data-row" key={payment.id}><span><strong>{formatDate(payment.paymentDate)}</strong><small>{payment.invoice.type === "FINAL_SETTLEMENT" ? "Final Settlement" : monthLabel(payment.invoice.billingPeriod)} · {payment.invoice.roomName}</small></span><span><strong>{formatVnd(payment.amount)}</strong><small>{payment.isDepositApplication ? "Deposit applied" : paymentMethod(payment.method)}</small></span></Link>)}</div>;
+}
+
+function ChangeRentDialog({ tenancy }: { tenancy: HistoryItem }) {
+  const [open, setOpen] = React.useState(false);
+  const [state, action] = React.useActionState(async (previous: ActionState, data: FormData) => { const result = await changeRentAction(previous, data); if (result.ok) setOpen(false); return result; }, emptyActionState);
+  return <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button size="sm" variant="outline">Change rent</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Change monthly rent</DialogTitle><DialogDescription>Current rent: {formatVnd(tenancy.currentRent.monthlyRentVnd)} / month</DialogDescription></DialogHeader><form action={action} className="person-form"><input type="hidden" name="tenancyId" value={tenancy.tenancyId} /><PersonField label="New monthly rent" name="monthlyRentVnd" type="number" step="10" required /><PersonField label="Effective from" name="effectiveFrom" type="date" required /><PersonField label="Reason" name="reason" required />{state.message && <p className={state.ok ? "form-success" : "form-error"}>{state.message}</p>}<DialogFooter><Button type="submit">Save new rate</Button></DialogFooter></form></DialogContent></Dialog>;
+}
+
+function RentHistoryDialog({ tenancy }: { tenancy: HistoryItem }) {
+  return <Dialog><DialogTrigger asChild><Button size="sm" variant="ghost">View rent history</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Rent history</DialogTitle><DialogDescription>{tenancy.spaceName}</DialogDescription></DialogHeader><div className="tenant-data-list">{tenancy.rentHistory.map((rate) => <div className="tenant-data-row" key={rate.id}><span><strong>{formatDate(rate.effectiveFrom)}</strong><small>{rate.reason}</small></span><strong>{formatVnd(rate.monthlyRentVnd)}</strong></div>)}</div></DialogContent></Dialog>;
+}
+
+function ChangeResponsibleDialog({ tenancy }: { tenancy: HistoryItem }) {
+  const current = [...tenancy.responsibilityHistory].reverse().find((event) => event.effectiveFrom <= businessToday());
+  const [open, setOpen] = React.useState(false);
+  const [state, action] = React.useActionState(async (previous: ActionState, data: FormData) => { const result = await changeResponsibleAction(previous, data); if (result.ok) setOpen(false); return result; }, emptyActionState);
+  return <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button size="sm" variant="outline">Change responsible</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Change responsible renter</DialogTitle><DialogDescription>Current responsible: {current?.personName ?? "Not assigned"}</DialogDescription></DialogHeader><form action={action} className="person-form"><input type="hidden" name="tenancyId" value={tenancy.tenancyId} /><div className="grid gap-2"><Label>New responsible</Label><select name="occupantId" required>{tenancy.occupants.filter((occupant) => occupant.id !== current?.occupantId).map((occupant) => <option key={occupant.id} value={occupant.id}>{occupant.personName}</option>)}</select></div><PersonField label="Effective from" name="effectiveFrom" type="date" required /><PersonField label="Reason" name="reason" required />{state.message && <p className={state.ok ? "form-success" : "form-error"}>{state.message}</p>}<DialogFooter><Button type="submit">Change responsible</Button></DialogFooter></form></DialogContent></Dialog>;
+}
+
+function uniqueBy<T>(items: T[], key: (item: T) => string) { return [...new Map(items.map((item) => [key(item), item])).values()]; }
+function businessToday() { const now = new Date(); return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())); }
+function tenancyState(item: HistoryItem) { const today = businessToday(); return item.startDate > today ? "Upcoming" : item.endDate && item.endDate <= today ? "Former" : "Current"; }
+function monthLabel(value: Date) { return new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(value); }
+function paymentMethod(value: TenantPayment["method"]) { return value === "BANK_TRANSFER" ? "Bank transfer" : value === "CASH" ? "Cash" : "Other"; }
 
 function ProfileFact({ label, value }: { label: string; value: string }) {
   return (
