@@ -7,6 +7,7 @@ import {
 } from "@/lib/money";
 import { tenancyTransaction } from "@/modules/tenancy/server/transaction";
 import { getBillingCandidates } from "./billing.queries";
+import { refreshDraftInvoice } from "./draft-refresh";
 
 export async function generateInvoice(
   propertyId: string,
@@ -170,6 +171,7 @@ export async function deleteInvoiceAdjustment(
 }
 
 export async function finalizeInvoice(invoiceId: string) {
+  await refreshDraftInvoice(invoiceId);
   return tenancyTransaction(async (tx) => {
     const invoice = await tx.invoice.findUnique({
       where: { id: invoiceId },
@@ -184,6 +186,7 @@ export async function finalizeInvoice(invoiceId: string) {
     if (!invoice || invoice.status !== "DRAFT")
       throw new Error("Only draft invoices can be finalized.");
     const readingIds = new Set<string>();
+    const evidenceRoles = new Map<string, EvidenceRole>();
     for (const line of invoice.lines) {
       const metadata = line.metadata as Record<string, unknown>;
       const segments = Array.isArray(metadata.meterSegments)
@@ -191,16 +194,64 @@ export async function finalizeInvoice(invoiceId: string) {
         : [];
       for (const segment of segments) {
         if (!segment || typeof segment !== "object") continue;
-        const ids = (segment as Record<string, unknown>).sourceReadingIds;
-        if (!Array.isArray(ids)) continue;
-        ids.forEach((id) => {
-          if (typeof id === "string") readingIds.add(id);
-        });
+        const record = segment as Record<string, unknown>;
+        const ids = record.sourceReadingIds;
+        if (Array.isArray(ids))
+          ids.forEach((id) => {
+            if (typeof id === "string") readingIds.add(id);
+          });
+        const meterId = record.meterId;
+        const opening = record.openingReading as Record<string, unknown> | null;
+        const closing = record.closingReading as Record<string, unknown> | null;
+        const monthlyClosing = record.monthlyClosingReading as
+          | Record<string, unknown>
+          | null;
+        if (typeof opening?.readingId === "string") {
+          readingIds.add(opening.readingId);
+          evidenceRoles.set(opening.readingId, "OPENING_ANCHOR");
+        }
+        if (typeof closing?.readingId === "string") {
+          readingIds.add(closing.readingId);
+        }
+        if (typeof monthlyClosing?.readingId === "string") {
+          readingIds.add(monthlyClosing.readingId);
+          evidenceRoles.set(monthlyClosing.readingId, "CLOSING");
+        }
+        if (
+          typeof meterId === "string" &&
+          typeof opening?.date === "string" &&
+          typeof closing?.date === "string"
+        ) {
+          const evidence = await tx.meterReading.findMany({
+            where: {
+              meterId,
+              readingDate: {
+                gte: new Date(`${opening.date}T00:00:00.000Z`),
+                lte: new Date(`${closing.date}T00:00:00.000Z`),
+              },
+            },
+            select: { id: true },
+          });
+          evidence.forEach((reading) => readingIds.add(reading.id));
+        }
       }
     }
     if (readingIds.size) {
+      const readings = await tx.meterReading.findMany({
+        where: { id: { in: [...readingIds] } },
+        select: { id: true, readingType: true },
+      });
+      readings.forEach((reading) => {
+        if (!evidenceRoles.has(reading.id)) {
+          evidenceRoles.set(reading.id, evidenceRole(reading.readingType));
+        }
+      });
       await tx.invoiceMeterEvidence.createMany({
-        data: [...readingIds].map((readingId) => ({ invoiceId, readingId })),
+        data: [...readingIds].map((readingId) => ({
+          invoiceId,
+          readingId,
+          role: evidenceRoles.get(readingId),
+        })),
         skipDuplicates: true,
       });
     }
@@ -209,4 +260,29 @@ export async function finalizeInvoice(invoiceId: string) {
       data: { status: "FINALIZED", finalizedAt: new Date() },
     });
   });
+}
+
+type EvidenceRole =
+  | "OPENING_ANCHOR"
+  | "CLOSING"
+  | "MANUAL_EVIDENCE"
+  | "MOVE_IN_BOUNDARY"
+  | "MOVE_OUT_BOUNDARY"
+  | "METER_INSTALL"
+  | "METER_REMOVAL";
+
+function evidenceRole(
+  readingType:
+    | "MONTHLY"
+    | "MOVE_IN"
+    | "MOVE_OUT"
+    | "METER_INSTALL"
+    | "METER_REMOVAL"
+    | "MANUAL",
+): EvidenceRole {
+  if (readingType === "MOVE_IN") return "MOVE_IN_BOUNDARY";
+  if (readingType === "MOVE_OUT") return "MOVE_OUT_BOUNDARY";
+  if (readingType === "METER_INSTALL") return "METER_INSTALL";
+  if (readingType === "METER_REMOVAL") return "METER_REMOVAL";
+  return "MANUAL_EVIDENCE";
 }

@@ -411,10 +411,9 @@
 .invoice-paper-line {
   display: grid;
   gap: 1rem;
-  grid-template-columns: minmax(80px, 0.55fr) minmax(80px, 0.55fr) minmax(
-      180px,
-      1.5fr
-    ) minmax(110px, 0.75fr);
+  grid-template-columns:
+    minmax(80px, 0.55fr) minmax(80px, 0.55fr) minmax(180px, 1.5fr)
+    minmax(110px, 0.75fr);
 }
 
 .invoice-paper-table-heading {

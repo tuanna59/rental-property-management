@@ -19,6 +19,7 @@ export type InstallMeterInput = {
 };
 export type RecordReadingInput = {
   meterId: string;
+  billingMonth?: BusinessDateInput;
   readingDate: BusinessDateInput;
   readingValue: DecimalInput;
   readingType: ReadingType;

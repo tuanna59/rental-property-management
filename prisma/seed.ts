@@ -2,10 +2,7 @@ import "dotenv/config";
 
 import { PrismaPg } from "@prisma/adapter-pg";
 
-import {
-  Prisma,
-  PrismaClient,
-} from "../src/generated/prisma/client";
+import { Prisma, PrismaClient } from "../src/generated/prisma/client";
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -83,9 +80,7 @@ async function ensurePropertySeedData() {
       });
 
       if (existing) {
-        console.log(
-          "Existing property data preserved; property seed skipped.",
-        );
+        console.log("Existing property data preserved; property seed skipped.");
 
         return existing;
       }
@@ -193,9 +188,7 @@ async function ensureUtilityRateSeedData(propertyId: string) {
       },
     });
 
-    console.log(
-      `Seeded ${rate.utilityType} rate: ${rate.rate.toString()}.`,
-    );
+    console.log(`Seeded ${rate.utilityType} rate: ${rate.rate.toString()}.`);
   }
 }
 
@@ -247,9 +240,7 @@ async function ensureElectricityMeterSeedData(propertyId: string) {
 
   for (const definition of initialElectricityMeters) {
     const space = spaces.find(
-      (space) =>
-        space.name === definition.room &&
-        space.type === "ROOM",
+      (space) => space.name === definition.room && space.type === "ROOM",
     );
 
     if (!space) {
@@ -277,9 +268,7 @@ async function ensureElectricityMeterSeedData(propertyId: string) {
         },
       });
 
-      console.log(
-        `Seeded ${definition.room} meter ${definition.meterNumber}.`,
-      );
+      console.log(`Seeded ${definition.room} meter ${definition.meterNumber}.`);
     } else {
       console.log(
         `${definition.room} meter ${definition.meterNumber} already exists; meter seed skipped.`,

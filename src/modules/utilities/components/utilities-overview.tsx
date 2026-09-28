@@ -28,19 +28,19 @@ export function UtilitiesOverview({
   overview: Overview;
   month: string;
 }) {
-  const readingPercent = overview.monthlyReadingsRequired
+  const readingPercent = overview.monthlyClosingsRequired
     ? Math.round(
-        (overview.monthlyReadingsRecorded / overview.monthlyReadingsRequired) *
+        (overview.monthlyClosingsRecorded / overview.monthlyClosingsRequired) *
           100,
       )
-    : 0;
+    : 100;
   const attributionPercent = overview.attributionRequired
     ? Math.round(
         (overview.attributionReady / overview.attributionRequired) * 100,
       )
     : 0;
   const totalPhysicalUsage = overview.electricity.reduce(
-    (sum, row) => sum + Number(row.preview.totalPhysicalUsage ?? 0),
+    (sum, row) => sum + Number(row.knownPhysicalUsage ?? 0),
     0,
   );
   return (
@@ -49,7 +49,7 @@ export function UtilitiesOverview({
         <div className="utilities-header-copy">
           <p className="utilities-eyebrow">PROPERTY UTILITIES</p>
           <h1>Utilities</h1>
-          <p>Track monthly meter readings, usage, and utility charges.</p>
+          <p>Track monthly closings, physical usage, attribution, and utility charges.</p>
         </div>
         <MonthSelector month={month} />
       </header>
@@ -59,9 +59,13 @@ export function UtilitiesOverview({
       >
         <SummaryCard
           icon={<Gauge />}
-          label="Monthly readings"
-          value={`${overview.monthlyReadingsRecorded} / ${overview.monthlyReadingsRequired} recorded`}
-          detail={`${Math.max(0, overview.monthlyReadingsRequired - overview.monthlyReadingsRecorded)} missing`}
+          label="Monthly closings"
+          value={`${overview.monthlyClosingsRecorded} / ${overview.monthlyClosingsRequired} required recorded`}
+          detail={
+            overview.monthlyClosingsNeedsClosing
+              ? `${overview.monthlyClosingsNeedsClosing} needs closing · ${overview.monthlyClosingsOptional} optional`
+              : `${overview.monthlyClosingsOptional} optional`
+          }
           progress={readingPercent}
         />
         <SummaryCard
@@ -73,13 +77,13 @@ export function UtilitiesOverview({
         />
         <SummaryCard
           icon={<Zap />}
-          label="Physical electricity"
+          label="Known physical usage"
           value={
             totalPhysicalUsage
               ? `${totalPhysicalUsage.toLocaleString()} kWh`
               : "—"
           }
-          detail="Across physical meter segments"
+          detail="Known so far across physical meter segments"
         />
         <SummaryCard
           icon={<Droplets />}
@@ -103,7 +107,7 @@ export function UtilitiesOverview({
           <div>
             <h2>Monthly room status</h2>
             <p>
-              Reading collection and tenant attribution are tracked separately.
+              Monthly closing status, known physical usage, and tenant attribution are tracked separately.
             </p>
           </div>
         </div>
@@ -114,9 +118,9 @@ export function UtilitiesOverview({
                 <tr>
                   <th>Room</th>
                   <th>Meter</th>
-                  <th>Reading</th>
+                  <th>Monthly closing</th>
                   <th>Attribution</th>
-                  <th>Physical usage</th>
+                  <th>Known usage</th>
                   <th>Electricity estimate</th>
                   <th>Water estimate</th>
                   <th>Warning</th>
@@ -124,14 +128,16 @@ export function UtilitiesOverview({
               </thead>
               <tbody>
                 {overview.electricity.map((row) => {
-                  const readingStatus =
-                    row.readingStatus === "RECORDED"
-                      ? "complete"
-                      : row.readingStatus === "ESTIMATED"
-                        ? "estimated"
-                        : row.readingStatus === "MISSING"
-                          ? "missing"
-                          : "incomplete";
+                  const closingStatus =
+                    row.closingStatus === "LOCKED"
+                      ? "locked"
+                      : row.closingStatus === "CLOSING_SET"
+                        ? "closing-set"
+                        : row.closingStatus === "NEEDS_CLOSING"
+                          ? "needs-closing"
+                          : row.closingStatus === "OPTIONAL"
+                            ? "optional"
+                            : "n-a";
                   return (
                     <tr key={row.spaceId}>
                       <td>
@@ -139,7 +145,7 @@ export function UtilitiesOverview({
                       </td>
                       <td>{row.meterNumber || "No meter"}</td>
                       <td>
-                        <UtilityStatusBadge status={readingStatus} />
+                        <UtilityStatusBadge status={closingStatus} />
                       </td>
                       <td>
                         <UtilityStatusBadge
@@ -155,7 +161,11 @@ export function UtilitiesOverview({
                           ? `${Number(row.knownPhysicalUsage).toLocaleString()} kWh`
                           : "—"}
                         <div className="utility-subtle">
-                          {row.isClosingComplete ? "Complete" : "Known so far"}
+                          {row.monthlyPhysicalUsage !== null
+                            ? `Cycle usage ${Number(row.monthlyPhysicalUsage).toLocaleString()} kWh`
+                            : row.closingRequired
+                              ? "Known so far · closing not ready"
+                              : "Known so far · closing optional"}
                         </div>
                       </td>
                       <td>
@@ -201,7 +211,7 @@ export function UtilitiesOverview({
         <div className="utility-section-header">
           <div>
             <h2>Needs attention</h2>
-            <p>Missing monthly and tenancy-boundary readings appear here.</p>
+            <p>Missing required closings and tenancy boundaries appear here.</p>
           </div>
         </div>
         {overview.warnings.length ? (

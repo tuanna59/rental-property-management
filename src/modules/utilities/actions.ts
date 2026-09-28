@@ -4,7 +4,7 @@ import type { ActionState } from "@/lib/action-state";
 import {
   installMeter,
   appendMeterReadingPhoto,
-  markAllCurrentReadingsClosed,
+  markAllEligibleMonthlyClosings,
   markReadingAsMonthlyClosing,
   recordMissingBoundary,
   recordReading,
@@ -57,12 +57,12 @@ export async function recordReadingAction(_: ActionState, data: FormData) {
     () =>
       recordReading({
         meterId: text(data, "meterId"),
+        billingMonth: text(data, "billingMonth") || undefined,
         readingDate: text(data, "readingDate"),
         readingValue: text(data, "readingValue"),
         readingType: "MANUAL",
         source: (text(data, "source") || "MEASURED") as
-          | "MEASURED"
-          | "ESTIMATED",
+          "MEASURED" | "ESTIMATED",
         reason: text(data, "reason") || undefined,
         photo: file(data, "photo"),
         notes: text(data, "notes") || undefined,
@@ -71,7 +71,7 @@ export async function recordReadingAction(_: ActionState, data: FormData) {
   );
 }
 
-export async function markCurrentReadingClosedAction(
+export async function markReadingAsMonthlyClosingAction(
   _: ActionState,
   data: FormData,
 ) {
@@ -82,28 +82,33 @@ export async function markCurrentReadingClosedAction(
         readingId: text(data, "readingId"),
         billingMonth: text(data, "billingMonth"),
       }),
-    "Month marked as closed.",
+    "Monthly closing set.",
   );
 }
 
-export async function markAllCurrentReadingsClosedAction(
+export async function markAllEligibleMonthlyClosingsAction(
   _: ActionState,
   data: FormData,
 ) {
+  const rawAssignments = text(data, "assignments");
+  let assignments: Array<{ meterId: string; readingId: string }> = [];
+  try {
+    assignments = rawAssignments ? JSON.parse(rawAssignments) : [];
+  } catch {
+    return { ok: false, message: "Could not read the selected closing readings." };
+  }
   return action(
     () =>
-      markAllCurrentReadingsClosed({
+      markAllEligibleMonthlyClosings({
         propertyId: text(data, "propertyId"),
         billingMonth: text(data, "billingMonth"),
+        assignments,
       }),
-    "Eligible rooms marked as closed.",
+    "Current readings set as monthly closings.",
   );
 }
 
-export async function updateMeterReadingAction(
-  _: ActionState,
-  data: FormData,
-) {
+export async function updateMeterReadingAction(_: ActionState, data: FormData) {
   return action(
     () =>
       updateMeterReading({
@@ -158,9 +163,7 @@ export async function saveMonthlyReadingAction(_: ActionState, data: FormData) {
         photo: file(data, "photo"),
         notes: text(data, "notes") || undefined,
       }),
-    text(data, "monthlyReadingId")
-      ? "Monthly reading updated."
-      : "Monthly reading saved.",
+    "Manual reading recorded and assigned as the monthly closing.",
   );
 }
 export async function replaceMeterAction(_: ActionState, data: FormData) {

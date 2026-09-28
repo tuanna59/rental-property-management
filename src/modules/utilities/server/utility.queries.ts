@@ -4,6 +4,11 @@ import { toDateOnly } from "@/lib/presentation";
 import { roundVnd } from "@/lib/money";
 
 import { monthEndExclusive, monthStart } from "../domain/rules";
+import {
+  isMonthlyClosingRequired,
+  resolveClosingDateQuality,
+  resolveMonthlyClosingCandidate,
+} from "../domain/monthly-closing";
 import { date } from "../domain/validation";
 
 const decimal = (value: Prisma.Decimal) => value.toString();
@@ -41,10 +46,9 @@ const readingSelect = {
     orderBy: { billingMonth: "desc" },
     select: { billingMonth: true },
   },
-  evidencePhotos: { select: { id: true } },
+  evidencePhotos: { select: { id: true, storageKey: true } },
   invoiceEvidence: {
     where: { invoice: { status: "FINALIZED" } },
-    take: 1,
     select: {
       invoice: {
         select: {
@@ -63,8 +67,10 @@ type ReadingRow = Prisma.MeterReadingGetPayload<{
 }>;
 
 function readingProjection(reading: ReadingRow) {
-  const closingMonth =
-    reading.monthlyClosings[0]?.billingMonth ?? reading.billingMonth;
+  const closingMonths = reading.monthlyClosings.map(
+    (closing) => closing.billingMonth,
+  );
+  const closingMonth = closingMonths[0] ?? null;
   const lockedBy = reading.invoiceEvidence[0]?.invoice ?? null;
   const lifecycleManaged = [
     "MOVE_IN",
@@ -76,16 +82,22 @@ function readingProjection(reading: ReadingRow) {
     id: reading.id,
     readingDate: reading.readingDate,
     billingMonth: closingMonth,
+    closingMonths,
+    legacyBillingMonth: reading.billingMonth,
     readingValue: decimal(reading.readingValue),
     readingType: reading.readingType,
     source: reading.source,
     hasPhoto:
       Boolean(reading.photoStorageKey) || reading.evidencePhotos.length > 0,
-    photoCount:
-      reading.evidencePhotos.length || (reading.photoStorageKey ? 1 : 0),
+    photoCount: new Set(
+      [
+        ...reading.evidencePhotos.map((photo) => photo.storageKey),
+        reading.photoStorageKey,
+      ].filter((key): key is string => Boolean(key)),
+    ).size,
     notes: reading.notes,
     reason: reading.reason,
-    isClosing: Boolean(closingMonth),
+    isClosing: closingMonths.length > 0,
     isLocked: Boolean(lockedBy),
     isManaged: lifecycleManaged,
     lockInvoice: lockedBy,
@@ -147,35 +159,44 @@ function computePhysicalMeterSegment(
   end: Date,
 ) {
   const readings = [...meter.readings].sort(readingOrder);
-  const monthlyReading = readings.find(
-    (reading) =>
-      (reading.monthlyClosings.some((closing) =>
-        sameDay(closing.billingMonth, start),
-      ) ||
-        (reading.readingType === "MONTHLY" &&
-          reading.billingMonth &&
-          sameDay(reading.billingMonth, start))),
+  const closingAssignments = readings.flatMap((reading) =>
+    reading.monthlyClosings.map((closing) => ({
+      billingMonth: closing.billingMonth,
+      reading,
+    })),
   );
-  const priorMonthly = readings
+  const monthlyReading = closingAssignments.find((closing) =>
+    sameDay(closing.billingMonth, start),
+  )?.reading;
+  const previousClosing = closingAssignments
+    .filter((closing) => closing.billingMonth < start)
+    .sort(
+      (left, right) =>
+        right.billingMonth.getTime() - left.billingMonth.getTime(),
+    )[0]?.reading;
+
+  const installReading = readings.find(
+    (reading) =>
+      reading.readingType === "METER_INSTALL" &&
+      sameDay(reading.readingDate, meter.installedAt),
+  );
+  const priorPhysicalReading = readings
     .filter(
       (reading) =>
-        reading.monthlyClosings.some(
-          (closing) => closing.billingMonth < start,
-        ) ||
-        (reading.readingType === "MONTHLY" &&
-          reading.billingMonth &&
-          reading.billingMonth < start),
+        reading.readingDate < start &&
+        !reading.monthlyClosings.some((closing) => closing.billingMonth >= start),
     )
     .at(-1);
+  const readingAtCycleStart = readings.find(
+    (reading) =>
+      sameDay(reading.readingDate, start) &&
+      !reading.monthlyClosings.some((closing) => closing.billingMonth > start),
+  );
   const startReading =
     meter.installedAt >= start
-      ? readings.find(
-          (reading) =>
-            reading.readingType === "METER_INSTALL" &&
-            sameDay(reading.readingDate, meter.installedAt),
-        )
-      : (priorMonthly ??
-        readings.filter((reading) => reading.readingDate <= start).at(-1));
+      ? installReading
+      : (previousClosing ?? priorPhysicalReading ?? readingAtCycleStart);
+
   const removalReading =
     meter.removedAt && meter.removedAt < end
       ? readings.find(
@@ -184,29 +205,36 @@ function computePhysicalMeterSegment(
             sameDay(reading.readingDate, meter.removedAt!),
         )
       : undefined;
-  const endReading = removalReading ?? monthlyReading;
-  const knownEndReading =
-    endReading ??
-    readings
-      .filter(
-        (reading) =>
-          Boolean(startReading) &&
-          reading.id !== startReading?.id &&
-          (reading.readingType !== "MONTHLY" ||
-            !reading.billingMonth ||
-            reading.billingMonth <= start) &&
-          reading.readingDate >= startReading!.readingDate &&
-          reading.readingDate < monthEndExclusive(end),
-      )
-      .at(-1);
+  const billingEndReading = removalReading ?? monthlyReading;
+  const knownWindowEnd =
+    monthlyReading && monthlyReading.readingDate > end
+      ? monthlyReading.readingDate
+      : end;
+  const knownEndReading = startReading
+    ? readings
+        .filter(
+          (reading) =>
+            reading.id !== startReading.id &&
+            reading.readingDate >= startReading.readingDate &&
+            (knownWindowEnd === end
+              ? reading.readingDate < knownWindowEnd
+              : reading.readingDate <= knownWindowEnd),
+        )
+        .at(-1)
+    : undefined;
+  const attributionEndReading = billingEndReading ?? knownEndReading;
   const segmentStart =
     startReading?.readingDate ??
     (meter.installedAt > start ? meter.installedAt : start);
-  const segmentEnd = knownEndReading?.readingDate ?? end;
+  const boundaryCheckEnd = billingEndReading
+    ? billingEndReading.readingDate
+    : meter.removedAt && meter.removedAt < end
+      ? meter.removedAt
+      : knownWindowEnd;
 
   const relevantTenancies = tenancies.filter(
     (tenancy) =>
-      tenancy.moveInDate < segmentEnd &&
+      tenancy.moveInDate <= boundaryCheckEnd &&
       (!tenancy.moveOutDate || tenancy.moveOutDate > segmentStart),
   );
   const missingBoundary: Array<{
@@ -223,7 +251,7 @@ function computePhysicalMeterSegment(
   for (const tenancy of relevantTenancies) {
     if (
       tenancy.moveInDate > segmentStart &&
-      tenancy.moveInDate <= segmentEnd &&
+      tenancy.moveInDate <= boundaryCheckEnd &&
       tenancy.moveInDate <= today &&
       !readings.some(
         (reading) =>
@@ -249,7 +277,7 @@ function computePhysicalMeterSegment(
     if (
       tenancy.moveOutDate &&
       tenancy.moveOutDate > segmentStart &&
-      tenancy.moveOutDate <= segmentEnd &&
+      tenancy.moveOutDate <= boundaryCheckEnd &&
       tenancy.moveOutDate <= today &&
       !readings.some(
         (reading) =>
@@ -269,88 +297,168 @@ function computePhysicalMeterSegment(
     }
   }
 
-  if (!startReading || !knownEndReading) {
+  const emptySegments = [] as Array<{
+    kind: "TENANT" | "VACANT";
+    tenancyId: string | null;
+    label: string;
+    usage: string;
+    startDate: Date;
+    endDate: Date;
+    usageKnown: boolean;
+    isOpen: boolean;
+  }>;
+
+  if (!startReading) {
     return {
       meterId: meter.id,
       meterNumber: meter.meterNumber,
       installedAt: meter.installedAt,
       removedAt: meter.removedAt,
       complete: false,
-      reason: !startReading
-        ? "Missing opening reading for this physical meter segment."
-        : "No usage reading is available for this physical meter segment.",
-      isClosingComplete: false,
+      reason: "Missing opening reading for this physical meter segment.",
+      invalidChronology: false,
+      isClosingComplete: Boolean(monthlyReading),
       physicalUsage: null,
-      openingReading: startReading ? readingProjection(startReading) : null,
-      closingReading: knownEndReading
-        ? readingProjection(knownEndReading)
+      knownPhysicalUsage: null,
+      openingReading: null,
+      closingReading: billingEndReading
+        ? readingProjection(billingEndReading)
         : null,
+      monthlyClosingReading: monthlyReading
+        ? readingProjection(monthlyReading)
+        : null,
+      knownEndReading: knownEndReading ? readingProjection(knownEndReading) : null,
       hasEstimatedReading: false,
       tenantUsage: null,
       vacantUsage: null,
       sourceReadingIds: [] as string[],
-      tenantUsageSegments: [] as Array<{
-        kind: "TENANT" | "VACANT";
-        tenancyId: string | null;
-        label: string;
-        usage: string;
-        startDate: Date;
-        endDate: Date;
-        usageKnown: boolean;
-        isOpen: boolean;
-      }>,
+      tenantUsageSegments: emptySegments,
+      missingBoundary,
+    };
+  }
+
+  const knownPhysicalUsage = knownEndReading
+    ? knownEndReading.readingValue.minus(startReading.readingValue)
+    : null;
+  const physicalUsage = attributionEndReading
+    ? attributionEndReading.readingValue.minus(startReading.readingValue)
+    : null;
+  if (
+    (knownPhysicalUsage && knownPhysicalUsage.isNegative()) ||
+    (physicalUsage && physicalUsage.isNegative())
+  ) {
+    return {
+      meterId: meter.id,
+      meterNumber: meter.meterNumber,
+      installedAt: meter.installedAt,
+      removedAt: meter.removedAt,
+      complete: false,
+      reason: "Readings decrease inside this physical meter segment.",
+      invalidChronology: true,
+      isClosingComplete: Boolean(monthlyReading),
+      physicalUsage: null,
+      knownPhysicalUsage: null,
+      openingReading: readingProjection(startReading),
+      closingReading: attributionEndReading
+        ? readingProjection(attributionEndReading)
+        : null,
+      monthlyClosingReading: monthlyReading
+        ? readingProjection(monthlyReading)
+        : null,
+      knownEndReading: knownEndReading ? readingProjection(knownEndReading) : null,
+      hasEstimatedReading: Boolean(
+        startReading.source === "ESTIMATED" ||
+          knownEndReading?.source === "ESTIMATED",
+      ),
+      tenantUsage: null,
+      vacantUsage: null,
+      sourceReadingIds: [
+        startReading.id,
+        ...(attributionEndReading ? [attributionEndReading.id] : []),
+      ],
+      tenantUsageSegments: emptySegments,
+      missingBoundary,
+    };
+  }
+
+  if (!attributionEndReading) {
+    const active = activeTenancyAt(relevantTenancies, startReading.readingDate);
+    return {
+      meterId: meter.id,
+      meterNumber: meter.meterNumber,
+      installedAt: meter.installedAt,
+      removedAt: meter.removedAt,
+      complete: false,
+      reason: "No usage reading is available for this physical meter segment.",
+      invalidChronology: false,
+      isClosingComplete: Boolean(monthlyReading),
+      physicalUsage: null,
+      knownPhysicalUsage: null,
+      openingReading: readingProjection(startReading),
+      closingReading: null,
+      monthlyClosingReading: monthlyReading
+        ? readingProjection(monthlyReading)
+        : null,
+      knownEndReading: null,
+      hasEstimatedReading: startReading.source === "ESTIMATED",
+      tenantUsage: null,
+      vacantUsage: null,
+      sourceReadingIds: [startReading.id],
+      tenantUsageSegments: [
+        {
+          kind: active ? "TENANT" : "VACANT",
+          tenancyId: active?.id ?? null,
+          label: active ? tenancyName(active) : "Vacant",
+          usage: "0",
+          startDate: startReading.readingDate,
+          endDate: end,
+          usageKnown: false,
+          isOpen: true,
+        },
+      ],
       missingBoundary,
     };
   }
 
   if (missingBoundary.length) {
+    const active = activeTenancyAt(relevantTenancies, startReading.readingDate);
     return {
       meterId: meter.id,
       meterNumber: meter.meterNumber,
       installedAt: meter.installedAt,
       removedAt: meter.removedAt,
       complete: false,
-      isClosingComplete: Boolean(endReading),
+      isClosingComplete: Boolean(monthlyReading),
       reason: missingBoundary[0].message,
-      physicalUsage: decimal(
-        knownEndReading.readingValue.minus(startReading.readingValue),
-      ),
+      invalidChronology: false,
+      physicalUsage: physicalUsage ? decimal(physicalUsage) : null,
+      knownPhysicalUsage: knownPhysicalUsage
+        ? decimal(knownPhysicalUsage)
+        : null,
       openingReading: readingProjection(startReading),
-      closingReading: readingProjection(knownEndReading),
+      closingReading: readingProjection(attributionEndReading),
+      monthlyClosingReading: monthlyReading
+        ? readingProjection(monthlyReading)
+        : null,
+      knownEndReading: knownEndReading ? readingProjection(knownEndReading) : null,
       hasEstimatedReading:
         startReading.source === "ESTIMATED" ||
-        knownEndReading.source === "ESTIMATED",
+        attributionEndReading.source === "ESTIMATED",
       tenantUsage: null,
       vacantUsage: null,
-      sourceReadingIds: [startReading.id, knownEndReading.id],
-      tenantUsageSegments: startReading
-        ? [
-            {
-              kind: activeTenancyAt(relevantTenancies, startReading.readingDate)
-                ? ("TENANT" as const)
-                : ("VACANT" as const),
-              tenancyId:
-                activeTenancyAt(relevantTenancies, startReading.readingDate)
-                  ?.id ?? null,
-              label: activeTenancyAt(
-                relevantTenancies,
-                startReading.readingDate,
-              )
-                ? tenancyName(
-                    activeTenancyAt(
-                      relevantTenancies,
-                      startReading.readingDate,
-                    )!,
-                  )
-                : "Vacant",
-              usage: "0",
-              startDate: startReading.readingDate,
-              endDate: end,
-              usageKnown: false,
-              isOpen: true,
-            },
-          ]
-        : [],
+      sourceReadingIds: [startReading.id, attributionEndReading.id],
+      tenantUsageSegments: [
+        {
+          kind: active ? "TENANT" : "VACANT",
+          tenancyId: active?.id ?? null,
+          label: active ? tenancyName(active) : "Vacant",
+          usage: "0",
+          startDate: startReading.readingDate,
+          endDate: attributionEndReading.readingDate,
+          usageKnown: false,
+          isOpen: true,
+        },
+      ],
       missingBoundary,
     };
   }
@@ -360,11 +468,11 @@ function computePhysicalMeterSegment(
       (reading.readingType === "MOVE_IN" ||
         reading.readingType === "MOVE_OUT") &&
       reading.readingDate >= segmentStart &&
-      reading.readingDate <= knownEndReading.readingDate &&
+      reading.readingDate <= attributionEndReading.readingDate &&
       reading.id !== startReading.id &&
-      reading.id !== knownEndReading.id,
+      reading.id !== attributionEndReading.id,
   );
-  const timeline = [startReading, ...boundaryReadings, knownEndReading]
+  const timeline = [startReading, ...boundaryReadings, attributionEndReading]
     .filter(
       (reading, index, items) =>
         items.findIndex((candidate) => candidate.id === reading.id) === index,
@@ -393,17 +501,25 @@ function computePhysicalMeterSegment(
         removedAt: meter.removedAt,
         complete: false,
         reason: "Readings decrease inside this physical meter segment.",
+        invalidChronology: true,
         physicalUsage: null,
+        knownPhysicalUsage: null,
         openingReading: readingProjection(startReading),
-        closingReading: readingProjection(knownEndReading),
+        closingReading: readingProjection(attributionEndReading),
+        monthlyClosingReading: monthlyReading
+          ? readingProjection(monthlyReading)
+          : null,
+        knownEndReading: knownEndReading
+          ? readingProjection(knownEndReading)
+          : null,
         hasEstimatedReading: timeline.some(
           (reading) => reading.source === "ESTIMATED",
         ),
         tenantUsage: null,
         vacantUsage: null,
         sourceReadingIds: timeline.map((reading) => reading.id),
-        tenantUsageSegments: [],
-        isClosingComplete: Boolean(endReading),
+        tenantUsageSegments: emptySegments,
+        isClosingComplete: Boolean(monthlyReading),
         missingBoundary,
       };
     }
@@ -431,21 +547,18 @@ function computePhysicalMeterSegment(
         ) ?? null;
     }
   }
-  if (!endReading && knownEndReading.readingDate < end) {
+  if (!billingEndReading && attributionEndReading.readingDate < end) {
     usageSegments.push({
       kind: active ? "TENANT" : "VACANT",
       tenancyId: active?.id ?? null,
       label: active ? tenancyName(active) : "Vacant",
       usage: new Prisma.Decimal(0),
-      startDate: knownEndReading.readingDate,
+      startDate: attributionEndReading.readingDate,
       endDate: end,
       usageKnown: false,
       isOpen: true,
     });
   }
-  const physicalUsage = knownEndReading.readingValue.minus(
-    startReading.readingValue,
-  );
   const tenantUsage = usageSegments
     .filter((segment) => segment.kind === "TENANT")
     .reduce((sum, segment) => sum.plus(segment.usage), new Prisma.Decimal(0));
@@ -457,14 +570,24 @@ function computePhysicalMeterSegment(
     meterNumber: meter.meterNumber,
     installedAt: meter.installedAt,
     removedAt: meter.removedAt,
-    complete: Boolean(endReading),
-    isClosingComplete: Boolean(endReading),
-    reason: endReading
+    complete: Boolean(billingEndReading),
+    isClosingComplete: Boolean(monthlyReading),
+    reason: billingEndReading
       ? null
-      : "Closing monthly reading is missing; usage is known so far.",
-    physicalUsage: decimal(physicalUsage),
+      : "Monthly closing is not assigned; usage is known so far.",
+    invalidChronology: false,
+    physicalUsage: physicalUsage ? decimal(physicalUsage) : "0",
+    knownPhysicalUsage: knownPhysicalUsage
+      ? decimal(knownPhysicalUsage)
+      : physicalUsage
+        ? decimal(physicalUsage)
+        : null,
     openingReading: readingProjection(startReading),
-    closingReading: readingProjection(knownEndReading),
+    closingReading: readingProjection(attributionEndReading),
+    monthlyClosingReading: monthlyReading
+      ? readingProjection(monthlyReading)
+      : null,
+    knownEndReading: knownEndReading ? readingProjection(knownEndReading) : null,
     hasEstimatedReading: timeline.some(
       (reading) => reading.source === "ESTIMATED",
     ),
@@ -561,6 +684,7 @@ export async function getMonthlyMeterEntries(
 ) {
   const start = monthStart(date(month));
   const end = monthEndExclusive(start);
+  const monthComplete = new Date().getTime() >= end.getTime();
   const spaces = await getMonthlySpaces(propertyId, start, end);
   const histories = await prisma.meter.findMany({
     where: {
@@ -589,43 +713,104 @@ export async function getMonthlyMeterEntries(
         .find((meter) => !meter.removedAt || meter.removedAt >= end) ??
       space.meters.at(-1) ??
       null;
-    const monthlyReading = activeMeter?.readings.find(
-      (reading) =>
-        reading.monthlyClosings.some((closing) =>
-          sameDay(closing.billingMonth, start),
-        ) ||
-        (reading.readingType === "MONTHLY" &&
-          reading.billingMonth &&
-          sameDay(reading.billingMonth, start)),
+    const closingRequired = isMonthlyClosingRequired({
+      billingMonth: start,
+      hasMeter: Boolean(activeMeter),
+      tenancies: space.tenancies,
+    });
+    const isVacantEntireMonth = !space.tenancies.some(
+      (tenancy) =>
+        tenancy.moveInDate < end &&
+        (!tenancy.moveOutDate || tenancy.moveOutDate > start),
     );
-    const currentReading = monthlyReading ?? activeMeter?.readings
-      .filter(
-        (reading) =>
-          reading.readingType === "MANUAL" &&
-          reading.readingDate >= start,
+    const selectedMonthLockEvidence = space.meters
+      .flatMap((meter) => meter.readings)
+      .flatMap((reading) => reading.invoiceEvidence)
+      .find((evidence) => sameDay(monthStart(evidence.invoice.billingPeriod), start));
+
+    const monthlyReading = activeMeter?.readings.find((reading) =>
+      reading.monthlyClosings.some((closing) =>
+        sameDay(closing.billingMonth, start),
+      ),
+    );
+    const previousClosingAssignment = activeMeter?.readings
+      .flatMap((reading) =>
+        reading.monthlyClosings.map((closing) => ({
+          billingMonth: closing.billingMonth,
+          reading,
+        })),
+      )
+      .filter((closing) => closing.billingMonth < start)
+      .sort(
+        (left, right) =>
+          right.billingMonth.getTime() - left.billingMonth.getTime(),
+      )[0];
+    const previousClosingReading = previousClosingAssignment?.reading;
+
+    const closingCandidate = activeMeter
+      ? resolveMonthlyClosingCandidate({
+          billingMonth: start,
+          meterInstalledAt: activeMeter.installedAt,
+          meterRemovedAt: activeMeter.removedAt,
+          readings: activeMeter.readings.map((reading) => ({
+            id: reading.id,
+            readingDate: reading.readingDate,
+            readingType: reading.readingType,
+            closingMonths: reading.monthlyClosings.map(
+              (closing) => closing.billingMonth,
+            ),
+            locked: reading.invoiceEvidence.length > 0,
+          })),
+          closings: activeMeter.readings.flatMap((reading) =>
+            reading.monthlyClosings.map((closing) => ({
+              billingMonth: closing.billingMonth,
+              readingId: reading.id,
+              readingDate: reading.readingDate,
+            })),
+          ),
+        })
+      : null;
+    const resolvedClosingCandidateReading = activeMeter?.readings.find(
+      (reading) => reading.id === closingCandidate?.id,
+    );
+    const closingCandidateReading =
+      resolvedClosingCandidateReading &&
+      (!monthlyReading ||
+        resolvedClosingCandidateReading.readingDate > monthlyReading.readingDate)
+        ? resolvedClosingCandidateReading
+        : undefined;
+
+    const selectedWindowEnd =
+      monthlyReading && monthlyReading.readingDate > end
+        ? monthlyReading.readingDate
+        : end;
+    const latestReading = activeMeter?.readings
+      .filter((reading) =>
+        selectedWindowEnd === end
+          ? reading.readingDate < selectedWindowEnd
+          : reading.readingDate <= selectedWindowEnd,
       )
       .at(-1);
-    const targetDate = monthlyReading?.readingDate ?? end;
-    const previousReading = activeMeter?.readings
-      .filter(
-        (reading) =>
-          reading.id !== monthlyReading?.id &&
-          reading.readingDate <= targetDate,
-      )
-      .at(-1);
+
     const meterSegments = space.meters.map((meter) =>
       computePhysicalMeterSegment(meter, space.tenancies, start, end),
     );
     const knownUsage = meterSegments.reduce(
-      (sum, segment) => sum.plus(segment.physicalUsage ?? 0),
+      (sum, segment) => sum.plus(segment.knownPhysicalUsage ?? 0),
       new Prisma.Decimal(0),
     );
     const hasKnownUsage = meterSegments.some(
-      (segment) => segment.physicalUsage !== null,
+      (segment) => segment.knownPhysicalUsage !== null,
     );
-    const isClosingComplete =
+    const closingUsage = meterSegments.reduce(
+      (sum, segment) => sum.plus(segment.physicalUsage ?? 0),
+      new Prisma.Decimal(0),
+    );
+    const hasClosingUsage =
+      Boolean(monthlyReading) &&
       meterSegments.length > 0 &&
-      meterSegments.every((segment) => segment.isClosingComplete);
+      meterSegments.every((segment) => segment.physicalUsage !== null);
+
     const rawTenancySegments = meterSegments.flatMap(
       (segment) => segment.tenantUsageSegments,
     );
@@ -638,7 +823,8 @@ export async function getMonthlyMeterEntries(
         previous.kind === segment.kind &&
         previous.tenancyId === segment.tenancyId &&
         !previous.isOpen &&
-        !segment.isOpen
+        !segment.isOpen &&
+        previous.endDate.getTime() === segment.startDate.getTime()
       ) {
         previous.usage = new Prisma.Decimal(previous.usage)
           .plus(segment.usage)
@@ -652,21 +838,81 @@ export async function getMonthlyMeterEntries(
     const missingBoundary = meterSegments.flatMap(
       (segment) => segment.missingBoundary,
     );
-    const attributionReady =
-      meterSegments.length > 0 &&
-      meterSegments.every((segment) => segment.complete);
-    const warnings = meterSegments.flatMap((segment) => [
-      ...(segment.reason ? [segment.reason] : []),
-      ...segment.missingBoundary.map((boundary) => boundary.message),
-    ]);
-    if (space.meters.length > 1) {
-      warnings.push("Meter replaced during the selected month.");
+
+    const closingQuality = monthlyReading
+      ? resolveClosingDateQuality(start, monthlyReading.readingDate)
+      : null;
+    const earlyClosing = Boolean(
+      monthlyReading && closingQuality?.kind === "EARLY" && !monthComplete,
+    );
+    const closingReady = !activeMeter
+      ? false
+      : !closingRequired
+        ? true
+        : Boolean(monthlyReading) && monthComplete;
+    const closingState = !activeMeter
+      ? ("N/A" as const)
+      : selectedMonthLockEvidence
+        ? ("LOCKED" as const)
+        : monthlyReading
+          ? ("CLOSING_SET" as const)
+          : closingRequired
+            ? ("OPEN" as const)
+            : ("OPTIONAL" as const);
+    const closingStatus = !activeMeter
+      ? ("NO_METER" as const)
+      : closingState === "LOCKED"
+        ? ("LOCKED" as const)
+        : closingState === "CLOSING_SET"
+          ? ("CLOSING_SET" as const)
+          : closingState === "OPEN"
+            ? ("NEEDS_CLOSING" as const)
+            : ("OPTIONAL" as const);
+
+    const invalidChronology = meterSegments.some(
+      (segment) => segment.invalidChronology,
+    );
+    const hasOpenTenantSegment = tenancySegments.some(
+      (segment) => segment.kind === "TENANT" && segment.isOpen,
+    );
+    const missingRequiredOpening = meterSegments.some(
+      (segment) =>
+        segment.reason?.startsWith("Missing opening") && !isVacantEntireMonth,
+    );
+    const attributionReady = Boolean(
+      activeMeter &&
+        missingBoundary.length === 0 &&
+        !invalidChronology &&
+        !missingRequiredOpening &&
+        !hasOpenTenantSegment &&
+        (!closingRequired || closingReady || isVacantEntireMonth),
+    );
+
+    const warnings: string[] = [];
+    for (const segment of meterSegments) {
+      if (segment.invalidChronology && segment.reason) {
+        warnings.push(segment.reason);
+      } else if (
+        segment.reason?.startsWith("Missing opening") &&
+        !isVacantEntireMonth
+      ) {
+        warnings.push(segment.reason);
+      }
+      warnings.push(...segment.missingBoundary.map((boundary) => boundary.message));
     }
     if (monthlyReading?.source === "ESTIMATED") {
-      warnings.push("Monthly reading is estimated.");
+      warnings.push("Monthly closing reading is estimated.");
     }
-    if (activeMeter && !monthlyReading) {
-      warnings.push("Monthly reading is missing.");
+    if (activeMeter && closingRequired && !monthlyReading) {
+      warnings.push("Monthly closing is required for this room.");
+    }
+    if (closingQuality?.warning && closingQuality.kind !== "EARLY") {
+      warnings.push(closingQuality.warning);
+    }
+    if (earlyClosing) {
+      warnings.push(
+        "Recorded before the month ended. You can replace it with a later reading.",
+      );
     }
 
     return {
@@ -678,51 +924,71 @@ export async function getMonthlyMeterEntries(
             id: activeMeter.id,
             meterNumber: activeMeter.meterNumber,
             installedAt: activeMeter.installedAt,
-            latestReading: activeMeter.readings.at(-1)
-              ? readingProjection(activeMeter.readings.at(-1)!)
-              : null,
+            latestReading: latestReading ? readingProjection(latestReading) : null,
           }
         : null,
       meterId: activeMeter?.id ?? null,
       meterNumber: activeMeter?.meterNumber ?? null,
-      previousReading: previousReading
-        ? readingProjection(previousReading)
+      previousClosingReading: previousClosingReading
+        ? readingProjection(previousClosingReading)
+        : null,
+      previousReading: previousClosingReading
+        ? readingProjection(previousClosingReading)
         : null,
       monthlyReading: monthlyReading ? readingProjection(monthlyReading) : null,
-      currentReading: currentReading ? readingProjection(currentReading) : null,
-      previous: previousReading ? decimal(previousReading.readingValue) : null,
+      closingCandidate: closingCandidateReading
+        ? readingProjection(closingCandidateReading)
+        : null,
+      currentReading: closingCandidateReading
+        ? readingProjection(closingCandidateReading)
+        : null,
+      latestReading: latestReading ? readingProjection(latestReading) : null,
+      previous: previousClosingReading
+        ? decimal(previousClosingReading.readingValue)
+        : null,
       current: monthlyReading ? decimal(monthlyReading.readingValue) : null,
       readingDate: monthlyReading?.readingDate ?? null,
       source: monthlyReading?.source ?? "MEASURED",
       billingMonth: start,
       actualReadingDate: monthlyReading?.readingDate ?? null,
-      lateReadingDays: monthlyReading
-        ? Math.max(
-            0,
-            Math.round(
-              (monthlyReading.readingDate.getTime() -
-                (end.getTime() - 86_400_000)) /
-                86_400_000,
-            ),
-          )
+      closingDateOffsetDays: closingQuality?.offsetDays ?? null,
+      closingDateQuality: closingQuality?.kind ?? null,
+      lateReadingDays:
+        closingQuality && closingQuality.offsetDays > 0
+          ? closingQuality.offsetDays
+          : 0,
+      earlyClosing,
+      closingRequired,
+      closingReady,
+      closingState,
+      closingStatus,
+      closingLocked: closingState === "LOCKED",
+      lockInvoice: selectedMonthLockEvidence?.invoice ?? null,
+      isVacantEntireMonth,
+      meterReplacementDuringMonth: space.meters.length > 1,
+      activeMeterIsNewThisMonth: Boolean(
+        activeMeter && activeMeter.installedAt >= start && activeMeter.installedAt < end,
+      ),
+      manualReadingMinDate: activeMeter
+        ? [
+            activeMeter.installedAt,
+            previousClosingReading?.readingDate,
+            monthlyReading?.readingDate,
+          ]
+            .filter((value): value is Date => Boolean(value))
+            .sort((left, right) => right.getTime() - left.getTime())[0]
         : null,
-      monthlyPhysicalUsage:
-        isClosingComplete && hasKnownUsage ? decimal(knownUsage) : null,
+      knownUsageMeterCount: meterSegments.filter(
+        (segment) => segment.knownPhysicalUsage !== null,
+      ).length,
+      monthlyPhysicalUsage: hasClosingUsage ? decimal(closingUsage) : null,
       knownPhysicalUsage: hasKnownUsage ? decimal(knownUsage) : null,
-      isClosingComplete,
-      readingStatus: !activeMeter
-        ? ("NO_METER" as const)
-        : !monthlyReading
-          ? ("MISSING" as const)
-          : monthlyReading.source === "ESTIMATED"
-            ? ("ESTIMATED" as const)
-            : ("RECORDED" as const),
+      isClosingComplete: closingReady,
+      readingStatus: closingStatus,
       attributionStatus: attributionReady
         ? ("COMPLETE" as const)
         : ("PARTIAL" as const),
-      monthlyCycleStatus: isClosingComplete
-        ? ("COMPLETE" as const)
-        : ("INCOMPLETE" as const),
+      monthlyCycleStatus: closingStatus,
       meterSegments,
       tenancySegments,
       missingBoundary,
@@ -778,24 +1044,28 @@ export async function getElectricityPreview(
       calculatedAmount: null,
     };
   }
-  const complete = entry.meterSegments.every((segment) => segment.complete);
+  const complete =
+    entry.attributionStatus === "COMPLETE" && entry.closingReady;
   const tenantUsage = complete
-    ? entry.meterSegments.reduce(
-        (sum, segment) => sum.plus(segment.tenantUsage ?? 0),
-        new Prisma.Decimal(0),
-      )
+    ? entry.tenancySegments
+        .filter((segment) => segment.kind === "TENANT" && segment.usageKnown)
+        .reduce(
+          (sum, segment) => sum.plus(segment.usage),
+          new Prisma.Decimal(0),
+        )
     : null;
   const physicalUsage = complete
-    ? entry.meterSegments.reduce(
-        (sum, segment) => sum.plus(segment.physicalUsage ?? 0),
-        new Prisma.Decimal(0),
+    ? new Prisma.Decimal(
+        entry.monthlyPhysicalUsage ?? entry.knownPhysicalUsage ?? 0,
       )
     : null;
   const vacantUsage = complete
-    ? entry.meterSegments.reduce(
-        (sum, segment) => sum.plus(segment.vacantUsage ?? 0),
-        new Prisma.Decimal(0),
-      )
+    ? entry.tenancySegments
+        .filter((segment) => segment.kind === "VACANT" && segment.usageKnown)
+        .reduce(
+          (sum, segment) => sum.plus(segment.usage),
+          new Prisma.Decimal(0),
+        )
     : null;
   const override = await prisma.electricityRateOverride.findUnique({
     where: { spaceId_billingMonth: { spaceId, billingMonth: start } },
@@ -805,7 +1075,10 @@ export async function getElectricityPreview(
     ? { rate: override.rate }
     : await rateAt(property.floor.propertyId, "ELECTRICITY", start);
   const reason = !complete
-    ? (entry.warnings[0] ?? "Monthly attribution is incomplete.")
+    ? (entry.warnings[0] ??
+      (entry.closingRequired && !entry.closingReady
+        ? "Monthly closing is not ready for billing."
+        : "Electricity attribution is incomplete."))
     : !applicable
       ? "No electricity rate is configured."
       : null;
@@ -839,6 +1112,10 @@ export async function getElectricityPreview(
     applicableRate: applicable ? decimal(applicable.rate) : null,
     rateOverridden: Boolean(override),
     overrideReason: override?.reason ?? null,
+    closingStatus: entry.closingStatus,
+    closingRequired: entry.closingRequired,
+    closingReading: entry.monthlyReading,
+    knownPhysicalUsage: entry.knownPhysicalUsage,
     calculatedAmount:
       tenantUsage && applicable
         ? decimal(tenantUsage.mul(applicable.rate))
@@ -1014,15 +1291,32 @@ export async function getUtilitiesOverview(
       boundary: boundaries.get(message) ?? null,
     }));
   });
+  const monthlyClosingsRequired = entries.filter(
+    (entry) => entry.activeMeter && entry.closingRequired,
+  ).length;
+  const monthlyClosingsRecorded = entries.filter(
+    (entry) => entry.closingRequired && entry.monthlyReading,
+  ).length;
+  const monthlyClosingsOptional = entries.filter(
+    (entry) => entry.activeMeter && !entry.closingRequired,
+  ).length;
   return {
     electricity,
-    monthlyReadingsRecorded: entries.filter(
-      (entry) =>
-        entry.readingStatus === "RECORDED" ||
-        entry.readingStatus === "ESTIMATED",
+    monthlyClosingsRecorded,
+    monthlyClosingsRequired,
+    monthlyClosingsOptional,
+    monthlyClosingsNeedsClosing: entries.filter(
+      (entry) => entry.closingStatus === "NEEDS_CLOSING",
     ).length,
-    monthlyReadingsRequired: entries.filter((entry) => entry.activeMeter)
-      .length,
+    monthlyClosingsSet: entries.filter(
+      (entry) =>
+        entry.closingStatus === "CLOSING_SET" || entry.closingStatus === "LOCKED",
+    ).length,
+    monthlyClosingsLocked: entries.filter(
+      (entry) => entry.closingStatus === "LOCKED",
+    ).length,
+    monthlyReadingsRecorded: monthlyClosingsRecorded,
+    monthlyReadingsRequired: monthlyClosingsRequired,
     attributionReady: entries.filter(
       (entry) => entry.activeMeter && entry.attributionStatus === "COMPLETE",
     ).length,

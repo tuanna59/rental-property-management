@@ -20,11 +20,7 @@ import { emptyActionState, type ActionState } from "@/lib/action-state";
 
 import { recordReadingAction } from "../actions";
 
-export function MeterReadingDialog({
-  meterId,
-}: {
-  meterId: string;
-}) {
+export function MeterReadingDialog({ meterId }: { meterId: string }) {
   const [open, setOpen] = React.useState(false);
   const [source, setSource] = React.useState<"MEASURED" | "ESTIMATED">(
     "MEASURED",
@@ -58,6 +54,8 @@ export function MeterReadingDialog({
               label="Reading date"
               name="readingDate"
               type="date"
+              defaultValue={todayDate()}
+              max={todayDate()}
               required
             />
             <Field
@@ -130,3 +128,10 @@ function Field({
     </div>
   );
 }
+
+const todayDate = () => {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+};

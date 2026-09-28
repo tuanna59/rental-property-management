@@ -10,8 +10,7 @@ export type BillingPolicyPeriods = {
 };
 
 export type UtilityBillingTiming =
-  | "PREVIOUS_COMPLETED_MONTH"
-  | "SAME_COMPLETED_MONTH";
+  "PREVIOUS_COMPLETED_MONTH" | "SAME_COMPLETED_MONTH";
 
 export type BillingPolicy = {
   utilityBillingTiming: UtilityBillingTiming;

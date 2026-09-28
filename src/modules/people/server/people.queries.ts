@@ -157,7 +157,9 @@ export async function getPeopleDirectory(search = "") {
         reason: rate.reason,
       }));
       const effectiveRate =
-        rates.find((rate) => rate.effectiveFrom <= date) ?? rates.at(-1) ?? null;
+        rates.find((rate) => rate.effectiveFrom <= date) ??
+        rates.at(-1) ??
+        null;
       const scheduledRate =
         [...rates].reverse().find((rate) => rate.effectiveFrom > date) ?? null;
       const responsibility = membership.tenancy.responsibleHistory;
@@ -170,82 +172,82 @@ export async function getPeopleDirectory(search = "") {
           ? "RESPONSIBLE"
           : "ADDITIONAL";
       return {
-      membershipId: membership.id,
-      tenancyId: membership.tenancy.id,
-      role: resolvedRole as "RESPONSIBLE" | "ADDITIONAL",
-      startDate: membership.startDate,
-      endDate: membership.endDate,
-      moveInDate: membership.tenancy.moveInDate,
-      moveOutDate: membership.tenancy.moveOutDate,
-      spaceId: membership.tenancy.space.id,
-      spaceName: membership.tenancy.space.name,
-      floorName: membership.tenancy.space.floor.name,
-      currentRent: effectiveRate ?? {
-        id: "legacy",
-        effectiveFrom: membership.tenancy.moveInDate,
-        monthlyRentVnd: membership.tenancy.monthlyRentVnd.toString(),
-        reason: "Initial rent",
-      },
-      scheduledRent: scheduledRate,
-      rentHistory: rates,
-      occupants: membership.tenancy.occupants.map((occupant) => ({
-        ...occupant,
-        personId: occupant.person.id,
-        personName: occupant.person.fullName,
-      })),
-      responsibilityHistory: responsibility.map((assignment, index) => ({
-        id: assignment.id,
-        effectiveFrom: assignment.effectiveFrom,
-        reason: assignment.reason,
-        occupantId: assignment.occupant.id,
-        personId: assignment.occupant.person.id,
-        personName: assignment.occupant.person.fullName,
-        previousPersonName:
-          index > 0
-            ? responsibility[index - 1].occupant.person.fullName
-            : null,
-      })),
-      invoices: membership.tenancy.invoices.map((invoice) => {
-        const total =
-          invoice.lines.reduce(
-            (sum, item) => sum + Number(item.finalAmount),
-            0,
-          ) +
-          invoice.adjustments.reduce(
-            (sum, item) => sum + Number(item.amount),
+        membershipId: membership.id,
+        tenancyId: membership.tenancy.id,
+        role: resolvedRole as "RESPONSIBLE" | "ADDITIONAL",
+        startDate: membership.startDate,
+        endDate: membership.endDate,
+        moveInDate: membership.tenancy.moveInDate,
+        moveOutDate: membership.tenancy.moveOutDate,
+        spaceId: membership.tenancy.space.id,
+        spaceName: membership.tenancy.space.name,
+        floorName: membership.tenancy.space.floor.name,
+        currentRent: effectiveRate ?? {
+          id: "legacy",
+          effectiveFrom: membership.tenancy.moveInDate,
+          monthlyRentVnd: membership.tenancy.monthlyRentVnd.toString(),
+          reason: "Initial rent",
+        },
+        scheduledRent: scheduledRate,
+        rentHistory: rates,
+        occupants: membership.tenancy.occupants.map((occupant) => ({
+          ...occupant,
+          personId: occupant.person.id,
+          personName: occupant.person.fullName,
+        })),
+        responsibilityHistory: responsibility.map((assignment, index) => ({
+          id: assignment.id,
+          effectiveFrom: assignment.effectiveFrom,
+          reason: assignment.reason,
+          occupantId: assignment.occupant.id,
+          personId: assignment.occupant.person.id,
+          personName: assignment.occupant.person.fullName,
+          previousPersonName:
+            index > 0
+              ? responsibility[index - 1].occupant.person.fullName
+              : null,
+        })),
+        invoices: membership.tenancy.invoices.map((invoice) => {
+          const total =
+            invoice.lines.reduce(
+              (sum, item) => sum + Number(item.finalAmount),
+              0,
+            ) +
+            invoice.adjustments.reduce(
+              (sum, item) => sum + Number(item.amount),
+              0,
+            );
+          const paid = invoice.payments.reduce(
+            (sum, payment) => sum + Number(payment.amount),
             0,
           );
-        const paid = invoice.payments.reduce(
-          (sum, payment) => sum + Number(payment.amount),
-          0,
-        );
-        const balance = Math.max(total - paid, 0);
-        return {
-          id: invoice.id,
-          billingPeriod: invoice.billingPeriod,
-          invoiceDate: invoice.invoiceDate,
-          type: invoice.type,
-          roomName: invoice.roomNameSnapshot,
-          amount: String(total),
-          balance: String(balance),
-          displayStatus:
-            balance === 0 && total > 0
-              ? "Paid"
-              : paid > 0
-                ? "Partial"
-                : invoice.status === "FINALIZED"
-                  ? "Unpaid"
-                  : "Draft",
-          payments: invoice.payments.map((payment) => ({
-            id: payment.id,
-            paymentDate: payment.paymentDate,
-            method: payment.method,
-            amount: payment.amount.toString(),
-            isDepositApplication: payment.isDepositApplication,
-          })),
-        };
-      }),
-    };
+          const balance = Math.max(total - paid, 0);
+          return {
+            id: invoice.id,
+            billingPeriod: invoice.billingPeriod,
+            invoiceDate: invoice.invoiceDate,
+            type: invoice.type,
+            roomName: invoice.roomNameSnapshot,
+            amount: String(total),
+            balance: String(balance),
+            displayStatus:
+              balance === 0 && total > 0
+                ? "Paid"
+                : paid > 0
+                  ? "Partial"
+                  : invoice.status === "FINALIZED"
+                    ? "Unpaid"
+                    : "Draft",
+            payments: invoice.payments.map((payment) => ({
+              id: payment.id,
+              paymentDate: payment.paymentDate,
+              method: payment.method,
+              amount: payment.amount.toString(),
+              isDepositApplication: payment.isDepositApplication,
+            })),
+          };
+        }),
+      };
     });
     const projection = projectRentalState(history, date);
     const match = (period: (typeof history)[number]) =>

@@ -1,5 +1,6 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { refreshDraftInvoicesForSpace } from "@/modules/billing/server/draft-refresh";
 import { recordTenancyBoundaryInTransaction } from "@/modules/utilities/server/meter.service";
 import { createPerson } from "@/modules/people/server/people.service";
 import type { CreatePersonInput } from "@/modules/people/domain/types";
@@ -114,7 +115,7 @@ export async function moveIn(input: MoveInInput) {
     .map((occupant) => occupant.personId)
     .sort((left, right) => left.localeCompare(right));
 
-  return tenancyTransaction(async (tx) => {
+  const result = await tenancyTransaction(async (tx) => {
     await lockAndValidatePeople(tx, personIds);
 
     const space = await tx.space.findFirst({
@@ -239,6 +240,8 @@ export async function moveIn(input: MoveInInput) {
     );
     return tenancy;
   });
+  await refreshDraftInvoicesForSpace(normalized.spaceId);
+  return result;
 }
 
 export async function changeRent(input: {
@@ -252,18 +255,22 @@ export async function changeRent(input: {
   const reason = input.reason.trim();
   if (!reason) throw new Error("A reason is required.");
   if (effectiveFrom.getUTCDate() !== 1) {
-    throw new Error("The rent change must take effect on the first day of a month.");
+    throw new Error(
+      "The rent change must take effect on the first day of a month.",
+    );
   }
   if (effectiveFrom < today) {
-    throw new Error("Rent changes can only take effect today or in the future.");
+    throw new Error(
+      "Rent changes can only take effect today or in the future.",
+    );
   }
   const rounded = roundVnd(input.monthlyRentVnd);
   if (!rounded.isPositive()) throw new Error("Monthly rent must be positive.");
 
-  return tenancyTransaction(async (tx) => {
+  const result = await tenancyTransaction(async (tx) => {
     const tenancy = await tx.tenancy.findUnique({
       where: { id: input.tenancyId },
-      select: { moveInDate: true, moveOutDate: true },
+      select: { spaceId: true, moveInDate: true, moveOutDate: true },
     });
     if (!tenancy) throw new Error("The tenancy was not found.");
     if (
@@ -272,7 +279,7 @@ export async function changeRent(input: {
     ) {
       throw new Error("The effective date must be inside the tenancy period.");
     }
-    return tx.tenancyRentRate.create({
+    const rate = await tx.tenancyRentRate.create({
       data: {
         tenancyId: input.tenancyId,
         monthlyRentVnd: BigInt(rounded.toFixed(0)),
@@ -280,7 +287,10 @@ export async function changeRent(input: {
         reason,
       },
     });
+    return { rate, spaceId: tenancy.spaceId };
   });
+  await refreshDraftInvoicesForSpace(result.spaceId);
+  return result.rate;
 }
 
 export async function changeResponsible(input: {
@@ -293,7 +303,9 @@ export async function changeResponsible(input: {
   const reason = input.reason.trim();
   if (!reason) throw new Error("A reason is required.");
   if (effectiveFrom < todayBusinessDate()) {
-    throw new Error("Responsibility changes can only take effect today or in the future.");
+    throw new Error(
+      "Responsibility changes can only take effect today or in the future.",
+    );
   }
   return tenancyTransaction(async (tx) => {
     const tenancy = await tx.tenancy.findUnique({
@@ -317,7 +329,9 @@ export async function changeResponsible(input: {
       select: { id: true },
     });
     if (!occupant) {
-      throw new Error("The new responsible renter must be an active occupant of this tenancy.");
+      throw new Error(
+        "The new responsible renter must be an active occupant of this tenancy.",
+      );
     }
     return tx.tenancyResponsibleAssignment.create({
       data: {
@@ -366,7 +380,7 @@ export async function moveInWithNewResponsible(
 export async function moveOut(input: MoveOutInput) {
   const normalized = normalizeMoveOutInput(input);
 
-  return tenancyTransaction(async (tx) => {
+  const result = await tenancyTransaction(async (tx) => {
     await tx.$queryRaw(Prisma.sql`
       SELECT "id"
       FROM "Tenancy"
@@ -431,8 +445,10 @@ export async function moveOut(input: MoveOutInput) {
       normalized.electricityReadingSource,
       normalized.electricityReadingReason,
     );
-    return { id: tenancy.id };
+    return { id: tenancy.id, spaceId: tenancy.spaceId };
   });
+  await refreshDraftInvoicesForSpace(result.spaceId);
+  return { id: result.id };
 }
 
 export async function addAdditionalOccupant(input: AddOccupantInput) {
@@ -697,7 +713,7 @@ export async function cancelScheduledMoveOut(
   tenancyId: string,
   businessDate: Date = todayBusinessDate(),
 ) {
-  return tenancyTransaction(async (tx) => {
+  const result = await tenancyTransaction(async (tx) => {
     await tx.$queryRaw(Prisma.sql`
       SELECT "id" FROM "Tenancy" WHERE "id" = ${tenancyId} FOR UPDATE
     `);
@@ -766,6 +782,8 @@ export async function cancelScheduledMoveOut(
       where: { tenancyId: tenancy.id, endedByTenancyMoveOut: true },
       data: { endDate: null, endedByTenancyMoveOut: false },
     });
-    return { id: tenancy.id };
+    return { id: tenancy.id, spaceId: tenancy.spaceId };
   });
+  await refreshDraftInvoicesForSpace(result.spaceId);
+  return { id: result.id };
 }

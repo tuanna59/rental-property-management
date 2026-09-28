@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, Check, CircleAlert, LoaderCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,15 @@ import { cn } from "@/lib/utils";
 
 export function MonthSelector({ month }: { month: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlMonth = searchParams.get("month");
+  const selectedMonth = validMonth(urlMonth) ? urlMonth : month;
   return (
     <label className="month-selector">
       <span className="sr-only">Billing month</span>
       <Input
         type="month"
-        value={month}
+        value={selectedMonth}
         onChange={(event) => {
           const url = new URL(window.location.href);
           url.searchParams.set("month", event.target.value);
@@ -25,27 +28,53 @@ export function MonthSelector({ month }: { month: string }) {
   );
 }
 
+function validMonth(value: string | null): value is string {
+  return Boolean(value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value));
+}
+
 export function UtilityStatusBadge({
   status,
 }: {
-  status: "complete" | "missing" | "estimated" | "incomplete";
+  status:
+    | "complete"
+    | "missing"
+    | "estimated"
+    | "incomplete"
+    | "closing-set"
+    | "locked"
+    | "optional"
+    | "needs-closing"
+    | "n-a";
 }) {
   const copy = {
     complete: "Complete",
     missing: "Missing",
     estimated: "Estimated",
     incomplete: "Incomplete",
+    "closing-set": "Closing set",
+    locked: "Locked",
+    optional: "Optional",
+    "needs-closing": "Needs closing",
+    "n-a": "N/A",
   }[status];
+  const normalized =
+    status === "closing-set" || status === "locked"
+      ? "complete"
+      : status === "optional" || status === "n-a"
+        ? "estimated"
+        : status === "needs-closing"
+          ? "incomplete"
+          : status;
   const Icon =
-    status === "complete"
+    normalized === "complete"
       ? Check
-      : status === "estimated"
+      : normalized === "estimated"
         ? LoaderCircle
-        : status === "missing"
+        : normalized === "missing"
           ? CircleAlert
           : AlertTriangle;
   return (
-    <span className={cn("utility-status", `is-${status}`)}>
+    <span className={cn("utility-status", `is-${normalized}`)}>
       <Icon />
       {copy}
     </span>

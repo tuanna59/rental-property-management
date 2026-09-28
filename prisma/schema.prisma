@@ -66,6 +66,16 @@ enum InvoiceAdjustmentType {
   CREDIT
 }
 
+enum InvoiceMeterEvidenceRole {
+  OPENING_ANCHOR
+  CLOSING
+  MANUAL_EVIDENCE
+  MOVE_IN_BOUNDARY
+  MOVE_OUT_BOUNDARY
+  METER_INSTALL
+  METER_REMOVAL
+}
+
 enum PaymentMethod {
   CASH
   BANK_TRANSFER
@@ -220,12 +230,13 @@ model Invoice {
 }
 
 model InvoiceMeterEvidence {
-  id        String       @id @default(cuid())
+  id        String                    @id @default(cuid())
   invoiceId String
-  invoice   Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice   Invoice                   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   readingId String
-  reading   MeterReading @relation(fields: [readingId], references: [id], onDelete: Restrict)
-  createdAt DateTime     @default(now())
+  reading   MeterReading              @relation(fields: [readingId], references: [id], onDelete: Restrict)
+  role      InvoiceMeterEvidenceRole?
+  createdAt DateTime                  @default(now())
 
   @@unique([invoiceId, readingId])
   @@index([readingId])

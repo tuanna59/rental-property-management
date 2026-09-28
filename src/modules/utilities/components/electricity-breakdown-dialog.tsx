@@ -199,8 +199,10 @@ export function ElectricityBreakdownDialog({
                 <tr>
                   <th>Meter</th>
                   <th>Previous anchor</th>
-                  <th>Closing / boundary</th>
-                  <th>Usage</th>
+                  <th>Monthly closing</th>
+                  <th>Known end / boundary</th>
+                  <th>Cycle usage</th>
+                  <th>Known usage</th>
                   <th>Evidence</th>
                 </tr>
               </thead>
@@ -211,11 +213,17 @@ export function ElectricityBreakdownDialog({
                       <strong>{meter.meterNumber || "Unnumbered meter"}</strong>
                     </td>
                     <td>{reading(meter.openingReading)}</td>
-                    <td>{reading(meter.closingReading)}</td>
+                    <td>{reading(meter.monthlyClosingReading)}</td>
+                    <td>{reading(meter.knownEndReading)}</td>
                     <td>
                       {meter.physicalUsage === null
                         ? "Unavailable"
                         : `${number(meter.physicalUsage)} kWh`}
+                    </td>
+                    <td>
+                      {meter.knownPhysicalUsage === null
+                        ? "Unavailable"
+                        : `${number(meter.knownPhysicalUsage)} kWh`}
                     </td>
                     <td>
                       {meter.hasEstimatedReading ? "Estimated" : "Measured"}

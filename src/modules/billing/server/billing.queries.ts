@@ -21,7 +21,7 @@ function billingIssue(reason: string | null) {
   if (issue.includes("move-out")) return "Missing move-out boundary";
   if (issue.includes("move-in")) return "Missing move-in boundary";
   if (issue.includes("monthly") || issue.includes("closing"))
-    return "Missing monthly meter reading";
+    return "Missing required monthly closing";
   if (issue.includes("rate")) return "Missing electricity rate";
   return "Incomplete electricity attribution";
 }
@@ -148,9 +148,7 @@ export async function getBillingCandidates(
         ?.monthlyRentVnd ?? tenancy.monthlyRentVnd;
     const rentCalculated = fullMonth
       ? new Prisma.Decimal(effectiveRent.toString())
-      : new Prisma.Decimal(effectiveRent.toString())
-          .div(30)
-          .mul(billableDays);
+      : new Prisma.Decimal(effectiveRent.toString()).div(30).mul(billableDays);
     const occupiedUtilityMonth =
       tenancy.moveInDate < utilityEnd &&
       (!tenancy.moveOutDate || tenancy.moveOutDate > utilityMonth);
@@ -346,6 +344,7 @@ function utilityLines(
           usage: segment.physicalUsage,
           openingReading: segment.openingReading
             ? {
+                readingId: segment.openingReading.id,
                 value: segment.openingReading.readingValue,
                 date: toDateOnly(segment.openingReading.readingDate),
                 type: segment.openingReading.readingType,
@@ -357,6 +356,7 @@ function utilityLines(
             : null,
           closingReading: segment.closingReading
             ? {
+                readingId: segment.closingReading.id,
                 value: segment.closingReading.readingValue,
                 date: toDateOnly(segment.closingReading.readingDate),
                 type: segment.closingReading.readingType,
@@ -366,6 +366,31 @@ function utilityLines(
                 source: segment.closingReading.source,
               }
             : null,
+          monthlyClosingReading: segment.monthlyClosingReading
+            ? {
+                readingId: segment.monthlyClosingReading.id,
+                value: segment.monthlyClosingReading.readingValue,
+                date: toDateOnly(segment.monthlyClosingReading.readingDate),
+                type: segment.monthlyClosingReading.readingType,
+                billingMonth: segment.monthlyClosingReading.billingMonth
+                  ? toDateOnly(segment.monthlyClosingReading.billingMonth)
+                  : null,
+                source: segment.monthlyClosingReading.source,
+              }
+            : null,
+          knownEndReading: segment.knownEndReading
+            ? {
+                readingId: segment.knownEndReading.id,
+                value: segment.knownEndReading.readingValue,
+                date: toDateOnly(segment.knownEndReading.readingDate),
+                type: segment.knownEndReading.readingType,
+                billingMonth: segment.knownEndReading.billingMonth
+                  ? toDateOnly(segment.knownEndReading.billingMonth)
+                  : null,
+                source: segment.knownEndReading.source,
+              }
+            : null,
+          knownUsage: segment.knownPhysicalUsage,
           hasEstimatedReading: segment.hasEstimatedReading,
           sourceReadingIds: segment.sourceReadingIds,
         })),

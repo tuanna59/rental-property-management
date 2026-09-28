@@ -506,8 +506,10 @@ function ElectricityTab({ invoice }: { invoice: Invoice }) {
             <tr>
               <th>Meter</th>
               <th>Previous anchor</th>
-              <th>Closing / boundary</th>
-              <th>Usage</th>
+              <th>Monthly closing</th>
+              <th>Billing end / boundary</th>
+              <th>Closing usage</th>
+              <th>Known usage</th>
               <th>Evidence</th>
             </tr>
           </thead>
@@ -518,6 +520,10 @@ function ElectricityTab({ invoice }: { invoice: Invoice }) {
                 unknown
               > | null;
               const closing = meter.closingReading as Record<
+                string,
+                unknown
+              > | null;
+              const monthlyClosing = meter.monthlyClosingReading as Record<
                 string,
                 unknown
               > | null;
@@ -532,11 +538,17 @@ function ElectricityTab({ invoice }: { invoice: Invoice }) {
                       : "—"}
                   </td>
                   <td>
+                    {monthlyClosing
+                      ? `${monthlyClosing.value} kWh · ${formatDate(String(monthlyClosing.date))}`
+                      : "—"}
+                  </td>
+                  <td>
                     {closing
                       ? `${closing.value} kWh · ${formatDate(String(closing.date))} · ${readingLabel(closing)}`
                       : "—"}
                   </td>
                   <td>{String(meter.usage ?? 0)} kWh</td>
+                  <td>{String(meter.knownUsage ?? meter.usage ?? 0)} kWh</td>
                   <td>
                     {meter.hasEstimatedReading ? (
                       <BillingStatusBadge status="ESTIMATED" />
@@ -1194,8 +1206,13 @@ function chargeDetail(type: string, metadata: unknown) {
 }
 
 function readingLabel(reading: Record<string, unknown>) {
-  const label = title(String(reading.type ?? "reading"));
-  return reading.type === "MONTHLY" && reading.billingMonth
-    ? `${label} · ${monthLabel(new Date(String(reading.billingMonth)))}`
-    : label;
+  const labels: Record<string, string> = {
+    MANUAL: "Manual reading",
+    MONTHLY: "Legacy monthly reading",
+    MOVE_IN: "Move-in",
+    MOVE_OUT: "Move-out",
+    METER_INSTALL: "Meter installed",
+    METER_REMOVAL: "Meter removed",
+  };
+  return labels[String(reading.type ?? "")] ?? title(String(reading.type ?? "reading"));
 }
