@@ -7,7 +7,7 @@ export default async function DepositsPage() {
   const property = await getPrimaryPropertyDashboard();
   if (!property) return null;
   return (
-    <BillingShell property={property}>
+    <BillingShell>
       <DepositsDashboard overview={await getDepositOverview(property.id)} />
     </BillingShell>
   );

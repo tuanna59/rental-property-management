@@ -42,8 +42,8 @@ import {
   SPACE_TYPE_LABELS,
   SPACE_TYPE_OPTIONS,
   type DashboardFloor,
-  type DashboardProperty,
   type DashboardSpace,
+  type PropertyShellProjection,
 } from "../domain/types";
 
 type ServerAction = (
@@ -117,7 +117,7 @@ export function PropertyFormDialog({
   property,
   trigger,
 }: {
-  property: DashboardProperty;
+  property: PropertyShellProjection;
   trigger?: React.ReactNode;
 }) {
   const [open, setOpen] = React.useState(false);

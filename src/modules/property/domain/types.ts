@@ -72,5 +72,10 @@ export type DashboardProperty = {
   floors: DashboardFloor[];
 };
 
+export type PropertyShellProjection = Pick<
+  DashboardProperty,
+  "id" | "name" | "description" | "addressLine1" | "city" | "country"
+>;
+
 /** Screen-oriented building data. Prisma payloads never cross into the UI. */
 export type BuildingProjection = DashboardProperty;

@@ -20,7 +20,7 @@ export default async function PaymentsPage({
     getFinancialSummary(property.id, `${month}-01`),
   ]);
   return (
-    <BillingShell property={property}>
+    <BillingShell>
       <PaymentsDashboard payments={payments} summary={summary} month={month} />
     </BillingShell>
   );

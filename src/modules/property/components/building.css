@@ -1075,14 +1075,13 @@
     display: inline-grid;
   }
   .property-header {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    gap: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
   }
   .property-controls {
-    grid-column: 1 / -1;
-    padding-left: 54px;
+    padding-left: 0;
   }
   .floor-bays {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;

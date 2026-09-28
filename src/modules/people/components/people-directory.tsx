@@ -33,7 +33,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { emptyActionState, type ActionState } from "@/lib/action-state";
 import { formatDate, formatVnd, toDateOnly } from "@/lib/presentation";
 import type { DashboardProperty } from "@/modules/property/domain/types";
-import { AppSidebar } from "@/modules/property/components/property-dashboard";
 import {
   EndOccupancyDialog,
   MoveOccupantDialog,
@@ -146,8 +145,7 @@ export function PeopleDirectory({
   showArchived: boolean;
 }) {
   return (
-    <main className="property-app people-app">
-      <AppSidebar property={property} collapsed={false} />
+    <main className="people-app">
       <div className="people-workspace">
         <header className="people-header">
           <Link

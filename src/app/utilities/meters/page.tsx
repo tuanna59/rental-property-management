@@ -22,7 +22,7 @@ export default async function MetersPage({
   if (!property) return null;
   const month = params.month;
   return (
-    <UtilitiesShell property={property}>
+    <UtilitiesShell>
       <MonthlyMeterEntry
         key={month}
         propertyId={property.id}

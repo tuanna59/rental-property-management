@@ -20,7 +20,7 @@ export default async function InvoicesPage({
     getInvoices(property.id, `${month}-01`),
   ]);
   return (
-    <BillingShell property={property}>
+    <BillingShell>
       <InvoiceDashboard
         propertyId={property.id}
         month={month}

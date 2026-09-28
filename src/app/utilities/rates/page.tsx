@@ -11,7 +11,7 @@ export default async function RatesPage() {
     .filter((space) => space.type === "ROOM")
     .map((space) => ({ id: space.id, name: space.name }));
   return (
-    <UtilitiesShell property={property}>
+    <UtilitiesShell>
       <UtilityRates
         propertyId={property.id}
         rooms={rooms}

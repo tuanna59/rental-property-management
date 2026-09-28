@@ -5,7 +5,24 @@ import {
   getUpcomingOccupancyBySpaceIds,
 } from "@/modules/tenancy/server/tenancy.queries";
 
-import type { BuildingProjection } from "../domain/types";
+import type { BuildingProjection, PropertyShellProjection } from "../domain/types";
+
+
+/** Lightweight property projection used by the shared application shell. */
+export async function getPrimaryPropertyShell(): Promise<PropertyShellProjection | null> {
+  return prisma.property.findFirst({
+    where: { archivedAt: null },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      addressLine1: true,
+      city: true,
+      country: true,
+    },
+  });
+}
 
 /** Builds the read model consumed by the interactive building and space overview. */
 export async function getPrimaryPropertyDashboard(): Promise<BuildingProjection | null> {

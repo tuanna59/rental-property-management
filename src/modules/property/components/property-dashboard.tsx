@@ -1,28 +1,18 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { MotionConfig } from "motion/react";
 import {
-  ChevronDown,
   Building2,
-  Home,
-  Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
+  ChevronDown,
   Pencil,
   Plus,
   X,
   ArrowLeft,
   ArrowRight,
   Search,
-  Settings,
-  Users,
   CalendarDays,
-  Zap,
   LogOut,
-  ReceiptText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatVnd } from "@/lib/presentation";
@@ -44,7 +34,6 @@ import {
 } from "@/modules/tenancy/components/tenancy-dialogs";
 import { BuildingCanvas } from "./building-canvas";
 import {
-  PropertyFormDialog,
   FloorFormDialog,
   SpaceFormDialog,
   SpaceReorderButton,
@@ -59,52 +48,6 @@ function subscribeDesktop(callback: () => void) {
 }
 const desktopSnapshot = () => window.matchMedia("(min-width: 1100px)").matches;
 
-const sidebarEvent = "rental-house:sidebar";
-const sidebarStorageKey = "rental-house:sidebar-collapsed";
-
-function subscribeSidebar(callback: () => void) {
-  window.addEventListener("storage", callback);
-  window.addEventListener(sidebarEvent, callback);
-  return () => {
-    window.removeEventListener("storage", callback);
-    window.removeEventListener(sidebarEvent, callback);
-  };
-}
-
-function sidebarSnapshot() {
-  return window.localStorage.getItem(sidebarStorageKey) === "true";
-}
-
-function useSidebarCollapsed() {
-  const collapsed = React.useSyncExternalStore(
-    subscribeSidebar,
-    sidebarSnapshot,
-    () => false,
-  );
-  const setCollapsed = (value: boolean) => {
-    window.localStorage.setItem(sidebarStorageKey, String(value));
-    window.dispatchEvent(new Event(sidebarEvent));
-  };
-  return [collapsed, setCollapsed] as const;
-}
-
-const navigationItems = [
-  { label: "Building", href: "/", icon: Building2 },
-  { label: "Tenants", href: "/tenants", icon: Users },
-] as const;
-
-const utilitiesItems = [
-  { label: "Overview", href: "/utilities" },
-  { label: "Meters", href: "/utilities/meters" },
-  { label: "Rates", href: "/utilities/rates" },
-] as const;
-
-const billingItems = [
-  { label: "Invoices", href: "/billing/invoices" },
-  { label: "Payments", href: "/billing/payments" },
-  { label: "Deposits", href: "/billing/deposits" },
-] as const;
-
 export function PropertyDashboard({
   property,
   people,
@@ -115,8 +58,6 @@ export function PropertyDashboard({
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [editing, setEditing] = React.useState(false);
   const [search, setSearch] = React.useState("");
-  const [mobileNavigationOpen, setMobileNavigationOpen] = React.useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useSidebarCollapsed();
   const desktop = React.useSyncExternalStore(
     subscribeDesktop,
     desktopSnapshot,
@@ -153,40 +94,8 @@ export function PropertyDashboard({
 
   return (
     <MotionConfig reducedMotion="user">
-      <main
-        className={`property-app${sidebarCollapsed ? " sidebar-collapsed" : ""}`}
-      >
-        <AppSidebar
-          property={property}
-          collapsed={sidebarCollapsed}
-          onCollapsedChange={setSidebarCollapsed}
-        />
-        {mobileNavigationOpen && (
-          <div className="mobile-navigation-layer">
-            <button
-              type="button"
-              className="mobile-navigation-backdrop"
-              aria-label="Close navigation"
-              onClick={() => setMobileNavigationOpen(false)}
-            />
-            <AppSidebar
-              property={property}
-              collapsed={false}
-              mobile
-              onClose={() => setMobileNavigationOpen(false)}
-            />
-          </div>
-        )}
-        <div className="property-workspace">
+      <main className="property-workspace">
           <header className="property-header">
-            <button
-              type="button"
-              className="mobile-menu-button"
-              aria-label="Open navigation"
-              onClick={() => setMobileNavigationOpen(true)}
-            >
-              <Menu />
-            </button>
             <div className="property-heading">
               <h1>{property.name}</h1>
               <p>
@@ -290,7 +199,6 @@ export function PropertyDashboard({
               </aside>
             )}
           </div>
-        </div>
         {!desktop && selected && (
           <div className="mobile-space-layer">
             <button
@@ -323,155 +231,6 @@ export function PropertyDashboard({
         )}
       </main>
     </MotionConfig>
-  );
-}
-
-export function AppSidebar({
-  property,
-  collapsed,
-  mobile = false,
-  onCollapsedChange,
-  onClose,
-}: {
-  property: DashboardProperty;
-  collapsed: boolean;
-  mobile?: boolean;
-  onCollapsedChange?: (collapsed: boolean) => void;
-  onClose?: () => void;
-}) {
-  const pathname = usePathname();
-  const utilitiesActive = pathname.startsWith("/utilities");
-  const billingActive = pathname.startsWith("/billing");
-  const [utilitiesOpen, setUtilitiesOpen] = React.useState(utilitiesActive);
-  const [billingOpen, setBillingOpen] = React.useState(billingActive);
-  React.useEffect(() => {
-    if (utilitiesActive) setUtilitiesOpen(true);
-  }, [utilitiesActive]);
-  React.useEffect(() => {
-    if (billingActive) setBillingOpen(true);
-  }, [billingActive]);
-  return (
-    <aside
-      className={`property-sidebar${mobile ? " mobile-sidebar" : ""}`}
-      aria-label="Property navigation"
-    >
-      <div className="sidebar-brand">
-        <Link href="/" className="sidebar-brand-mark" title={property.name}>
-          <Home aria-hidden="true" />
-        </Link>
-        <span>{property.name}</span>
-        {mobile && (
-          <button
-            type="button"
-            className="sidebar-icon-button"
-            aria-label="Close navigation"
-            onClick={onClose}
-          >
-            <X />
-          </button>
-        )}
-      </div>
-      <nav className="sidebar-navigation">
-        <div className="sidebar-group">
-          {navigationItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`sidebar-nav-item${pathname === item.href ? " is-active" : ""}`}
-                title={collapsed ? item.label : undefined}
-                onClick={onClose}
-              >
-                <Icon aria-hidden="true" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-          <button
-            type="button"
-            className={`sidebar-nav-item sidebar-utilities-parent${utilitiesActive ? " is-contextual" : ""}`}
-            aria-expanded={utilitiesOpen}
-            title={collapsed ? "Utilities" : undefined}
-            onClick={() => setUtilitiesOpen((open) => !open)}
-          >
-            <Zap aria-hidden="true" />
-            <span>Utilities</span>
-            {!collapsed && (
-              <ChevronDown className={utilitiesOpen ? "rotate-180" : ""} />
-            )}
-          </button>
-          {utilitiesOpen && !collapsed && (
-            <div className="sidebar-utilities-children">
-              {utilitiesItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`sidebar-nav-item sidebar-nav-child${pathname === item.href ? " is-active" : ""}`}
-                  onClick={onClose}
-                >
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-            </div>
-          )}
-          <button
-            type="button"
-            className={`sidebar-nav-item sidebar-utilities-parent${billingActive ? " is-contextual" : ""}`}
-            aria-expanded={billingOpen}
-            title={collapsed ? "Billing" : undefined}
-            onClick={() => setBillingOpen((open) => !open)}
-          >
-            <ReceiptText aria-hidden="true" />
-            <span>Billing</span>
-            {!collapsed && (
-              <ChevronDown className={billingOpen ? "rotate-180" : ""} />
-            )}
-          </button>
-          {billingOpen && !collapsed && (
-            <div className="sidebar-utilities-children">
-              {billingItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`sidebar-nav-item sidebar-nav-child${pathname === item.href ? " is-active" : ""}`}
-                  onClick={onClose}
-                >
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      </nav>
-      <div className="sidebar-footer">
-        <PropertyFormDialog
-          property={property}
-          trigger={
-            <button
-              type="button"
-              className="sidebar-nav-item"
-              title={collapsed ? "Property settings" : undefined}
-            >
-              <Settings aria-hidden="true" />
-              <span>Property settings</span>
-            </button>
-          }
-        />
-        {!mobile && (
-          <button
-            type="button"
-            className="sidebar-collapse"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            onClick={() => onCollapsedChange?.(!collapsed)}
-          >
-            {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-            <span>Collapse</span>
-          </button>
-        )}
-      </div>
-    </aside>
   );
 }
 

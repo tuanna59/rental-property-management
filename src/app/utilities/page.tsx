@@ -22,7 +22,7 @@ export default async function UtilitiesPage({
   if (!property) return null;
   const month = params.month;
   return (
-    <UtilitiesShell property={property}>
+    <UtilitiesShell>
       <UtilitiesOverview
         key={month}
         month={month}

@@ -17,7 +17,7 @@ export default async function InvoiceDetailPage({
   const invoice = await getInvoice(invoiceId);
   if (!invoice) notFound();
   return (
-    <BillingShell property={property}>
+    <BillingShell>
       <InvoiceDetail invoice={invoice} />
     </BillingShell>
   );

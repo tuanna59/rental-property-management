@@ -1,5 +1,10 @@
+import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Source_Sans_3 } from "next/font/google";
+
+import { AppShell } from "@/components/app-shell/app-shell";
+import { getPrimaryPropertyShell } from "@/modules/property/server/property.queries";
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,18 +22,48 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Rental House",
   description: "Rental property building management foundation",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+const sidebarPreferenceScript = `
+try {
+  if (localStorage.getItem("rental-house:sidebar-collapsed") === "true") {
+    document.documentElement.dataset.sidebarCollapsed = "true";
+  }
+} catch {}
+`;
+
+export default async function RootLayout({
+  children,
+}: Readonly<{ children: ReactNode }>) {
+  let property = null;
+
+  try {
+    property = await getPrimaryPropertyShell();
+  } catch (error) {
+    console.error("Unable to load the shared application shell.", error);
+  }
+
   return (
     <html
       lang="en"
-      className={`${sourceSans.variable} ${sourceSans.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${sourceSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full">
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: sidebarPreferenceScript }}
+        />
+        {property ? (
+          <AppShell property={property}>{children}</AppShell>
+        ) : (
+          children
+        )}
+      </body>
     </html>
   );
 }
