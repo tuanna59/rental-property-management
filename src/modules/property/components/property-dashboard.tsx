@@ -424,12 +424,19 @@ export function AppSidebar({
           >
             <ReceiptText aria-hidden="true" />
             <span>Billing</span>
-            {!collapsed && <ChevronDown className={billingOpen ? "rotate-180" : ""} />}
+            {!collapsed && (
+              <ChevronDown className={billingOpen ? "rotate-180" : ""} />
+            )}
           </button>
           {billingOpen && !collapsed && (
             <div className="sidebar-utilities-children">
               {billingItems.map((item) => (
-                <Link key={item.href} href={item.href} className={`sidebar-nav-item sidebar-nav-child${pathname === item.href ? " is-active" : ""}`} onClick={onClose}>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`sidebar-nav-item sidebar-nav-child${pathname === item.href ? " is-active" : ""}`}
+                  onClick={onClose}
+                >
                   <span>{item.label}</span>
                 </Link>
               ))}

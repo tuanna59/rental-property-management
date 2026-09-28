@@ -61,7 +61,9 @@ export function ElectricityBreakdownDialog({
           <Info
             label="Applicable rate"
             value={`${formatVnd(String(rate))} / kWh`}
-            detail={preview.rateOverridden ? "Room/month override" : "Snapshot rate"}
+            detail={
+              preview.rateOverridden ? "Room/month override" : "Snapshot rate"
+            }
           />
           <Info
             label="Physical usage"
@@ -93,13 +95,23 @@ export function ElectricityBreakdownDialog({
 
         <section className="electricity-calculation">
           <h3>Calculation</h3>
-          <CalculationRow label="Physical usage" value={`${number(physicalUsage)} kWh`} />
+          <CalculationRow
+            label="Physical usage"
+            value={`${number(physicalUsage)} kWh`}
+          />
           <CalculationRow
             label="Less vacant / property usage"
             value={`−${number(vacantUsage)} kWh`}
           />
-          <CalculationRow label="Billable usage" value={`${number(billableUsage)} kWh`} strong />
-          <CalculationRow label="Rate" value={`${formatVnd(String(rate))} / kWh`} />
+          <CalculationRow
+            label="Billable usage"
+            value={`${number(billableUsage)} kWh`}
+            strong
+          />
+          <CalculationRow
+            label="Rate"
+            value={`${formatVnd(String(rate))} / kWh`}
+          />
           <CalculationRow
             label="Calculated amount"
             value={formatVnd(String(calculatedAmount))}
@@ -110,12 +122,17 @@ export function ElectricityBreakdownDialog({
         {physicalUsage > 0 && (
           <section>
             <h3>Usage allocation</h3>
-            <div className="electricity-allocation-bar" aria-label="Electricity usage allocation">
+            <div
+              className="electricity-allocation-bar"
+              aria-label="Electricity usage allocation"
+            >
               {preview.tenantBreakdown.map((segment, index) => (
                 <span
                   className="is-tenant"
                   key={`${segment.tenancyId}-${index}`}
-                  style={{ width: `${(Number(segment.usage) / physicalUsage) * 100}%` }}
+                  style={{
+                    width: `${(Number(segment.usage) / physicalUsage) * 100}%`,
+                  }}
                   title={`${segment.tenantName}: ${number(segment.usage)} kWh`}
                 />
               ))}
@@ -146,8 +163,13 @@ export function ElectricityBreakdownDialog({
               <tbody>
                 {preview.tenantBreakdown.map((segment, index) => (
                   <tr key={`${segment.tenancyId}-${index}`}>
-                    <td><strong>{segment.tenantName}</strong></td>
-                    <td>{formatDate(segment.startDate)} → {formatDate(segment.endDate)}</td>
+                    <td>
+                      <strong>{segment.tenantName}</strong>
+                    </td>
+                    <td>
+                      {formatDate(segment.startDate)} →{" "}
+                      {formatDate(segment.endDate)}
+                    </td>
                     <td>{number(segment.usage)} kWh</td>
                     <td>{segment.share}%</td>
                     <td>{segment.amount ? formatVnd(segment.amount) : "—"}</td>
@@ -155,7 +177,9 @@ export function ElectricityBreakdownDialog({
                 ))}
                 {vacantUsage > 0 && (
                   <tr className="is-vacant-row">
-                    <td><strong>Vacant / property</strong></td>
+                    <td>
+                      <strong>Vacant / property</strong>
+                    </td>
                     <td>Unoccupied service time</td>
                     <td>{number(vacantUsage)} kWh</td>
                     <td>—</td>
@@ -183,11 +207,19 @@ export function ElectricityBreakdownDialog({
               <tbody>
                 {preview.meterSegments.map((meter) => (
                   <tr key={meter.meterId}>
-                    <td><strong>{meter.meterNumber || "Unnumbered meter"}</strong></td>
+                    <td>
+                      <strong>{meter.meterNumber || "Unnumbered meter"}</strong>
+                    </td>
                     <td>{reading(meter.openingReading)}</td>
                     <td>{reading(meter.closingReading)}</td>
-                    <td>{meter.physicalUsage === null ? "Unavailable" : `${number(meter.physicalUsage)} kWh`}</td>
-                    <td>{meter.hasEstimatedReading ? "Estimated" : "Measured"}</td>
+                    <td>
+                      {meter.physicalUsage === null
+                        ? "Unavailable"
+                        : `${number(meter.physicalUsage)} kWh`}
+                    </td>
+                    <td>
+                      {meter.hasEstimatedReading ? "Estimated" : "Measured"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -196,7 +228,9 @@ export function ElectricityBreakdownDialog({
         </section>
 
         <footer className="electricity-details-notes">
-          <span>Vacant/property electricity is excluded from tenant billing.</span>
+          <span>
+            Vacant/property electricity is excluded from tenant billing.
+          </span>
           <span>The invoice uses the applicable rate snapshot.</span>
           <span>This view is read-only.</span>
         </footer>
@@ -205,7 +239,15 @@ export function ElectricityBreakdownDialog({
   );
 }
 
-function Info({ label, value, detail }: { label: string; value: string; detail: string }) {
+function Info({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
   return (
     <article>
       <span>{label}</span>
@@ -215,7 +257,15 @@ function Info({ label, value, detail }: { label: string; value: string; detail: 
   );
 }
 
-function CalculationRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+function CalculationRow({
+  label,
+  value,
+  strong = false,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
   return (
     <div className={strong ? "is-strong" : ""}>
       <span>{label}</span>

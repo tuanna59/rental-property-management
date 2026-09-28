@@ -3,10 +3,13 @@
 import { revalidatePath } from "next/cache";
 import type { ActionState } from "@/lib/action-state";
 import {
+  addInvoiceAdjustment,
+  deleteInvoiceAdjustment,
   finalizeInvoice,
   generateAllReady,
   generateInvoice,
   updateDraftLine,
+  updateInvoiceAdjustment,
 } from "./server/billing.service";
 import { recordPayment, updatePayment } from "./server/payment.service";
 import {
@@ -46,8 +49,56 @@ export async function generateInvoiceAction(_: ActionState, data: FormData) {
         text(data, "propertyId"),
         text(data, "tenancyId"),
         text(data, "billingPeriod"),
+        text(data, "invoiceType") as "REGULAR" | "FINAL_SETTLEMENT",
       ),
     "Draft invoice generated.",
+  );
+}
+export async function addInvoiceAdjustmentAction(
+  _: ActionState,
+  data: FormData,
+) {
+  return action(
+    () =>
+      addInvoiceAdjustment(text(data, "invoiceId"), {
+        type: text(data, "type") as "CHARGE" | "CREDIT",
+        description: text(data, "description"),
+        amount: text(data, "amount"),
+        reason: text(data, "reason"),
+      }),
+    "Adjustment added.",
+  );
+}
+export async function updateInvoiceAdjustmentAction(
+  _: ActionState,
+  data: FormData,
+) {
+  return action(
+    () =>
+      updateInvoiceAdjustment(
+        text(data, "invoiceId"),
+        text(data, "adjustmentId"),
+        {
+          type: text(data, "type") as "CHARGE" | "CREDIT",
+          description: text(data, "description"),
+          amount: text(data, "amount"),
+          reason: text(data, "reason"),
+        },
+      ),
+    "Adjustment updated.",
+  );
+}
+export async function deleteInvoiceAdjustmentAction(
+  _: ActionState,
+  data: FormData,
+) {
+  return action(
+    () =>
+      deleteInvoiceAdjustment(
+        text(data, "invoiceId"),
+        text(data, "adjustmentId"),
+      ),
+    "Adjustment removed.",
   );
 }
 export async function generateAllReadyAction(_: ActionState, data: FormData) {

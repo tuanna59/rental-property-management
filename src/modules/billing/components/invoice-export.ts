@@ -5,20 +5,45 @@ type Invoice = Awaited<ReturnType<typeof getInvoices>>[number];
 
 export function invoicePresentation(invoice: Invoice) {
   const month = invoice.billingPeriod.toISOString().slice(0, 7);
+  const lineItems = invoice.lines.map((line) => ({
+    id: line.id,
+    label: title(line.type),
+    period: line.sourceBillingMonth ? shortMonth(line.sourceBillingMonth) : "—",
+    servicePeriod:
+      line.servicePeriodStart && line.servicePeriodEnd
+        ? `${formatDate(line.servicePeriodStart)} – ${formatDate(line.servicePeriodEnd)}`
+        : null,
+    calculation: lineCalculation(line.type, line.metadata),
+    amount: line.finalAmount,
+    sign: "" as "" | "+" | "−",
+  }));
+  const adjustments = invoice.adjustments.map((adjustment) => ({
+    id: adjustment.id,
+    label: "Adjustment",
+    period: "—",
+    servicePeriod: null,
+    calculation: adjustment.description,
+    amount: adjustment.amount,
+    sign: adjustment.type === "CREDIT" ? ("−" as const) : ("+" as const),
+  }));
   return {
     propertyName: invoice.propertyName,
-    invoiceNumber: `INV-${month}-${sanitize(invoice.room).toUpperCase()}`,
+    invoiceNumber: `${invoice.type === "FINAL_SETTLEMENT" ? "FS" : "INV"}-${month}-${sanitize(invoice.room).toUpperCase()}`,
+    documentTitle:
+      invoice.type === "FINAL_SETTLEMENT" ? "FINAL SETTLEMENT" : "INVOICE",
+    documentDate:
+      invoice.type === "FINAL_SETTLEMENT"
+        ? formatDate(invoice.invoiceDate)
+        : null,
     status: invoice.status,
     billTo: invoice.renterName,
     room: invoice.room,
-    billingPeriod: monthLabel(invoice.billingPeriod),
-    servicePeriod: `${formatDate(invoice.serviceStart)} – ${formatDate(invoice.serviceEnd)}`,
-    lines: invoice.lines.map((line) => ({
-      id: line.id,
-      label: title(line.type),
-      calculation: lineCalculation(line.type, line.metadata),
-      amount: line.finalAmount,
-    })),
+    invoiceMonth: monthLabel(invoice.billingPeriod),
+    moveOut:
+      invoice.type === "FINAL_SETTLEMENT"
+        ? formatDate(invoice.invoiceDate)
+        : null,
+    lines: [...lineItems, ...adjustments],
     total: invoice.total,
   };
 }
@@ -27,7 +52,7 @@ export function exportInvoicePng(invoice: Invoice) {
   const presentation = invoicePresentation(invoice);
   const canvas = document.createElement("canvas");
   canvas.width = 1400;
-  canvas.height = 920 + presentation.lines.length * 105;
+  canvas.height = 650 + presentation.lines.length * 92;
   const context = canvas.getContext("2d");
   if (!context) return;
 
@@ -38,7 +63,7 @@ export function exportInvoicePng(invoice: Invoice) {
   context.fillText(presentation.propertyName, 80, 82);
   context.textAlign = "right";
   context.font = "700 52px sans-serif";
-  context.fillText("INVOICE", 1320, 82);
+  context.fillText(presentation.documentTitle, 1320, 82);
   context.font = "600 22px sans-serif";
   context.fillStyle = "#52645d";
   context.fillText(`#${presentation.invoiceNumber}`, 1320, 120);
@@ -61,8 +86,9 @@ export function exportInvoicePng(invoice: Invoice) {
 
   drawLabel(context, "BILL TO", presentation.billTo, 80, 245);
   drawLabel(context, "ROOM", presentation.room, 550, 245);
-  drawLabel(context, "BILLING PERIOD", presentation.billingPeriod, 820, 245);
-  drawLabel(context, "SERVICE PERIOD", presentation.servicePeriod, 820, 325);
+  drawLabel(context, "INVOICE MONTH", presentation.invoiceMonth, 820, 245);
+  if (presentation.moveOut)
+    drawLabel(context, "MOVE-OUT", presentation.moveOut, 820, 325);
 
   let y = 435;
   context.fillStyle = "#e9eee9";
@@ -70,7 +96,8 @@ export function exportInvoicePng(invoice: Invoice) {
   context.fillStyle = "#41554e";
   context.font = "700 18px sans-serif";
   context.fillText("ITEM", 105, y);
-  context.fillText("CALCULATION", 410, y);
+  context.fillText("PERIOD", 360, y);
+  context.fillText("CALCULATION", 560, y);
   context.textAlign = "right";
   context.fillText("AMOUNT", 1295, y);
   context.textAlign = "left";
@@ -82,11 +109,12 @@ export function exportInvoicePng(invoice: Invoice) {
     context.fillText(line.label, 105, y);
     context.fillStyle = "#5b6b65";
     context.font = "20px sans-serif";
-    context.fillText(line.calculation, 410, y);
+    context.fillText(line.period, 360, y);
+    context.fillText(line.calculation, 560, y);
     context.fillStyle = "#20362f";
     context.font = "700 22px sans-serif";
     context.textAlign = "right";
-    context.fillText(formatVnd(line.amount), 1295, y);
+    context.fillText(`${line.sign}${formatVnd(line.amount)}`, 1295, y);
     context.textAlign = "left";
     context.strokeStyle = "#dddeda";
     context.lineWidth = 1;
@@ -94,7 +122,7 @@ export function exportInvoicePng(invoice: Invoice) {
     context.moveTo(80, y + 35);
     context.lineTo(1320, y + 35);
     context.stroke();
-    y += 105;
+    y += 92;
   });
 
   y += 35;
@@ -158,6 +186,14 @@ function lineCalculation(type: string, metadata: unknown) {
     0,
   );
   return `${occupants.length} ${occupants.length === 1 ? "person" : "people"} · ${days} occupant-days`;
+}
+
+function shortMonth(value: Date) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(value);
 }
 
 export function monthLabel(value: Date) {

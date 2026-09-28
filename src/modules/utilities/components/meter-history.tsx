@@ -55,7 +55,16 @@ export function MeterHistory({
                 <strong>
                   {Number(reading.readingValue).toLocaleString()} kWh
                 </strong>
-                <span>{readingLabels[reading.readingType]}</span>
+                <span>
+                  {readingLabels[reading.readingType]}
+                  {reading.readingType === "MONTHLY" && reading.billingMonth
+                    ? ` · ${new Intl.DateTimeFormat("en", {
+                        month: "short",
+                        year: "numeric",
+                        timeZone: "UTC",
+                      }).format(reading.billingMonth)}`
+                    : ""}
+                </span>
                 <span
                   className={`utility-status ${reading.source === "ESTIMATED" ? "is-estimated" : "is-complete"}`}
                 >

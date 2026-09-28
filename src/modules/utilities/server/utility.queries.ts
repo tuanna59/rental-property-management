@@ -255,6 +255,8 @@ function computePhysicalMeterSegment(
         usage: string;
         startDate: Date;
         endDate: Date;
+        usageKnown: boolean;
+        isOpen: boolean;
       }>,
       missingBoundary,
     };
@@ -280,7 +282,34 @@ function computePhysicalMeterSegment(
       tenantUsage: null,
       vacantUsage: null,
       sourceReadingIds: [startReading.id, knownEndReading.id],
-      tenantUsageSegments: [],
+      tenantUsageSegments: startReading
+        ? [
+            {
+              kind: activeTenancyAt(relevantTenancies, startReading.readingDate)
+                ? ("TENANT" as const)
+                : ("VACANT" as const),
+              tenancyId:
+                activeTenancyAt(relevantTenancies, startReading.readingDate)
+                  ?.id ?? null,
+              label: activeTenancyAt(
+                relevantTenancies,
+                startReading.readingDate,
+              )
+                ? tenancyName(
+                    activeTenancyAt(
+                      relevantTenancies,
+                      startReading.readingDate,
+                    )!,
+                  )
+                : "Vacant",
+              usage: "0",
+              startDate: startReading.readingDate,
+              endDate: end,
+              usageKnown: false,
+              isOpen: true,
+            },
+          ]
+        : [],
       missingBoundary,
     };
   }
@@ -308,6 +337,8 @@ function computePhysicalMeterSegment(
     usage: Prisma.Decimal;
     startDate: Date;
     endDate: Date;
+    usageKnown: boolean;
+    isOpen: boolean;
   }> = [];
   for (let index = 1; index < timeline.length; index += 1) {
     const previous = timeline[index - 1];
@@ -335,16 +366,16 @@ function computePhysicalMeterSegment(
         missingBoundary,
       };
     }
-    if (!usage.isZero()) {
-      usageSegments.push({
-        kind: active ? "TENANT" : "VACANT",
-        tenancyId: active?.id ?? null,
-        label: active ? tenancyName(active) : "Vacant",
-        usage,
-        startDate: previous.readingDate,
-        endDate: current.readingDate,
-      });
-    }
+    usageSegments.push({
+      kind: active ? "TENANT" : "VACANT",
+      tenancyId: active?.id ?? null,
+      label: active ? tenancyName(active) : "Vacant",
+      usage,
+      startDate: previous.readingDate,
+      endDate: current.readingDate,
+      usageKnown: true,
+      isOpen: false,
+    });
     if (current.readingType === "MOVE_OUT") {
       active =
         relevantTenancies.find(
@@ -358,6 +389,18 @@ function computePhysicalMeterSegment(
           sameDay(tenancy.moveInDate, current.readingDate),
         ) ?? null;
     }
+  }
+  if (!endReading && knownEndReading.readingDate < end) {
+    usageSegments.push({
+      kind: active ? "TENANT" : "VACANT",
+      tenancyId: active?.id ?? null,
+      label: active ? tenancyName(active) : "Vacant",
+      usage: new Prisma.Decimal(0),
+      startDate: knownEndReading.readingDate,
+      endDate: end,
+      usageKnown: false,
+      isOpen: true,
+    });
   }
   const physicalUsage = knownEndReading.readingValue.minus(
     startReading.readingValue,
@@ -541,7 +584,9 @@ export async function getMonthlyMeterEntries(
       if (
         previous &&
         previous.kind === segment.kind &&
-        previous.tenancyId === segment.tenancyId
+        previous.tenancyId === segment.tenancyId &&
+        !previous.isOpen &&
+        !segment.isOpen
       ) {
         previous.usage = new Prisma.Decimal(previous.usage)
           .plus(segment.usage)
@@ -619,7 +664,10 @@ export async function getMonthlyMeterEntries(
             ? ("ESTIMATED" as const)
             : ("RECORDED" as const),
       attributionStatus: attributionReady
-        ? ("READY" as const)
+        ? ("COMPLETE" as const)
+        : ("PARTIAL" as const),
+      monthlyCycleStatus: isClosingComplete
+        ? ("COMPLETE" as const)
         : ("INCOMPLETE" as const),
       meterSegments,
       tenancySegments,
@@ -922,7 +970,7 @@ export async function getUtilitiesOverview(
     monthlyReadingsRequired: entries.filter((entry) => entry.activeMeter)
       .length,
     attributionReady: entries.filter(
-      (entry) => entry.activeMeter && entry.attributionStatus === "READY",
+      (entry) => entry.activeMeter && entry.attributionStatus === "COMPLETE",
     ).length,
     attributionRequired: entries.filter((entry) => entry.activeMeter).length,
     warnings,

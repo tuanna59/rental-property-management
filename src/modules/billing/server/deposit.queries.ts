@@ -27,7 +27,7 @@ export async function getDepositOverview(propertyId: string) {
       },
       invoices: {
         where: { status: "FINALIZED" },
-        include: { lines: true, payments: true },
+        include: { lines: true, adjustments: true, payments: true },
         orderBy: { billingPeriod: "desc" },
       },
     },
@@ -60,10 +60,20 @@ export async function getDepositOverview(propertyId: string) {
             : "HELD";
     const invoices = tenancy.invoices
       .map((invoice) => {
-        const total = invoice.lines.reduce(
-          (value, line) => value.plus(line.finalAmount),
-          new Prisma.Decimal(0),
-        );
+        const total = invoice.lines
+          .reduce(
+            (value, line) => value.plus(line.finalAmount),
+            new Prisma.Decimal(0),
+          )
+          .plus(
+            invoice.adjustments.reduce(
+              (value, adjustment) =>
+                adjustment.type === "CHARGE"
+                  ? value.plus(adjustment.amount)
+                  : value.minus(adjustment.amount),
+              new Prisma.Decimal(0),
+            ),
+          );
         const paid = invoice.payments.reduce(
           (value, payment) => value.plus(payment.amount),
           new Prisma.Decimal(0),
@@ -72,6 +82,7 @@ export async function getDepositOverview(propertyId: string) {
           id: invoice.id,
           room: invoice.roomNameSnapshot,
           billingPeriod: invoice.billingPeriod,
+          invoiceType: invoice.type,
           balance: total.minus(paid).toString(),
         };
       })
@@ -92,6 +103,20 @@ export async function getDepositOverview(propertyId: string) {
           reference: item.reference,
           notes: item.notes,
           invoiceId: item.invoiceId,
+          invoice: (() => {
+            const invoice = item.invoiceId
+              ? tenancy.invoices.find(
+                  (candidate) => candidate.id === item.invoiceId,
+                )
+              : null;
+            return invoice
+              ? {
+                  id: invoice.id,
+                  type: invoice.type,
+                  billingPeriod: invoice.billingPeriod,
+                }
+              : null;
+          })(),
           amount: item.amount.toString(),
           effect: `${positive ? "+" : "-"}${item.amount.toString()}`,
           balanceAfter: running.toString(),

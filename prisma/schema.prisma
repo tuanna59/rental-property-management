@@ -50,10 +50,20 @@ enum InvoiceStatus {
   FINALIZED
 }
 
+enum InvoiceType {
+  REGULAR
+  FINAL_SETTLEMENT
+}
+
 enum InvoiceLineType {
   RENT
   ELECTRICITY
   WATER
+}
+
+enum InvoiceAdjustmentType {
+  CHARGE
+  CREDIT
 }
 
 enum PaymentMethod {
@@ -173,38 +183,58 @@ model Invoice {
   tenancyId            String
   tenancy              Tenancy              @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
   billingPeriod        DateTime             @db.Date
-  serviceStart         DateTime             @db.Date
-  serviceEnd           DateTime             @db.Date
+  invoiceDate          DateTime             @default(now()) @db.Date
+  type                 InvoiceType          @default(REGULAR)
+  serviceStart         DateTime?            @db.Date
+  serviceEnd           DateTime?            @db.Date
   status               InvoiceStatus        @default(DRAFT)
   propertyNameSnapshot String
   roomNameSnapshot     String
   renterNameSnapshot   String
   finalizedAt          DateTime?
   lines                InvoiceLine[]
+  adjustments          InvoiceAdjustment[]
   payments             Payment[]
   depositTransactions  DepositTransaction[]
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 
-  @@unique([tenancyId, billingPeriod])
-  @@index([billingPeriod, status])
+  @@unique([tenancyId, billingPeriod, type])
+  @@index([billingPeriod, type, status])
 }
 
 model InvoiceLine {
-  id               String          @id @default(cuid())
-  invoiceId        String
-  invoice          Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
-  type             InvoiceLineType
-  description      String
-  calculatedAmount Decimal         @db.Decimal(16, 3)
-  finalAmount      Decimal         @db.Decimal(16, 0)
-  isOverridden     Boolean         @default(false)
-  overrideReason   String?
-  metadata         Json
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  id                 String          @id @default(cuid())
+  invoiceId          String
+  invoice            Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  type               InvoiceLineType
+  description        String
+  sourceBillingMonth DateTime?       @db.Date
+  servicePeriodStart DateTime?       @db.Date
+  servicePeriodEnd   DateTime?       @db.Date
+  calculatedAmount   Decimal         @db.Decimal(16, 3)
+  finalAmount        Decimal         @db.Decimal(16, 0)
+  isOverridden       Boolean         @default(false)
+  overrideReason     String?
+  metadata           Json
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
   @@unique([invoiceId, type])
+}
+
+model InvoiceAdjustment {
+  id          String                @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice               @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  type        InvoiceAdjustmentType
+  description String
+  amount      Decimal               @db.Decimal(16, 0)
+  reason      String
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([invoiceId, createdAt])
 }
 
 model Payment {

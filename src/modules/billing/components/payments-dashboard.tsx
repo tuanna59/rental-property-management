@@ -45,14 +45,15 @@ export function PaymentsDashboard({
 }) {
   const [search, setSearch] = React.useState("");
   const [method, setMethod] = React.useState("ALL");
-  const [state, setState] = React.useState("ALL");
+  const [source, setSource] = React.useState("ALL");
   const filtered = payments.filter((payment) => {
     const haystack =
       `${payment.renterName} ${payment.room} ${payment.reference ?? ""} ${payment.invoiceLabel}`.toLowerCase();
     return (
       haystack.includes(search.toLowerCase()) &&
       (method === "ALL" || payment.method === method) &&
-      (state === "ALL" || payment.paymentStatus === state)
+      (source === "ALL" ||
+        (source === "DEPOSIT") === payment.isDepositApplication)
     );
   });
   return (
@@ -88,8 +89,8 @@ export function PaymentsDashboard({
           icon={<WalletCards />}
         />
         <Card
-          label="Payment state"
-          value={`${summary.paid} paid`}
+          label="Open invoices"
+          value={`${summary.partial + summary.unpaid} open`}
           detail={`${summary.partial} partial · ${summary.unpaid} unpaid`}
           icon={<CircleDollarSign />}
         />
@@ -97,7 +98,64 @@ export function PaymentsDashboard({
       <section className="utility-section">
         <div className="utility-section-header">
           <div>
-            <h2>Payment history</h2>
+            <h2>Outstanding invoices</h2>
+            <p>Finalized invoices that still have a balance.</p>
+          </div>
+        </div>
+        {summary.outstandingInvoices.length ? (
+          <div className="utility-table-wrap">
+            <table className="utility-table">
+              <thead>
+                <tr>
+                  <th>Tenant</th>
+                  <th>Room</th>
+                  <th>Invoice / Month</th>
+                  <th>Balance</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.outstandingInvoices.map((invoice) => (
+                  <tr key={invoice.id}>
+                    <td>
+                      <strong>{invoice.renterName}</strong>
+                    </td>
+                    <td>{invoice.room}</td>
+                    <td>
+                      {invoice.invoiceType === "FINAL_SETTLEMENT"
+                        ? "Final settlement"
+                        : monthLabel(invoice.billingPeriod)}
+                    </td>
+                    <td>
+                      <strong>{formatVnd(invoice.balance)}</strong>
+                    </td>
+                    <td>
+                      <BillingStatusBadge status={invoice.paymentStatus} />
+                    </td>
+                    <td>
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={`/billing/invoices/${invoice.id}`}>
+                          View invoice
+                        </Link>
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="billing-empty">
+            <strong>No outstanding invoices</strong>
+            <p>All finalized invoices are fully settled.</p>
+          </div>
+        )}
+      </section>
+      <section className="utility-section">
+        <div className="utility-section-header">
+          <div>
+            <h2>Payment activity</h2>
             <p>
               Transactions recorded during{" "}
               {new Intl.DateTimeFormat("en", {
@@ -126,7 +184,7 @@ export function PaymentsDashboard({
             />
           </label>
           <select
-            aria-label="Invoice payment state"
+            aria-label="Payment method"
             value={method}
             onChange={(event) => setMethod(event.target.value)}
           >
@@ -136,13 +194,13 @@ export function PaymentsDashboard({
             <option value="OTHER">Other</option>
           </select>
           <select
-            value={state}
-            onChange={(event) => setState(event.target.value)}
+            aria-label="Payment source"
+            value={source}
+            onChange={(event) => setSource(event.target.value)}
           >
-            <option value="ALL">All invoice payment states</option>
-            <option value="UNPAID">Unpaid</option>
-            <option value="PARTIAL">Partial</option>
-            <option value="PAID">Paid</option>
+            <option value="ALL">All sources</option>
+            <option value="PAYMENT">Direct payment</option>
+            <option value="DEPOSIT">Tenant deposit</option>
           </select>
         </div>
         {filtered.length ? (
@@ -152,13 +210,10 @@ export function PaymentsDashboard({
                 <tr>
                   <th>Date</th>
                   <th>Tenant</th>
-                  <th>Room</th>
                   <th>Invoice</th>
-                  <th>Billing period</th>
-                  <th>Method</th>
+                  <th>Source</th>
                   <th>Amount</th>
-                  <th>Reference</th>
-                  <th></th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -171,11 +226,6 @@ export function PaymentsDashboard({
                       </Link>
                     </td>
                     <td>
-                      <Link className="billing-table-link" href="/">
-                        {payment.room}
-                      </Link>
-                    </td>
-                    <td>
                       <Link
                         className="billing-table-link"
                         href={`/billing/invoices/${payment.invoiceId}`}
@@ -183,22 +233,27 @@ export function PaymentsDashboard({
                         <strong>{payment.invoiceLabel}</strong>
                       </Link>
                       <div>
-                        <BillingStatusBadge status={payment.paymentStatus} />
+                        <span className="utility-subtle">
+                          {payment.room} ·{" "}
+                          {payment.invoiceType === "FINAL_SETTLEMENT"
+                            ? "Final settlement"
+                            : monthLabel(payment.billingPeriod)}
+                        </span>
                       </div>
                     </td>
-                    <td>{monthLabel(payment.billingPeriod)}</td>
                     <td>
                       {payment.isDepositApplication
-                        ? "Deposit application"
+                        ? "Tenant deposit"
                         : title(payment.method)}
                     </td>
                     <td>
                       <strong>{formatVnd(payment.amount)}</strong>
                     </td>
-                    <td>{payment.reference || "—"}</td>
                     <td>
                       {payment.isDepositApplication ? (
-                        <span className="utility-subtle">Ledger managed</span>
+                        <Button asChild size="sm" variant="ghost">
+                          <Link href="/billing/deposits">View deposit</Link>
+                        </Button>
                       ) : (
                         <EditPayment payment={payment} />
                       )}
@@ -250,7 +305,7 @@ function EditPayment({ payment }: { payment: Payments[number] }) {
               label="Amount"
               name="amount"
               type="number"
-              step="500"
+              step="1"
               defaultValue={payment.amount}
               required
             />

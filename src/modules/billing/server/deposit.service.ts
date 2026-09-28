@@ -88,7 +88,7 @@ export async function applyDepositToInvoice(
   return tenancyTransaction(async (tx) => {
     const invoice = await tx.invoice.findUnique({
       where: { id: input.invoiceId },
-      include: { lines: true, payments: true },
+      include: { lines: true, adjustments: true, payments: true },
     });
     if (
       !invoice ||
@@ -97,10 +97,17 @@ export async function applyDepositToInvoice(
     )
       throw new Error("Choose a finalized invoice for this tenancy.");
     const held = await heldBalance(tx, input.tenancyId);
-    const total = invoice.lines.reduce(
-      (sum, line) => sum.plus(line.finalAmount),
-      new Prisma.Decimal(0),
-    );
+    const total = invoice.lines
+      .reduce((sum, line) => sum.plus(line.finalAmount), new Prisma.Decimal(0))
+      .plus(
+        invoice.adjustments.reduce(
+          (sum, adjustment) =>
+            adjustment.type === "CHARGE"
+              ? sum.plus(adjustment.amount)
+              : sum.minus(adjustment.amount),
+          new Prisma.Decimal(0),
+        ),
+      );
     const paid = invoice.payments.reduce(
       (sum, payment) => sum.plus(payment.amount),
       new Prisma.Decimal(0),
@@ -126,7 +133,7 @@ export async function applyDepositToInvoice(
         amount,
         paymentDate: date(input.transactionDate),
         method: "OTHER",
-        reference: `Deposit application ${transaction.id}`,
+        reference: "Applied from tenant deposit",
         notes: input.notes || null,
         isDepositApplication: true,
       },

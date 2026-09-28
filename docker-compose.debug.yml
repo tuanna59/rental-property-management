@@ -1,39 +1,32 @@
 services:
   app:
-      build: .
-      depends_on:
-        postgres:
-          condition: service_healthy
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
 
-      environment:
-        DATABASE_URL: postgresql://rental_user:rental_password@postgres:5432/rental_house?schema=public
+    environment:
+      DATABASE_URL: postgresql://rental_user:rental_password@postgres:5432/rental_house?schema=public
 
-        # Quan trọng: đang chạy next dev
-        NODE_ENV: development
+      # Quan trọng: đang chạy next dev
+      NODE_ENV: development
 
-        PRIVATE_DATA_DIR: /app/private-data
-        PERSON_CITIZEN_ID_ENCRYPTION_KEY: ${PERSON_CITIZEN_ID_ENCRYPTION_KEY}
-        PERSON_CITIZEN_ID_LOOKUP_HMAC_KEY: ${PERSON_CITIZEN_ID_LOOKUP_HMAC_KEY}
+      PRIVATE_DATA_DIR: /app/private-data
+      PERSON_CITIZEN_ID_ENCRYPTION_KEY: ${PERSON_CITIZEN_ID_ENCRYPTION_KEY}
+      PERSON_CITIZEN_ID_LOOKUP_HMAC_KEY: ${PERSON_CITIZEN_ID_LOOKUP_HMAC_KEY}
 
-      ports:
-        - "3000:3000"
-        - "9229:9229"
+    ports:
+      - "3000:3000"
+      - "9229:9229"
 
-      volumes:
-        # Hot reload source code
-        - .:/app
+    volumes:
+      # Hot reload source code
+      - .:/app
 
-        # Không để node_modules Windows overwrite node_modules Linux
-        - /app/node_modules
+      # Không để node_modules Windows overwrite node_modules Linux
+      - /app/node_modules
 
-        # Existing persistent data
-        - private-data:/app/private-data
+      # Existing persistent data
+      - private-data:/app/private-data
 
-      command:
-        [
-          "pnpm",
-          "exec",
-          "next",
-          "dev",
-          "--inspect=0.0.0.0:9229"
-        ]
+    command: ["pnpm", "exec", "next", "dev", "--inspect=0.0.0.0:9229"]

@@ -112,6 +112,7 @@ export function InvoiceDashboard({
                 <tr>
                   <th>Room</th>
                   <th>Responsible renter</th>
+                  <th>Invoice type</th>
                   <th>Service period</th>
                   <th>Readiness</th>
                   <th>Issue</th>
@@ -121,7 +122,7 @@ export function InvoiceDashboard({
               </thead>
               <tbody>
                 {candidates.map((candidate) => (
-                  <tr key={candidate.tenancyId}>
+                  <tr key={candidate.candidateKey}>
                     <td>
                       <Link className="billing-table-link" href="/">
                         <strong>{candidate.room}</strong>
@@ -131,6 +132,11 @@ export function InvoiceDashboard({
                       <Link className="billing-table-link" href="/tenants">
                         {candidate.renterName}
                       </Link>
+                    </td>
+                    <td>
+                      {candidate.invoiceType === "REGULAR"
+                        ? "Regular"
+                        : "Final settlement"}
                     </td>
                     <td>
                       {formatDate(candidate.serviceStart)} →{" "}
@@ -346,6 +352,7 @@ function CandidateAction({
           propertyId,
           tenancyId: candidate.tenancyId,
           billingPeriod: `${month}-01`,
+          invoiceType: candidate.invoiceType,
         }}
         label="Generate"
       />

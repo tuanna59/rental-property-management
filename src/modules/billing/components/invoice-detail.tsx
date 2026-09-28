@@ -2,7 +2,21 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, Eye, Pencil, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  Coins,
+  Download,
+  Eye,
+  FileText,
+  Home,
+  Pencil,
+  Plus,
+  Receipt,
+  Trash2,
+  User,
+  Zap,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,10 +32,13 @@ import { Label } from "@/components/ui/label";
 import { emptyActionState } from "@/lib/action-state";
 import { formatDate, formatVnd } from "@/lib/presentation";
 import {
+  addInvoiceAdjustmentAction,
+  deleteInvoiceAdjustmentAction,
   finalizeInvoiceAction,
   overrideInvoiceLineAction,
   recordPaymentAction,
   updatePaymentAction,
+  updateInvoiceAdjustmentAction,
 } from "../actions";
 import type { getInvoice } from "../server/billing.queries";
 import { BillingStatusBadge } from "./billing-status";
@@ -32,7 +49,7 @@ import {
 } from "./invoice-export";
 
 type Invoice = NonNullable<Awaited<ReturnType<typeof getInvoice>>>;
-type Tab = "charges" | "occupants" | "electricity" | "payments" | "history";
+type Tab = "charges" | "services" | "electricity" | "payments" | "history";
 
 export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
   const [tab, setTab] = React.useState<Tab>("charges");
@@ -46,15 +63,28 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
           >
             <ArrowLeft /> Back to invoices
           </Link>
-          <p className="utilities-eyebrow">INVOICE · {invoice.room}</p>
-          <h1>{monthLabel(invoice.billingPeriod)}</h1>
+          <p className="utilities-eyebrow">
+            {invoice.type === "REGULAR"
+              ? "REGULAR INVOICE"
+              : "FINAL SETTLEMENT"}{" "}
+            · {invoice.room}
+          </p>
+          <h1>
+            {invoice.type === "REGULAR"
+              ? monthLabel(invoice.billingPeriod)
+              : "Final settlement"}
+          </h1>
           <p>
-            Service {formatDate(invoice.serviceStart)} →{" "}
-            {formatDate(invoice.serviceEnd)}
+            {invoice.type === "REGULAR"
+              ? "Regular invoice"
+              : `${formatDate(invoice.invoiceDate)} · Move-out · ${invoice.room}`}
           </p>
         </div>
         <div className="invoice-header-actions">
           <BillingStatusBadge status={invoice.status} />
+          {invoice.status === "FINALIZED" && (
+            <BillingStatusBadge status={invoice.paymentStatus} />
+          )}
           <InvoicePreviewDialog invoice={invoice} />
           {invoice.status === "DRAFT" ? (
             <FinalizeButton invoiceId={invoice.id} />
@@ -75,53 +105,39 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
           label="Room"
           value={invoice.room}
           detail={invoice.propertyName}
+          icon={<Home />}
         />
         <ContextCard
           label="Responsible renter"
           value={invoice.renterName}
           detail="Invoice snapshot"
+          icon={<User />}
         />
         <ContextCard
-          label="Billing period"
+          label="Invoice month"
           value={monthLabel(invoice.billingPeriod)}
-          detail={`${formatDate(invoice.serviceStart)} → ${formatDate(invoice.serviceEnd)}`}
+          detail={
+            invoice.type === "REGULAR"
+              ? "Regular billing cycle"
+              : formatDate(invoice.invoiceDate)
+          }
+          icon={<Calendar />}
         />
-        {invoice.status === "FINALIZED" ? (
-          <>
-            <ContextCard
-              label="Total"
-              value={formatVnd(invoice.total)}
-              detail="Final billed value"
-            />
-            <ContextCard
-              label="Paid"
-              value={formatVnd(invoice.totalPaid)}
-              detail="Recorded payments"
-            />
-            <ContextCard
-              label="Balance"
-              value={formatVnd(invoice.balance)}
-              detail={title(invoice.paymentStatus)}
-            />
-          </>
-        ) : (
-          <ContextCard
-            label="Payment summary"
-            value="Available after finalization"
-            detail="This invoice is still a draft"
-          />
-        )}
+        <ContextCard
+          label="Total"
+          value={formatVnd(invoice.total)}
+          detail={
+            invoice.status === "FINALIZED"
+              ? `Paid ${formatVnd(invoice.totalPaid)} · Balance ${formatVnd(invoice.balance)}`
+              : "Draft total · payment available after finalization"
+          }
+          icon={<FileText />}
+        />
       </section>
 
       <nav className="invoice-tabs" aria-label="Invoice detail sections">
         {(
-          [
-            "charges",
-            "occupants",
-            "electricity",
-            "payments",
-            "history",
-          ] as Tab[]
+          ["charges", "services", "electricity", "payments", "history"] as Tab[]
         ).map((item) => (
           <button
             key={item}
@@ -136,7 +152,7 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
 
       <section className="invoice-tab-panel">
         {tab === "charges" && <ChargesTab invoice={invoice} />}
-        {tab === "occupants" && <OccupantsTab invoice={invoice} />}
+        {tab === "services" && <ServicesTab invoice={invoice} />}
         {tab === "electricity" && <ElectricityTab invoice={invoice} />}
         {tab === "payments" && <PaymentsTab invoice={invoice} />}
         {tab === "history" && <HistoryTab invoice={invoice} />}
@@ -147,61 +163,124 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
 
 function ChargesTab({ invoice }: { invoice: Invoice }) {
   return (
-    <div className="utility-table-wrap">
-      <table className="utility-table invoice-charge-table">
-        <thead>
-          <tr>
-            <th>Type</th>
-            <th>Details</th>
-            <th>Calculated</th>
-            <th>Final</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {invoice.lines.map((line) => (
-            <tr key={line.id}>
-              <td>
-                <strong>{title(line.type)}</strong>
-              </td>
-              <td>{chargeDetail(line.type, line.metadata)}</td>
-              <td>{formatVnd(line.calculatedAmount)}</td>
-              <td>
-                <strong>{formatVnd(line.finalAmount)}</strong>
-              </td>
-              <td>
-                {line.isOverridden ? (
-                  <BillingStatusBadge status="OVERRIDDEN" />
-                ) : (
-                  <span className="utility-subtle">Rounded</span>
-                )}
-              </td>
-              <td>
-                {invoice.status === "DRAFT" ? (
-                  <OverrideDialog invoiceId={invoice.id} line={line} />
-                ) : (
-                  <span className="utility-subtle">Read only</span>
-                )}
-              </td>
+    <>
+      <div className="section-heading-row">
+        <div>
+          <h3>Charges</h3>
+          <p className="utility-subtle">
+            Source periods and final billed values.
+          </p>
+        </div>
+        {invoice.status === "DRAFT" && (
+          <AdjustmentDialog invoiceId={invoice.id} />
+        )}
+      </div>
+      <div className="utility-table-wrap">
+        <table className="utility-table invoice-charge-table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Period</th>
+              <th>Details</th>
+              <th>Calculated</th>
+              <th>Final</th>
+              <th>Status</th>
+              <th>Action</th>
             </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colSpan={3}>Invoice total</td>
-            <td>
-              <strong>{formatVnd(invoice.total)}</strong>
-            </td>
-            <td colSpan={2} />
-          </tr>
-        </tfoot>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {invoice.lines.map((line) => (
+              <tr key={line.id}>
+                <td>
+                  <strong>{title(line.type)}</strong>
+                </td>
+                <td>
+                  {line.sourceBillingMonth
+                    ? monthLabel(line.sourceBillingMonth)
+                    : "—"}
+                </td>
+                <td>{chargeDetail(line.type, line.metadata)}</td>
+                <td>{formatVnd(line.calculatedAmount)}</td>
+                <td>
+                  <strong>{formatVnd(line.finalAmount)}</strong>
+                </td>
+                <td>
+                  {line.isOverridden ? (
+                    <BillingStatusBadge status="OVERRIDDEN" />
+                  ) : (
+                    <span className="utility-subtle">Rounded</span>
+                  )}
+                </td>
+                <td>
+                  {invoice.status === "DRAFT" ? (
+                    <OverrideDialog invoiceId={invoice.id} line={line} />
+                  ) : (
+                    <span className="utility-subtle">Read only</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {invoice.adjustments.map((adjustment) => (
+              <tr key={adjustment.id}>
+                <td>
+                  <strong>Adjustment</strong>
+                </td>
+                <td>—</td>
+                <td>
+                  {adjustment.description}
+                  <div className="utility-subtle">{adjustment.reason}</div>
+                </td>
+                <td>—</td>
+                <td>
+                  <strong
+                    className={
+                      adjustment.type === "CREDIT" ? "deposit-negative" : ""
+                    }
+                  >
+                    {adjustment.type === "CREDIT" ? "−" : "+"}
+                    {formatVnd(adjustment.amount)}
+                  </strong>
+                </td>
+                <td>
+                  {adjustment.type === "CHARGE"
+                    ? "Additional charge"
+                    : "Credit / discount"}
+                </td>
+                <td>
+                  {invoice.status === "DRAFT" ? (
+                    <div className="billing-actions">
+                      <AdjustmentDialog
+                        invoiceId={invoice.id}
+                        adjustment={adjustment}
+                      />
+                      <DeleteAdjustmentButton
+                        invoiceId={invoice.id}
+                        adjustmentId={adjustment.id}
+                      />
+                    </div>
+                  ) : (
+                    <span className="utility-subtle">Read only</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan={4}>Invoice total</td>
+              <td>
+                <strong>{formatVnd(invoice.total)}</strong>
+              </td>
+              <td colSpan={2} />
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </>
   );
 }
 
-function OccupantsTab({ invoice }: { invoice: Invoice }) {
+function ServicesTab({ invoice }: { invoice: Invoice }) {
   const water = invoice.lines.find((line) => line.type === "WATER");
   const metadata = (water?.metadata ?? {}) as Record<string, unknown>;
   const occupants = Array.isArray(metadata.occupants)
@@ -210,105 +289,157 @@ function OccupantsTab({ invoice }: { invoice: Invoice }) {
   if (!occupants.length)
     return (
       <Empty
-        title="No occupant water charges"
-        description="This invoice snapshot contains no billable occupants."
+        title="No service charges"
+        description="No non-electric utility or service charges are included on this invoice."
       />
     );
   return (
     <>
-      <div className="evidence-summary">
-        <ContextCard
-          label="Water rate"
-          value={`${formatVnd(String(metadata.applicableRate ?? 0))} / person / month`}
-          detail="Snapshot rate"
-        />
-        <ContextCard
-          label="Calculated water"
-          value={formatVnd(water?.calculatedAmount ?? "0")}
-          detail="Before final rounding or override"
-        />
-        <ContextCard
-          label="Final billed water"
-          value={formatVnd(water?.finalAmount ?? "0")}
-          detail={water?.isOverridden ? "Manual override" : "Invoice snapshot"}
-        />
+      <div className="service-tab-heading">
+        <h3>Services</h3>
+        <p>Non-electric utility and service charges for this invoice.</p>
+        {water?.sourceBillingMonth && (
+          <p>
+            <strong>Utility billing month</strong> ·{" "}
+            {monthLabel(water.sourceBillingMonth)}
+          </p>
+        )}
+        {water?.sourceBillingMonth &&
+          water.sourceBillingMonth.getTime() !==
+            invoice.billingPeriod.getTime() && (
+            <small>
+              These services are based on the utility period shown, which may
+              differ from the invoice month.
+            </small>
+          )}
       </div>
-      <div className="utility-table-wrap">
-        <table className="utility-table">
-          <thead>
-            <tr>
-              <th>Occupant</th>
-              <th>Role</th>
-              <th>Service period</th>
-              <th>Billable time</th>
-              <th>Calculated amount</th>
-              <th>Final amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {occupants.map((occupant, index) => (
-              <tr key={`${occupant.personName}-${index}`}>
+      <section className="service-charge-section">
+        <header>
+          <div>
+            <h3>Water</h3>
+            <span>Per person</span>
+          </div>
+          <small>
+            {water?.sourceBillingMonth
+              ? monthLabel(water.sourceBillingMonth)
+              : "Utility period"}
+          </small>
+        </header>
+        <div className="evidence-summary service-summary">
+          <ContextCard
+            label="Rate"
+            value={`${formatVnd(String(metadata.applicableRate ?? 0))} / person / month`}
+            detail="Fixed rate"
+            icon={<Coins />}
+          />
+          <ContextCard
+            label="Calculated amount"
+            value={formatVnd(water?.calculatedAmount ?? "0")}
+            detail={`Based on ${metadata.totalOccupantDays ?? 0} occupant-days`}
+            icon={<FileText />}
+          />
+          <ContextCard
+            label="Final billed amount"
+            value={formatVnd(water?.finalAmount ?? "0")}
+            detail={
+              water?.isOverridden
+                ? "Manual override"
+                : "Same snapshot calculation"
+            }
+            icon={<Receipt />}
+          />
+        </div>
+        <h4>Occupant allocation</h4>
+        <p className="utility-subtle">
+          Water charges are allocated by occupant based on length of stay during
+          the utility period.
+        </p>
+        <div className="utility-table-wrap">
+          <table className="utility-table">
+            <thead>
+              <tr>
+                <th>Occupant</th>
+                <th>Role</th>
+                <th>Service period</th>
+                <th>Billable days</th>
+                <th>Share</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {occupants.map((occupant, index) => (
+                <tr key={`${occupant.personName}-${index}`}>
+                  <td>
+                    <strong>{String(occupant.personName)}</strong>
+                  </td>
+                  <td>{title(String(occupant.role ?? "occupant"))}</td>
+                  <td>
+                    {formatDate(String(occupant.serviceStart))} →{" "}
+                    {formatDate(String(occupant.serviceEnd))}
+                  </td>
+                  <td>{String(occupant.billableDays ?? 0)} days</td>
+                  <td>{String(occupant.share ?? 0)}%</td>
+                  <td>
+                    {water?.isOverridden
+                      ? "Included in line override"
+                      : formatVnd(String(occupant.finalContribution ?? 0))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={3}>Total</td>
+                <td>{String(metadata.totalOccupantDays ?? 0)} occupant-days</td>
+                <td>100%</td>
                 <td>
-                  <strong>{String(occupant.personName)}</strong>
-                </td>
-                <td>{title(String(occupant.role ?? "occupant"))}</td>
-                <td>
-                  {occupant.startDate
-                    ? formatDate(String(occupant.startDate))
-                    : formatDate(invoice.serviceStart)}{" "}
-                  →{" "}
-                  {occupant.endDate
-                    ? formatDate(String(occupant.endDate))
-                    : formatDate(invoice.serviceEnd)}
-                </td>
-                <td>
-                  {occupant.fullMonth
-                    ? "Full month"
-                    : `${occupant.billableDays} days`}
-                </td>
-                <td>{formatVnd(String(occupant.exactAmount ?? 0))}</td>
-                <td>
-                  {water?.isOverridden
-                    ? "Included in line override"
-                    : formatVnd(String(occupant.finalContribution ?? 0))}
+                  <strong>{formatVnd(water?.finalAmount ?? "0")}</strong>
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </tfoot>
+          </table>
+        </div>
+      </section>
     </>
   );
 }
 
 function ElectricityTab({ invoice }: { invoice: Invoice }) {
   const line = invoice.lines.find((item) => item.type === "ELECTRICITY");
+  if (!line)
+    return (
+      <Empty
+        title="No electricity charge"
+        description="This invoice contains no electricity obligation for the source period."
+      />
+    );
   const metadata = (line?.metadata ?? {}) as Record<string, unknown>;
   const meters = Array.isArray(metadata.meterSegments)
     ? (metadata.meterSegments as Array<Record<string, unknown>>)
     : [];
   return (
     <>
-      <div className="evidence-summary electricity-evidence">
-        <ContextCard
-          label="Physical usage"
-          value={`${metadata.physicalUsage ?? 0} kWh`}
-          detail={`Across ${meters.length} physical ${meters.length === 1 ? "meter" : "meters"}`}
-        />
+      <div className="service-tab-heading">
+        <h3>Electricity</h3>
+        <p>
+          <strong>Utility billing month</strong> ·{" "}
+          {line.sourceBillingMonth ? monthLabel(line.sourceBillingMonth) : "—"}
+        </p>
+        {line.sourceBillingMonth &&
+          line.sourceBillingMonth.getTime() !==
+            invoice.billingPeriod.getTime() && (
+            <small>
+              This charge comes from a utility period that differs from the
+              invoice month.
+            </small>
+          )}
+      </div>
+      <div className="evidence-summary electricity-primary-summary">
         <ContextCard
           label="Invoice usage"
           value={`${metadata.tenantKwh ?? 0} kWh`}
-          detail="Tenant attributable to this invoice"
-        />
-        <ContextCard
-          label="Vacant / property"
-          value={`${metadata.vacantUsage ?? 0} kWh`}
-          detail="Not billed"
-        />
-        <ContextCard
-          label="Other tenancy usage"
-          value={`${metadata.otherTenancyUsage ?? 0} kWh`}
-          detail="Billed separately"
+          detail="Tenant-attributed to this invoice"
+          icon={<Zap />}
         />
         <ContextCard
           label={metadata.rateOverridden ? "Override rate" : "Applicable rate"}
@@ -316,20 +447,61 @@ function ElectricityTab({ invoice }: { invoice: Invoice }) {
           detail={
             metadata.rateOverridden
               ? String(metadata.overrideReason ?? "Room/month override")
-              : "Effective rate"
+              : `${line.sourceBillingMonth ? monthLabel(line.sourceBillingMonth) : "Utility period"} rate`
           }
+          icon={<Coins />}
         />
         <ContextCard
           label="Invoice amount"
           value={formatVnd(line?.finalAmount ?? "0")}
           detail={`${metadata.tenantKwh ?? 0} kWh × ${formatVnd(String(metadata.applicableRate ?? 0))} / kWh`}
+          icon={<Receipt />}
         />
       </div>
+      <section className="invoice-calculation-block">
+        <h3>Calculation</h3>
+        <p>
+          {String(metadata.tenantKwh ?? 0)} kWh ×{" "}
+          {formatVnd(String(metadata.applicableRate ?? 0))}/kWh
+        </p>
+        <div>
+          <span>Calculated amount</span>
+          <strong>{formatVnd(line.calculatedAmount)}</strong>
+        </div>
+        <div>
+          <span>Final billed amount</span>
+          <strong>{formatVnd(line.finalAmount)}</strong>
+        </div>
+        {line.isOverridden && (
+          <div>
+            <span>Override reason</span>
+            <strong>{line.overrideReason ?? "—"}</strong>
+          </div>
+        )}
+      </section>
+      <section className="attribution-inline">
+        <h3>Usage attribution</h3>
+        <div>
+          <span>This invoice</span>
+          <strong>{String(metadata.tenantKwh ?? "Unknown")} kWh</strong>
+        </div>
+        <div>
+          <span>Other tenancy</span>
+          <strong>{String(metadata.otherTenancyUsage ?? "Unknown")} kWh</strong>
+        </div>
+        <div>
+          <span>Vacant / property</span>
+          <strong>{String(metadata.vacantUsage ?? "Unknown")} kWh</strong>
+        </div>
+      </section>
       <p className="billing-explainer">
         Physical meter usage is allocated across this invoice tenant, other
-        tenancies, and vacant/property time. Only this invoice&apos;s attributable
-        usage is billed here.
+        tenancies, and vacant/property time. Only this invoice&apos;s
+        attributable usage is billed here.
       </p>
+      <Button asChild size="sm" variant="ghost">
+        <Link href="/utilities/meters">View utility breakdown →</Link>
+      </Button>
       <h3>Physical meter evidence</h3>
       <div className="utility-table-wrap">
         <table className="utility-table">
@@ -359,12 +531,12 @@ function ElectricityTab({ invoice }: { invoice: Invoice }) {
                   </td>
                   <td>
                     {opening
-                      ? `${opening.value} kWh · ${formatDate(String(opening.date))}`
+                      ? `${opening.value} kWh · ${formatDate(String(opening.date))} · ${readingLabel(opening)}`
                       : "—"}
                   </td>
                   <td>
                     {closing
-                      ? `${closing.value} kWh · ${formatDate(String(closing.date))}`
+                      ? `${closing.value} kWh · ${formatDate(String(closing.date))} · ${readingLabel(closing)}`
                       : "—"}
                   </td>
                   <td>{String(meter.usage ?? 0)} kWh</td>
@@ -441,16 +613,22 @@ function PaymentsTab({ invoice }: { invoice: Invoice }) {
                   <td>{formatDate(payment.paymentDate)}</td>
                   <td>
                     {payment.isDepositApplication
-                      ? "Deposit application"
+                      ? "Deposit applied"
                       : title(payment.method)}
                   </td>
                   <td>
                     <strong>{formatVnd(payment.amount)}</strong>
                   </td>
-                  <td>{payment.reference ?? "—"}</td>
+                  <td>
+                    {payment.isDepositApplication
+                      ? "Applied from tenant deposit"
+                      : (payment.reference ?? "—")}
+                  </td>
                   <td>
                     {payment.isDepositApplication ? (
-                      <span className="utility-subtle">Ledger managed</span>
+                      <Button asChild size="sm" variant="ghost">
+                        <Link href="/billing/deposits">View deposit</Link>
+                      </Button>
                     ) : (
                       <EditPaymentDialog payment={payment} />
                     )}
@@ -474,9 +652,24 @@ function HistoryTab({ invoice }: { invoice: Invoice }) {
   const events = [
     {
       date: invoice.createdAt,
-      title: "Draft created",
-      detail: "Invoice snapshot generated",
+      title:
+        invoice.type === "FINAL_SETTLEMENT"
+          ? "Final settlement generated"
+          : "Draft created",
+      detail:
+        invoice.type === "FINAL_SETTLEMENT"
+          ? "Move-out obligations captured"
+          : "Invoice snapshot generated",
     },
+    ...(invoice.type === "FINAL_SETTLEMENT"
+      ? [
+          {
+            date: invoice.createdAt,
+            title: "Move-out boundary used",
+            detail: formatDate(invoice.invoiceDate),
+          },
+        ]
+      : []),
     ...invoice.lines
       .filter((line) => line.isOverridden)
       .map((line) => ({
@@ -484,6 +677,11 @@ function HistoryTab({ invoice }: { invoice: Invoice }) {
         title: `${title(line.type)} overridden`,
         detail: line.overrideReason ?? "Final amount changed",
       })),
+    ...invoice.adjustments.map((adjustment) => ({
+      date: adjustment.createdAt,
+      title: "Adjustment added",
+      detail: `${adjustment.description} · ${adjustment.type === "CREDIT" ? "−" : "+"}${formatVnd(adjustment.amount)}`,
+    })),
     ...(invoice.finalizedAt
       ? [
           {
@@ -537,10 +735,12 @@ function InvoicePreviewDialog({ invoice }: { invoice: Invoice }) {
           <header>
             <div>
               <strong>{presentation.propertyName}</strong>
-              <span>{presentation.status === "DRAFT" ? "DRAFT" : "FINALIZED"}</span>
+              <span>
+                {presentation.status === "DRAFT" ? "DRAFT" : "FINALIZED"}
+              </span>
             </div>
             <div className="invoice-paper-heading">
-              <h2>INVOICE</h2>
+              <h2>{presentation.documentTitle}</h2>
               <p>#{presentation.invoiceNumber}</p>
             </div>
           </header>
@@ -554,24 +754,31 @@ function InvoicePreviewDialog({ invoice }: { invoice: Invoice }) {
               <dd>{presentation.room}</dd>
             </div>
             <div>
-              <dt>Billing period</dt>
-              <dd>{presentation.billingPeriod}</dd>
+              <dt>Invoice month</dt>
+              <dd>{presentation.invoiceMonth}</dd>
             </div>
-            <div>
-              <dt>Service period</dt>
-              <dd>{presentation.servicePeriod}</dd>
-            </div>
+            {presentation.moveOut && (
+              <div>
+                <dt>Move-out</dt>
+                <dd>{presentation.moveOut}</dd>
+              </div>
+            )}
           </dl>
           <div className="invoice-paper-table-heading">
             <span>Item</span>
+            <span>Period</span>
             <span>Calculation</span>
             <span>Amount</span>
           </div>
           {presentation.lines.map((line) => (
             <div className="invoice-paper-line" key={line.id}>
               <strong>{line.label}</strong>
+              <span>{line.period}</span>
               <span>{line.calculation}</span>
-              <strong>{formatVnd(line.amount)}</strong>
+              <strong>
+                {line.sign}
+                {formatVnd(line.amount)}
+              </strong>
             </div>
           ))}
           <footer>
@@ -624,7 +831,7 @@ function OverrideDialog({
             label="Final amount"
             name="finalAmount"
             type="number"
-            step="500"
+            step="10"
             defaultValue={line.finalAmount}
             required
           />
@@ -645,6 +852,110 @@ function OverrideDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function AdjustmentDialog({
+  invoiceId,
+  adjustment,
+}: {
+  invoiceId: string;
+  adjustment?: Invoice["adjustments"][number];
+}) {
+  const [state, action] = React.useActionState(
+    adjustment ? updateInvoiceAdjustmentAction : addInvoiceAdjustmentAction,
+    emptyActionState,
+  );
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="sm" variant={adjustment ? "ghost" : "outline"}>
+          {adjustment ? <Pencil /> : <Plus />}
+          {adjustment ? "Edit" : "Add adjustment"}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {adjustment ? "Edit adjustment" : "Add adjustment"}
+          </DialogTitle>
+          <DialogDescription>
+            Add an independent charge or credit without changing a service line.
+          </DialogDescription>
+        </DialogHeader>
+        <form action={action} className="dialog-form">
+          <input type="hidden" name="invoiceId" value={invoiceId} />
+          {adjustment && (
+            <input type="hidden" name="adjustmentId" value={adjustment.id} />
+          )}
+          <div className="field">
+            <Label>Type</Label>
+            <select name="type" defaultValue={adjustment?.type ?? "CHARGE"}>
+              <option value="CHARGE">Additional charge</option>
+              <option value="CREDIT">Credit / discount</option>
+            </select>
+          </div>
+          <Field
+            label="Description"
+            name="description"
+            defaultValue={adjustment?.description ?? ""}
+            required
+          />
+          <Field
+            label="Amount"
+            name="amount"
+            type="number"
+            min="1"
+            step="1"
+            defaultValue={adjustment?.amount ?? ""}
+            required
+          />
+          <Field
+            label="Reason"
+            name="reason"
+            defaultValue={adjustment?.reason ?? ""}
+            required
+          />
+          {state.message && (
+            <p className={state.ok ? "form-success" : "form-error"}>
+              {state.message}
+            </p>
+          )}
+          <DialogFooter>
+            <Button type="submit">
+              {adjustment ? "Save adjustment" : "Add adjustment"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeleteAdjustmentButton({
+  invoiceId,
+  adjustmentId,
+}: {
+  invoiceId: string;
+  adjustmentId: string;
+}) {
+  const [state, action] = React.useActionState(
+    deleteInvoiceAdjustmentAction,
+    emptyActionState,
+  );
+  return (
+    <form action={action} className="billing-inline-form">
+      <input type="hidden" name="invoiceId" value={invoiceId} />
+      <input type="hidden" name="adjustmentId" value={adjustmentId} />
+      <Button size="sm" variant="ghost" aria-label="Remove adjustment">
+        <Trash2 />
+      </Button>
+      {state.message && (
+        <small className={state.ok ? "form-success" : "form-error"}>
+          {state.message}
+        </small>
+      )}
+    </form>
   );
 }
 
@@ -680,7 +991,7 @@ function PaymentDialog({ invoice }: { invoice: Invoice }) {
               label="Amount"
               name="amount"
               type="number"
-              step="500"
+              step="1"
               max={invoice.balance}
               defaultValue={invoice.balance}
               required
@@ -738,7 +1049,7 @@ function EditPaymentDialog({
               label="Amount"
               name="amount"
               type="number"
-              step="500"
+              step="1"
               defaultValue={payment.amount}
               required
             />
@@ -794,14 +1105,19 @@ function ContextCard({
   label,
   value,
   detail,
+  icon,
 }: {
   label: string;
   value: string;
-  detail: string;
+  detail: React.ReactNode;
+  icon?: React.ReactNode;
 }) {
   return (
     <article className="invoice-context-card">
-      <span>{label}</span>
+      <span className="invoice-context-label">
+        {label}
+        {icon}
+      </span>
       <strong>{value}</strong>
       <small>{detail}</small>
     </article>
@@ -878,4 +1194,11 @@ function chargeDetail(type: string, metadata: unknown) {
       )
       .join(" · ") || "No billable occupants"
   );
+}
+
+function readingLabel(reading: Record<string, unknown>) {
+  const label = title(String(reading.type ?? "reading"));
+  return reading.type === "MONTHLY" && reading.billingMonth
+    ? `${label} · ${monthLabel(new Date(String(reading.billingMonth)))}`
+    : label;
 }

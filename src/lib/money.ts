@@ -1,9 +1,16 @@
 import { Prisma } from "@/generated/prisma/client";
 
-export function roundVnd(value: Prisma.Decimal | string | number | bigint) {
+export function roundMoneyAmount(
+  value: Prisma.Decimal | string | number | bigint,
+) {
   const amount = new Prisma.Decimal(value.toString());
-  return amount.plus(250).div(500).floor().mul(500);
+  return amount
+    .div(10)
+    .toDecimalPlaces(0, Prisma.Decimal.ROUND_HALF_UP)
+    .mul(10);
 }
+
+export const roundVnd = roundMoneyAmount;
 
 export function positiveWholeVnd(value: string | number | bigint) {
   const amount = new Prisma.Decimal(value.toString());

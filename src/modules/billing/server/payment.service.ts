@@ -17,14 +17,21 @@ export async function recordPayment(input: PaymentInput) {
   return tenancyTransaction(async (tx) => {
     const invoice = await tx.invoice.findUnique({
       where: { id: input.invoiceId },
-      include: { lines: true, payments: true },
+      include: { lines: true, adjustments: true, payments: true },
     });
     if (!invoice || invoice.status !== "FINALIZED")
       throw new Error("Only finalized invoices can receive payments.");
-    const total = invoice.lines.reduce(
-      (sum, line) => sum.plus(line.finalAmount),
-      new Prisma.Decimal(0),
-    );
+    const total = invoice.lines
+      .reduce((sum, line) => sum.plus(line.finalAmount), new Prisma.Decimal(0))
+      .plus(
+        invoice.adjustments.reduce(
+          (sum, adjustment) =>
+            adjustment.type === "CHARGE"
+              ? sum.plus(adjustment.amount)
+              : sum.minus(adjustment.amount),
+          new Prisma.Decimal(0),
+        ),
+      );
     const paid = invoice.payments.reduce(
       (sum, payment) => sum.plus(payment.amount),
       new Prisma.Decimal(0),
@@ -52,14 +59,25 @@ export async function updatePayment(
   return tenancyTransaction(async (tx) => {
     const existing = await tx.payment.findUnique({
       where: { id: paymentId },
-      include: { invoice: { include: { lines: true, payments: true } } },
+      include: {
+        invoice: {
+          include: { lines: true, adjustments: true, payments: true },
+        },
+      },
     });
     if (!existing || existing.invoice.status !== "FINALIZED")
       throw new Error("Payment was not found.");
-    const total = existing.invoice.lines.reduce(
-      (sum, line) => sum.plus(line.finalAmount),
-      new Prisma.Decimal(0),
-    );
+    const total = existing.invoice.lines
+      .reduce((sum, line) => sum.plus(line.finalAmount), new Prisma.Decimal(0))
+      .plus(
+        existing.invoice.adjustments.reduce(
+          (sum, adjustment) =>
+            adjustment.type === "CHARGE"
+              ? sum.plus(adjustment.amount)
+              : sum.minus(adjustment.amount),
+          new Prisma.Decimal(0),
+        ),
+      );
     const otherPaid = existing.invoice.payments
       .filter((payment) => payment.id !== paymentId)
       .reduce(

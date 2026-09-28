@@ -118,56 +118,62 @@ function MonthlyBreakdown({ entry }: { entry: Entry }) {
     (sum, segment) => sum + Number(segment.usage),
     0,
   );
-  if (entry.attributionStatus !== "READY" || total <= 0) {
-    return (
-      <div className="meter-breakdown-empty">
-        <strong>Monthly attribution is incomplete</strong>
-        <p>
-          {entry.warnings[0] ||
-            "Add the missing monthly or tenancy boundary reading to display the usage chart."}
-        </p>
-        {entry.missingBoundary.map((boundary) => (
-          <BoundaryReadingDialog
-            key={`${boundary.tenancyId}-${boundary.boundaryType}`}
-            boundary={boundary}
-            room={entry.room}
-          />
-        ))}
-      </div>
-    );
-  }
   return (
     <section className="meter-breakdown">
       <div className="meter-breakdown-total">
-        <span>Physical usage</span>
+        <span>Known physical usage</span>
         <strong>
-          {entry.meterSegments
-            .reduce((sum, meter) => sum + Number(meter.physicalUsage || 0), 0)
-            .toLocaleString()}{" "}
-          kWh
+          {entry.knownPhysicalUsage === null
+            ? "Unknown"
+            : `${Number(entry.knownPhysicalUsage).toLocaleString()} kWh`}
         </strong>
       </div>
-      <div
-        className="usage-timeline"
-        aria-label="Monthly tenant and vacant electricity usage"
-      >
-        {allSegments.map((segment, index) => {
-          const amount = Number(segment.usage);
-          return (
-            <div
-              key={`${segment.label}-${index}`}
-              className={segment.kind === "VACANT" ? "is-vacant" : "is-tenant"}
-              style={{
-                width: `${Math.max((amount / total) * 100, amount ? 5 : 0)}%`,
-              }}
-              title={`${segment.label}: ${amount.toLocaleString()} kWh`}
-            >
-              <span>{segment.label}</span>
-              <strong>{amount.toLocaleString()}</strong>
-            </div>
-          );
-        })}
+      <div className="meter-cycle-state">
+        <div>
+          <span>Closing monthly reading</span>
+          <strong>
+            {entry.monthlyReading
+              ? `${Number(entry.monthlyReading.readingValue).toLocaleString()} kWh`
+              : "Missing"}
+          </strong>
+        </div>
+        <span
+          className={`utility-status ${entry.monthlyCycleStatus === "COMPLETE" ? "is-complete" : "is-incomplete"}`}
+        >
+          {entry.monthlyCycleStatus === "COMPLETE" ? "Complete" : "Incomplete"}
+        </span>
       </div>
+      {entry.monthlyCycleStatus === "INCOMPLETE" && (
+        <p className="utility-subtle">
+          Usage is shown through the latest known reading or boundary. Final
+          monthly usage may increase when the closing is recorded.
+        </p>
+      )}
+      {total > 0 && (
+        <div
+          className="usage-timeline"
+          aria-label="Known tenant and vacant electricity usage"
+        >
+          {allSegments
+            .filter((segment) => Number(segment.usage) > 0)
+            .map((segment, index) => {
+              const amount = Number(segment.usage);
+              return (
+                <div
+                  key={`${segment.label}-${index}`}
+                  className={
+                    segment.kind === "VACANT" ? "is-vacant" : "is-tenant"
+                  }
+                  style={{ width: `${Math.max((amount / total) * 100, 5)}%` }}
+                  title={`${segment.label}: ${amount.toLocaleString()} kWh`}
+                >
+                  <span>{segment.label}</span>
+                  <strong>{amount.toLocaleString()}</strong>
+                </div>
+              );
+            })}
+        </div>
+      )}
       <div className="usage-legend">
         {allSegments.map((segment, index) => (
           <div key={`${segment.label}-legend-${index}`}>
@@ -177,13 +183,37 @@ function MonthlyBreakdown({ entry }: { entry: Entry }) {
             <div>
               <strong>{segment.label}</strong>
               <small>
-                {Number(segment.usage).toLocaleString()} kWh ·{" "}
-                {formatDate(segment.startDate)} → {formatDate(segment.endDate)}
+                {segment.usageKnown
+                  ? `${Number(segment.usage).toLocaleString()} kWh`
+                  : `${Number(segment.usage).toLocaleString()} kWh known so far`}
+                {" · "}
+                {formatDate(segment.startDate)} →{" "}
+                {segment.isOpen ? "ongoing" : formatDate(segment.endDate)}
+                {segment.isOpen
+                  ? " · Awaiting closing/next reading"
+                  : " · Complete through boundary"}
               </small>
             </div>
           </div>
         ))}
       </div>
+      {entry.warnings.length > 0 && (
+        <div className="meter-breakdown-empty">
+          <strong>
+            {entry.attributionStatus === "PARTIAL"
+              ? "Attribution is partial"
+              : "Monthly cycle is incomplete"}
+          </strong>
+          <p>{entry.warnings[0]}</p>
+          {entry.missingBoundary.map((boundary) => (
+            <BoundaryReadingDialog
+              key={`${boundary.tenancyId}-${boundary.boundaryType}`}
+              boundary={boundary}
+              room={entry.room}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

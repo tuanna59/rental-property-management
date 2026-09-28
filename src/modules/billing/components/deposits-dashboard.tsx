@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { CircleDollarSign, HandCoins, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -146,13 +147,19 @@ function DepositDetail({ deposit }: { deposit: Deposit }) {
             Deposit position, settlement options, and ledger history.
           </DialogDescription>
         </DialogHeader>
-        <div className="deposit-detail-grid">
-          <Info label="Expected" value={formatVnd(deposit.expected)} />
-          <Info label="Received" value={formatVnd(deposit.received)} />
-          <Info label="Held" value={formatVnd(deposit.held)} />
-          <Info label="Applied to invoices" value={formatVnd(deposit.applied)} />
-          <Info label="Deductions" value={formatVnd(deposit.deductions)} />
+        <div className="deposit-detail-grid deposit-settlement-summary">
+          <Info label="Deposit received" value={formatVnd(deposit.received)} />
+          <Info
+            label="Applied to invoices"
+            value={formatVnd(deposit.applied)}
+          />
+          <Info
+            label="Direct deductions"
+            value={formatVnd(deposit.deductions)}
+          />
           <Info label="Refunded" value={formatVnd(deposit.refunded)} />
+          <Info label="Remaining held" value={formatVnd(deposit.held)} />
+          <Info label="Status" value={title(deposit.status)} />
         </div>
         <div className="billing-actions">
           <DepositAction
@@ -181,7 +188,7 @@ function DepositDetail({ deposit }: { deposit: Deposit }) {
         <section className="deposit-history">
           <div className="section-heading-row">
             <div>
-              <h3>Deposit history</h3>
+              <h3>Settlement activity</h3>
               <p className="utility-subtle">
                 Every balance change is represented by a ledger entry.
               </p>
@@ -208,6 +215,16 @@ function DepositDetail({ deposit }: { deposit: Deposit }) {
                         {item.description}
                         {item.reference && (
                           <div className="utility-subtle">{item.reference}</div>
+                        )}
+                        {item.invoice && (
+                          <div>
+                            <Link
+                              className="billing-table-link"
+                              href={`/billing/invoices/${item.invoice.id}`}
+                            >
+                              View invoice
+                            </Link>
+                          </div>
                         )}
                       </td>
                       <td
@@ -289,7 +306,7 @@ function DepositAction({
               <Input
                 name="amount"
                 type="number"
-                step="500"
+                step="1"
                 max={
                   kind === "RECEIPT"
                     ? undefined
@@ -319,7 +336,6 @@ function DepositAction({
               <select name="category">
                 <option value="DAMAGE">Damage</option>
                 <option value="CLEANING">Cleaning</option>
-                <option value="OUTSTANDING_INVOICE">Outstanding invoice</option>
                 <option value="OTHER">Other</option>
               </select>
             </div>

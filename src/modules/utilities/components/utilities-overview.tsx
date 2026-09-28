@@ -144,7 +144,7 @@ export function UtilitiesOverview({
                       <td>
                         <UtilityStatusBadge
                           status={
-                            row.attributionStatus === "READY"
+                            row.attributionStatus === "COMPLETE"
                               ? "complete"
                               : "incomplete"
                           }
@@ -163,7 +163,8 @@ export function UtilitiesOverview({
                           ? formatVnd(row.preview.finalAmount)
                           : "—"}
                         <div className="utility-subtle">
-                          {row.preview.totalAttributableUsage ?? "0"} billable kWh
+                          {row.preview.totalAttributableUsage ?? "0"} billable
+                          kWh
                         </div>
                         <ElectricityBreakdownDialog
                           preview={row.preview}

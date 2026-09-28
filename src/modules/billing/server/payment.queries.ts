@@ -20,16 +20,24 @@ export async function getPayments(propertyId: string, month?: string | Date) {
       invoice: {
         include: {
           lines: { select: { finalAmount: true } },
+          adjustments: { select: { type: true, amount: true } },
           payments: { select: { amount: true } },
         },
       },
     },
   });
   return payments.map((payment) => {
-    const total = payment.invoice.lines.reduce(
-      (sum, line) => sum.plus(line.finalAmount),
-      new Prisma.Decimal(0),
-    );
+    const total = payment.invoice.lines
+      .reduce((sum, line) => sum.plus(line.finalAmount), new Prisma.Decimal(0))
+      .plus(
+        payment.invoice.adjustments.reduce(
+          (sum, adjustment) =>
+            adjustment.type === "CHARGE"
+              ? sum.plus(adjustment.amount)
+              : sum.minus(adjustment.amount),
+          new Prisma.Decimal(0),
+        ),
+      );
     const paid = payment.invoice.payments.reduce(
       (sum, item) => sum.plus(item.amount),
       new Prisma.Decimal(0),
@@ -46,6 +54,7 @@ export async function getPayments(propertyId: string, month?: string | Date) {
       notes: payment.notes,
       isDepositApplication: payment.isDepositApplication,
       billingPeriod: payment.invoice.billingPeriod,
+      invoiceType: payment.invoice.type,
       room: payment.invoice.roomNameSnapshot,
       renterName: payment.invoice.renterNameSnapshot,
       invoiceTotal: total.toString(),
@@ -98,5 +107,16 @@ export async function getFinancialSummary(
       .length,
     unpaid: finalized.filter((invoice) => invoice.paymentStatus === "UNPAID")
       .length,
+    outstandingInvoices: finalized
+      .filter((invoice) => invoice.paymentStatus !== "PAID")
+      .map((invoice) => ({
+        id: invoice.id,
+        renterName: invoice.renterName,
+        room: invoice.room,
+        billingPeriod: invoice.billingPeriod,
+        invoiceType: invoice.type,
+        balance: invoice.balance,
+        paymentStatus: invoice.paymentStatus,
+      })),
   };
 }
