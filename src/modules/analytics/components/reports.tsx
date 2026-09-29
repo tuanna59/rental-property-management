@@ -172,6 +172,7 @@ function ExpenseReport({ view }: { view: ReportsProjection }) {
   const rows = data.rows.filter((row) => (category === "ALL" || row.category === category) && (location === "ALL" || row.location === location));
   const categories = Array.from(new Set(data.rows.map((row) => row.category)));
   const locations = Array.from(new Set(data.rows.map((row) => row.location))).sort();
+  const locationLabel = (value: string) => value === "Property" ? t("common.property") : value;
   const labelCategory = (value: string) => {
     switch (value) {
       case "REPAIR": return t("expenses.category.REPAIR");
@@ -200,12 +201,12 @@ function ExpenseReport({ view }: { view: ReportsProjection }) {
         <article className="analytics-card report-chart-card"><SectionHeading kicker={`${view.year}`} title={t("expenses.byMonth")} /><FinancialTrendChart points={data.monthly.map((row) => ({ month: row.month, label: row.label, billedVnd: "0", collectedVnd: "0", expensesVnd: row.amountVnd }))} locale={locale} labels={chartLabels} showYearOnAxis={false} /></article>
         <article className="analytics-card report-chart-card"><SectionHeading kicker={t("expenses.categories")} title={t("expenses.mix")} /><ExpenseCategoryBars points={data.categoryBreakdown} locale={locale} labelForCategory={labelCategory} emptyText={t("charts.noExpenses")} /></article>
       </div>
-      <div className="report-filter-row report-filter-multiple"><select value={category} onChange={(event) => setCategory(event.target.value)} aria-label={t("expenses.categoryAria")}><option value="ALL">{t("expenses.allCategories")}</option>{categories.map((value) => <option value={value} key={value}>{labelCategory(value)}</option>)}</select><select value={location} onChange={(event) => setLocation(event.target.value)} aria-label={t("expenses.locationAria")}><option value="ALL">{t("expenses.allLocations")}</option>{locations.map((value) => <option value={value} key={value}>{value}</option>)}</select></div>
+      <div className="report-filter-row report-filter-multiple"><select value={category} onChange={(event) => setCategory(event.target.value)} aria-label={t("expenses.categoryAria")}><option value="ALL">{t("expenses.allCategories")}</option>{categories.map((value) => <option value={value} key={value}>{labelCategory(value)}</option>)}</select><select value={location} onChange={(event) => setLocation(event.target.value)} aria-label={t("expenses.locationAria")}><option value="ALL">{t("expenses.allLocations")}</option>{locations.map((value) => <option value={value} key={value}>{locationLabel(value)}</option>)}</select></div>
       {rows.length ? <>
         <div className="report-desktop-only"><ReportTable headers={[t("common.date"), t("common.description"), t("common.category"), t("common.location"), t("expenses.assetMaintenance"), t("common.amount")]}>
-          {rows.map((row) => <tr key={row.id}><td>{formatDateOnlyLocale(row.expenseDate, locale)}</td><td>{row.description}</td><td>{labelCategory(row.category)}</td><td>{row.location}</td><td>{row.assetName ?? row.maintenanceTitle ?? "—"}</td><td className="report-strong-cell">{formatVndLocale(row.amountVnd, locale)}</td></tr>)}
+          {rows.map((row) => <tr key={row.id}><td>{formatDateOnlyLocale(row.expenseDate, locale)}</td><td>{row.description}</td><td>{labelCategory(row.category)}</td><td>{locationLabel(row.location)}</td><td>{row.assetName ?? row.maintenanceTitle ?? "—"}</td><td className="report-strong-cell">{formatVndLocale(row.amountVnd, locale)}</td></tr>)}
         </ReportTable></div>
-        <div className="report-mobile-list">{rows.map((row) => <article className="report-mobile-card" key={row.id}><div><strong>{row.description}</strong><b>{formatVndLocale(row.amountVnd, locale)}</b></div><span>{formatDateOnlyLocale(row.expenseDate, locale)} · {labelCategory(row.category)}</span><small>{row.location}{row.assetName || row.maintenanceTitle ? ` · ${row.assetName ?? row.maintenanceTitle}` : ""}</small></article>)}</div>
+        <div className="report-mobile-list">{rows.map((row) => <article className="report-mobile-card" key={row.id}><div><strong>{row.description}</strong><b>{formatVndLocale(row.amountVnd, locale)}</b></div><span>{formatDateOnlyLocale(row.expenseDate, locale)} · {labelCategory(row.category)}</span><small>{locationLabel(row.location)}{row.assetName || row.maintenanceTitle ? ` · ${row.assetName ?? row.maintenanceTitle}` : ""}</small></article>)}</div>
       </> : <ReportEmpty icon={WalletCards} title={t("expenses.noDataTitle")} text={t("expenses.noDataText")} />}
     </section>
   );

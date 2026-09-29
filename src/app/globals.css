@@ -96,6 +96,9 @@
   --app-sidebar-row-height: 42px;
   --app-mobile-bar-height: 52px;
   --app-overlay-bg: rgb(18 35 29 / 50%);
+  --app-media-stage-bg: #15211c;
+  --app-media-overlay-bg: rgb(8 22 17 / 72%);
+  --app-media-overlay-text: #ffffff;
 
   /* Semantic aliases for new cross-application infrastructure. */
   --app-bg: var(--app-page-bg);
@@ -186,6 +189,9 @@ html[data-theme="dark"] {
   --app-control-disabled-bg: #232824;
   --app-control-disabled-text: #68716c;
   --app-overlay-bg: rgb(5 8 7 / 68%);
+  --app-media-stage-bg: #0e1210;
+  --app-media-overlay-bg: rgb(0 0 0 / 72%);
+  --app-media-overlay-text: #f7f4ef;
   --app-shadow-sm: 0 1px 2px rgb(0 0 0 / 22%);
   --app-shadow-card: 0 1px 2px rgb(0 0 0 / 18%);
   --app-shadow-elevated: 0 18px 44px rgb(0 0 0 / 34%);

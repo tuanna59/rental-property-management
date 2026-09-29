@@ -329,12 +329,12 @@ function MeterEntryRow({
               variant="ghost"
               onClick={() => openOverlay("MANAGE")}
             >
-              View
+              {t("view")}
             </Button>
           ) : (
             <>
               <Button form={formId} type="submit" size="sm" disabled={pending}>
-                Save
+                {t("save")}
               </Button>
               <OverflowMenu open={menuOpen} onOpenChange={setMenuOpen}>
                 <button type="button" onClick={() => openOverlay("MANAGE")}>
@@ -553,10 +553,10 @@ function BulkClosingDialog({
           )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
-              Set closings
+              {t("setClosings")}
             </Button>
           </DialogFooter>
         </PreservingActionForm>
@@ -729,7 +729,7 @@ function ReadingOptions({
             disabled={draftSource === "ESTIMATED" && !draftReason.trim()}
             onClick={() => onChange(draftSource, draftReason)}
           >
-            Apply
+            {t("apply")}
           </Button>
         </DialogFooter>
       </DialogContent>

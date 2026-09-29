@@ -235,7 +235,15 @@
     "archiveOrDelete": "Lưu trữ hoặc xóa",
     "archiveOrDeleteEntity": "Lưu trữ hoặc xóa {entity}",
     "floorHasSpaces": "Tầng này vẫn còn khu vực đang hoạt động nên chưa thể lưu trữ hoặc xóa.",
-    "emptyFloorArchive": "Lưu trữ sẽ giữ lịch sử. Xóa sẽ xóa tầng trống này."
+    "emptyFloorArchive": "Lưu trữ sẽ giữ lịch sử. Xóa sẽ xóa tầng trống này.",
+    "propertySettings": "Cài đặt nhà trọ",
+    "editProperty": "Chỉnh sửa nhà trọ",
+    "propertyDescription": "Cập nhật thông tin cơ bản hiển thị trên bảng điều khiển.",
+    "address": "Địa chỉ",
+    "city": "Thành phố",
+    "country": "Quốc gia",
+    "description": "Mô tả",
+    "saveProperty": "Lưu nhà trọ"
   },
   "server": {
     "noProperty": "Chưa có nhà trọ",

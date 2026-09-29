@@ -63,7 +63,7 @@
 .meter-filter-group button.is-active {
   background: var(--app-surface);
   color: var(--app-text-primary);
-  box-shadow: 0 1px 3px rgb(15 23 42 / 12%);
+  box-shadow: var(--app-shadow-sm);
 }
 .meter-filter-group span {
   margin-left: 0.2rem;
@@ -273,7 +273,7 @@
   border: 1px solid var(--app-border);
   border-radius: 0.7rem;
   background: var(--app-surface);
-  box-shadow: 0 14px 36px rgb(15 23 42 / 18%);
+  box-shadow: var(--app-shadow-elevated);
 }
 .meter-overflow-portal {
   position: fixed;
@@ -885,8 +885,13 @@
 .meter-detail-tabs {
   display: flex;
   gap: 4px;
+  overflow-x: auto;
   border-bottom: 1px solid var(--app-border);
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
 }
+.meter-detail-tabs::-webkit-scrollbar { display: none; }
 .meter-detail-tabs button {
   display: inline-flex;
   align-items: center;
@@ -896,6 +901,8 @@
   font-size: calc(12px + var(--app-font-size-bump));
   font-weight: 600;
   padding: 9px 12px;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 .meter-detail-tabs button svg {
   width: 14px;
@@ -1538,7 +1545,7 @@
     border: 1px solid var(--app-border);
     border-radius: 0.75rem;
     background: var(--app-surface);
-    box-shadow: 0 1px 2px rgb(25 45 36 / 4%);
+    box-shadow: var(--app-shadow-card);
   }
   .meter-fast-grid tr:hover td,
   .meter-fast-grid .is-locked-meter-row td {

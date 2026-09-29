@@ -1,19 +1,29 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 import { cn } from "@/lib/utils";
-import { warrantyLabel } from "../domain/rules";
 import type { AssetStatus, DeviceStatus, WarrantyState } from "../domain/types";
 
 export function AssetStatusBadge({ status }: { status: AssetStatus }) {
-  return <span className={cn("asset-badge", `is-${status.toLowerCase()}`)}>{status === "ACTIVE" ? "Active" : status === "RETIRED" ? "Retired" : "Disposed"}</span>;
+  const t = useTranslations("assets");
+  const label = status === "ACTIVE" ? t("active") : status === "RETIRED" ? t("retired") : t("disposed");
+  return <span className={cn("asset-badge", `is-${status.toLowerCase()}`)}>{label}</span>;
 }
 
 export function WarrantyBadge({ state }: { state: WarrantyState }) {
-  return <span className={cn("asset-badge", `is-warranty-${state.toLowerCase()}`)}>{warrantyLabel(state)}</span>;
+  const t = useTranslations("assets");
+  const label = state === "NO_WARRANTY" ? t("noWarranty") : state === "ACTIVE" ? t("warrantyActive") : state === "EXPIRING_SOON" ? t("warrantyExpiring") : t("warrantyExpired");
+  return <span className={cn("asset-badge", `is-warranty-${state.toLowerCase()}`)}>{label}</span>;
 }
 
 export function DeviceStatusBadge({ status }: { status: DeviceStatus }) {
-  return <span className={cn("asset-badge", `is-device-${status.toLowerCase()}`)}>{status === "ONLINE" ? "Online" : status === "OFFLINE" ? "Offline" : "Unknown"}</span>;
+  const t = useTranslations("assets");
+  const label = status === "ONLINE" ? t("online") : status === "OFFLINE" ? t("offline") : t("unknown");
+  return <span className={cn("asset-badge", `is-device-${status.toLowerCase()}`)}>{label}</span>;
 }
 
 export function UnderMaintenanceBadge() {
-  return <span className="asset-badge is-maintenance">Under maintenance</span>;
+  const t = useTranslations("assets");
+  return <span className="asset-badge is-maintenance">{t("underMaintenance")}</span>;
 }

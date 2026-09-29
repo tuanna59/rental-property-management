@@ -294,5 +294,21 @@
   "missingMoveOutReading": "Missing move-out reading for {tenant} on {date}",
   "monthlyClosingNotReady": "Monthly closing is not ready for billing.",
   "electricityAttributionIncomplete": "Electricity attribution is incomplete.",
-  "noElectricityRateConfigured": "No electricity rate is configured."
+  "noElectricityRateConfigured": "No electricity rate is configured.",
+  "editReadingDescription": "{meter} · Corrections remain on the same physical meter.",
+  "feedback": {
+    "saveFailed": "Could not save utilities.",
+    "meterInstalled": "Meter installed.",
+    "readingRecorded": "Reading recorded.",
+    "monthlyClosingSet": "Monthly closing set.",
+    "invalidClosingSelection": "Could not read the selected closing readings.",
+    "currentReadingsClosings": "Current readings set as monthly closings.",
+    "readingUpdated": "Reading updated.",
+    "evidencePhotoAdded": "Evidence photo added.",
+    "boundaryReadingRecorded": "Boundary reading recorded.",
+    "manualReadingClosing": "Manual reading recorded and assigned as the monthly closing.",
+    "meterReplaced": "Meter replaced.",
+    "rateSaved": "Rate saved.",
+    "overrideSaved": "Room rate override saved."
+  }
 }

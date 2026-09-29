@@ -55,8 +55,9 @@ export function EditMeterReadingDialog({
         <DialogHeader>
           <DialogTitle>{t("editReading")}</DialogTitle>
           <DialogDescription>
-            {meterNumber || t("unnumberedMeter")} · corrections remain on the same
-            physical meter.
+            {t("editReadingDescription", {
+              meter: meterNumber || t("unnumberedMeter"),
+            })}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="dialog-form">

@@ -235,7 +235,15 @@
     "archiveOrDelete": "Archive or delete",
     "archiveOrDeleteEntity": "Archive or delete {entity}",
     "floorHasSpaces": "This floor still has active spaces, so it cannot be archived or deleted yet.",
-    "emptyFloorArchive": "Archive keeps history. Delete removes this empty floor."
+    "emptyFloorArchive": "Archive keeps history. Delete removes this empty floor.",
+    "propertySettings": "Property settings",
+    "editProperty": "Edit property",
+    "propertyDescription": "Update the basic information shown on the dashboard.",
+    "address": "Address",
+    "city": "City",
+    "country": "Country",
+    "description": "Description",
+    "saveProperty": "Save property"
   },
   "server": {
     "noProperty": "No property found",

@@ -27,7 +27,8 @@
     "usage": "Usage",
     "location": "Location",
     "description": "Description",
-    "category": "Category"
+    "category": "Category",
+    "property": "Property"
   },
   "financial": {
     "billedRevenue": "Billed revenue",

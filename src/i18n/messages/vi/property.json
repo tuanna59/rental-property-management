@@ -5,5 +5,20 @@
   "rentalRoom": "Phòng cho thuê",
   "ownerHome": "Nhà chủ",
   "garage": "Nhà xe",
-  "rooftop": "Sân thượng"
+  "rooftop": "Sân thượng",
+  "feedback": {
+    "checkFields": "Vui lòng kiểm tra các trường được đánh dấu.",
+    "saveFailed": "Không thể lưu thay đổi. Vui lòng thử lại.",
+    "propertyUpdated": "Đã cập nhật nhà trọ.",
+    "floorAdded": "Đã thêm tầng.",
+    "floorUpdated": "Đã cập nhật tầng.",
+    "floorOrderUpdated": "Đã cập nhật thứ tự tầng.",
+    "floorArchived": "Đã lưu trữ tầng.",
+    "floorDeleted": "Đã xóa tầng.",
+    "spaceAdded": "Đã thêm khu vực.",
+    "spaceUpdated": "Đã cập nhật khu vực.",
+    "spaceOrderUpdated": "Đã cập nhật thứ tự khu vực.",
+    "spaceArchived": "Đã lưu trữ khu vực.",
+    "spaceDeleted": "Đã xóa khu vực."
+  }
 }

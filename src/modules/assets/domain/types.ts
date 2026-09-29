@@ -165,7 +165,7 @@ export type DeviceListItemView = {
   assetId: string | null;
   assetName: string | null;
   meterId: string | null;
-  meterLabel: string | null;
+  meterIdentifier: string | null;
   externalId: string | null;
   protocol: string | null;
   lastSeenAt: string | null;

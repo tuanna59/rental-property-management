@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getActionFeedback } from "@/i18n/action-feedback";
 import type { ActionState } from "@/lib/action-state";
 import {
   addInvoiceAdjustment,
@@ -23,21 +24,22 @@ const text = (data: FormData, key: string) =>
   String(data.get(key) ?? "").trim();
 async function action(
   work: () => Promise<unknown>,
-  success: string,
+  successKey: string,
 ): Promise<ActionState> {
+  const feedback = await getActionFeedback("billing");
   try {
     await work();
     revalidatePath("/billing/invoices");
     revalidatePath("/billing/payments");
     revalidatePath("/billing/deposits");
-    return { ok: true, message: success };
+    return { ok: true, message: feedback(successKey) };
   } catch (error) {
     return {
       ok: false,
       message:
         error instanceof Error
           ? error.message
-          : "Could not save billing changes.",
+          : feedback("saveFailed"),
     };
   }
 }
@@ -51,7 +53,7 @@ export async function generateInvoiceAction(_: ActionState, data: FormData) {
         text(data, "billingPeriod"),
         text(data, "invoiceType") as "REGULAR" | "FINAL_SETTLEMENT",
       ),
-    "Draft invoice generated.",
+    "draftGenerated",
   );
 }
 export async function addInvoiceAdjustmentAction(
@@ -66,7 +68,7 @@ export async function addInvoiceAdjustmentAction(
         amount: text(data, "amount"),
         reason: text(data, "reason"),
       }),
-    "Adjustment added.",
+    "adjustmentAdded",
   );
 }
 export async function updateInvoiceAdjustmentAction(
@@ -85,7 +87,7 @@ export async function updateInvoiceAdjustmentAction(
           reason: text(data, "reason"),
         },
       ),
-    "Adjustment updated.",
+    "adjustmentUpdated",
   );
 }
 export async function deleteInvoiceAdjustmentAction(
@@ -98,14 +100,14 @@ export async function deleteInvoiceAdjustmentAction(
         text(data, "invoiceId"),
         text(data, "adjustmentId"),
       ),
-    "Adjustment removed.",
+    "adjustmentRemoved",
   );
 }
 export async function generateAllReadyAction(_: ActionState, data: FormData) {
   return action(
     () =>
       generateAllReady(text(data, "propertyId"), text(data, "billingPeriod")),
-    "All ready invoices generated.",
+    "allReadyGenerated",
   );
 }
 export async function overrideInvoiceLineAction(
@@ -120,13 +122,13 @@ export async function overrideInvoiceLineAction(
         text(data, "finalAmount"),
         text(data, "overrideReason"),
       ),
-    "Invoice line updated.",
+    "lineUpdated",
   );
 }
 export async function finalizeInvoiceAction(_: ActionState, data: FormData) {
   return action(
     () => finalizeInvoice(text(data, "invoiceId")),
-    "Invoice finalized.",
+    "invoiceFinalized",
   );
 }
 export async function recordPaymentAction(_: ActionState, data: FormData) {
@@ -140,7 +142,7 @@ export async function recordPaymentAction(_: ActionState, data: FormData) {
         reference: text(data, "reference") || undefined,
         notes: text(data, "notes") || undefined,
       }),
-    "Payment recorded.",
+    "paymentRecorded",
   );
 }
 export async function updatePaymentAction(_: ActionState, data: FormData) {
@@ -153,7 +155,7 @@ export async function updatePaymentAction(_: ActionState, data: FormData) {
         reference: text(data, "reference") || undefined,
         notes: text(data, "notes") || undefined,
       }),
-    "Payment updated.",
+    "paymentUpdated",
   );
 }
 export async function depositTransactionAction(_: ActionState, data: FormData) {
@@ -181,6 +183,6 @@ export async function depositTransactionAction(_: ActionState, data: FormData) {
                 ...input,
                 invoiceId: text(data, "invoiceId"),
               }),
-    "Deposit transaction recorded.",
+    "depositTransactionRecorded",
   );
 }

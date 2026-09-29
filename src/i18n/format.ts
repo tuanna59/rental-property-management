@@ -34,6 +34,13 @@ export function formatDateOnlyLocale(value: string | Date, locale: AppLocale) {
   }).format(dateOnlyToUtc(value));
 }
 
+export function formatDateTimeLocale(value: string | Date, locale: AppLocale) {
+  return new Intl.DateTimeFormat(localeTag(locale), {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(value instanceof Date ? value : new Date(value));
+}
 
 export function formatCompactDateLocale(value: string | Date, locale: AppLocale) {
   return new Intl.DateTimeFormat(localeTag(locale), {

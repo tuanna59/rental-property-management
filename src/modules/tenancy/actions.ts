@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import type { ActionState } from "@/lib/action-state";
+import { getActionFeedback } from "@/i18n/action-feedback";
 import { PeopleDomainError } from "@/modules/people/domain/identity";
 
 import { TenancyDomainError } from "./domain/errors";
@@ -36,7 +37,7 @@ export async function changeRentAction(
         effectiveFrom: value(formData, "effectiveFrom"),
         reason: value(formData, "reason"),
       }),
-    "New rent rate scheduled.",
+    "newRentScheduled",
   );
 }
 
@@ -52,7 +53,7 @@ export async function changeResponsibleAction(
         effectiveFrom: value(formData, "effectiveFrom"),
         reason: value(formData, "reason"),
       }),
-    "Responsible renter changed.",
+    "responsibleChanged",
   );
 }
 function file(formData: FormData, name: string) {
@@ -64,6 +65,7 @@ export async function moveInAction(
   _state: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const feedback = await getActionFeedback("tenants");
   try {
     const moveOutDate = value(formData, "moveOutDate") || null;
     const startDate = value(formData, "moveInDate");
@@ -110,7 +112,7 @@ export async function moveInAction(
     }
     revalidatePath("/");
     revalidatePath("/tenants");
-    return { ok: true, message: "Move-in recorded." };
+    return { ok: true, message: feedback("moveInRecorded") };
   } catch (error) {
     if (
       error instanceof TenancyDomainError ||
@@ -119,7 +121,7 @@ export async function moveInAction(
       return { ok: false, message: error.message };
     }
     console.error(error);
-    return { ok: false, message: "Move-in could not be recorded." };
+    return { ok: false, message: feedback("moveInFailed") };
   }
 }
 
@@ -127,6 +129,7 @@ export async function moveOutAction(
   _state: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const feedback = await getActionFeedback("tenants");
   try {
     await moveOut({
       tenancyId: value(formData, "tenancyId"),
@@ -141,25 +144,26 @@ export async function moveOutAction(
     });
     revalidatePath("/");
     revalidatePath("/tenants");
-    return { ok: true, message: "Move-out recorded." };
+    return { ok: true, message: feedback("moveOutRecorded") };
   } catch (error) {
     if (error instanceof TenancyDomainError) {
       return { ok: false, message: error.message };
     }
     console.error(error);
-    return { ok: false, message: "Move-out could not be recorded." };
+    return { ok: false, message: feedback("moveOutFailed") };
   }
 }
 
 async function tenancyAction(
   work: () => Promise<unknown>,
-  success: string,
+  successKey: string,
 ): Promise<ActionState> {
+  const feedback = await getActionFeedback("tenants");
   try {
     await work();
     revalidatePath("/");
     revalidatePath("/tenants");
-    return { ok: true, message: success };
+    return { ok: true, message: feedback(successKey) };
   } catch (error) {
     if (
       error instanceof TenancyDomainError ||
@@ -168,7 +172,7 @@ async function tenancyAction(
       return { ok: false, message: error.message };
     }
     console.error(error);
-    return { ok: false, message: "The rental change could not be saved." };
+    return { ok: false, message: feedback("rentalSaveFailed") };
   }
 }
 
@@ -197,7 +201,7 @@ export async function addOccupantAction(
         personId,
       });
     }
-  }, "Occupant added.");
+  }, "occupantAdded");
 }
 
 export async function endOccupancyAction(
@@ -211,7 +215,7 @@ export async function endOccupancyAction(
         endDate: value(formData, "endDate"),
         notes: value(formData, "notes") || undefined,
       }),
-    "Occupancy ended.",
+    "occupancyEnded",
   );
 }
 
@@ -226,7 +230,7 @@ export async function moveOccupantAction(
         destinationSpaceId: value(formData, "destinationSpaceId"),
         effectiveDate: value(formData, "effectiveDate"),
       }),
-    "Occupant moved.",
+    "occupantMoved",
   );
 }
 
@@ -236,7 +240,7 @@ export async function cancelUpcomingMoveInAction(
 ) {
   return tenancyAction(
     () => cancelUpcomingMoveIn(value(formData, "tenancyId")),
-    "Scheduled move-in cancelled.",
+    "moveInCancelled",
   );
 }
 
@@ -246,6 +250,6 @@ export async function cancelScheduledMoveOutAction(
 ) {
   return tenancyAction(
     () => cancelScheduledMoveOut(value(formData, "tenancyId")),
-    "Scheduled move-out cancelled.",
+    "moveOutCancelled",
   );
 }

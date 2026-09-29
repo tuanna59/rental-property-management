@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { getActionFeedback } from "@/i18n/action-feedback";
 import type { ActionState } from "@/lib/action-state";
 import {
   installMeter,
@@ -21,20 +22,21 @@ const file = (data: FormData, key: string) => {
 };
 async function action(
   work: () => Promise<unknown>,
-  success: string,
+  successKey: string,
 ): Promise<ActionState> {
+  const feedback = await getActionFeedback("utilities");
   try {
     await work();
     revalidatePath("/utilities");
     revalidatePath("/utilities/meters");
     revalidatePath("/utilities/rates");
     revalidatePath("/");
-    return { ok: true, message: success };
+    return { ok: true, message: feedback(successKey) };
   } catch (error) {
     return {
       ok: false,
       message:
-        error instanceof Error ? error.message : "Could not save utilities.",
+        error instanceof Error ? error.message : feedback("saveFailed"),
     };
   }
 }
@@ -49,7 +51,7 @@ export async function installMeterAction(_: ActionState, data: FormData) {
         photo: file(data, "photo"),
         notes: text(data, "notes") || undefined,
       }),
-    "Meter installed.",
+    "meterInstalled",
   );
 }
 export async function recordReadingAction(_: ActionState, data: FormData) {
@@ -67,7 +69,7 @@ export async function recordReadingAction(_: ActionState, data: FormData) {
         photo: file(data, "photo"),
         notes: text(data, "notes") || undefined,
       }),
-    "Reading recorded.",
+    "readingRecorded",
   );
 }
 
@@ -82,7 +84,7 @@ export async function markReadingAsMonthlyClosingAction(
         readingId: text(data, "readingId"),
         billingMonth: text(data, "billingMonth"),
       }),
-    "Monthly closing set.",
+    "monthlyClosingSet",
   );
 }
 
@@ -95,7 +97,8 @@ export async function markAllEligibleMonthlyClosingsAction(
   try {
     assignments = rawAssignments ? JSON.parse(rawAssignments) : [];
   } catch {
-    return { ok: false, message: "Could not read the selected closing readings." };
+    const feedback = await getActionFeedback("utilities");
+    return { ok: false, message: feedback("invalidClosingSelection") };
   }
   return action(
     () =>
@@ -104,7 +107,7 @@ export async function markAllEligibleMonthlyClosingsAction(
         billingMonth: text(data, "billingMonth"),
         assignments,
       }),
-    "Current readings set as monthly closings.",
+    "currentReadingsClosings",
   );
 }
 
@@ -119,7 +122,7 @@ export async function updateMeterReadingAction(_: ActionState, data: FormData) {
         reason: text(data, "reason") || undefined,
         photo: file(data, "photo"),
       }),
-    "Reading updated.",
+    "readingUpdated",
   );
 }
 
@@ -129,7 +132,7 @@ export async function appendMeterReadingPhotoAction(
 ) {
   return action(
     () => appendMeterReadingPhoto(text(data, "readingId"), file(data, "photo")),
-    "Evidence photo added.",
+    "evidencePhotoAdded",
   );
 }
 export async function recordMissingBoundaryAction(
@@ -147,7 +150,7 @@ export async function recordMissingBoundaryAction(
         photo: file(data, "photo"),
         notes: text(data, "notes") || undefined,
       }),
-    "Boundary reading recorded.",
+    "boundaryReadingRecorded",
   );
 }
 export async function saveMonthlyReadingAction(_: ActionState, data: FormData) {
@@ -163,7 +166,7 @@ export async function saveMonthlyReadingAction(_: ActionState, data: FormData) {
         photo: file(data, "photo"),
         notes: text(data, "notes") || undefined,
       }),
-    "Manual reading recorded and assigned as the monthly closing.",
+    "manualReadingClosing",
   );
 }
 export async function replaceMeterAction(_: ActionState, data: FormData) {
@@ -182,7 +185,7 @@ export async function replaceMeterAction(_: ActionState, data: FormData) {
         reason: text(data, "reason"),
         notes: text(data, "notes") || undefined,
       }),
-    "Meter replaced.",
+    "meterReplaced",
   );
 }
 export async function saveRateAction(_: ActionState, data: FormData) {
@@ -195,7 +198,7 @@ export async function saveRateAction(_: ActionState, data: FormData) {
         effectiveFrom: text(data, "effectiveFrom"),
         notes: text(data, "notes") || undefined,
       }),
-    "Rate saved.",
+    "rateSaved",
   );
 }
 export async function saveOverrideAction(_: ActionState, data: FormData) {
@@ -207,6 +210,6 @@ export async function saveOverrideAction(_: ActionState, data: FormData) {
         rate: text(data, "rate"),
         reason: text(data, "reason"),
       }),
-    "Room rate override saved.",
+    "overrideSaved",
   );
 }

@@ -885,8 +885,9 @@ function OverrideDialog({
         <DialogHeader>
           <DialogTitle>{t("editCharge", { type: chargeTypeLabel(line.type, t) })}</DialogTitle>
           <DialogDescription>
-            Calculated {formatVndLocale(line.calculatedAmount, locale)}. The original
-            calculation remains preserved.
+            {t("calculatedPreserved", {
+              amount: formatVndLocale(line.calculatedAmount, locale),
+            })}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="dialog-form">

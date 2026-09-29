@@ -304,7 +304,7 @@ export async function getDevicePage(propertyId: string): Promise<DevicePageView>
     assetId: device.assetId ?? null,
     assetName: device.asset?.name ?? null,
     meterId: device.meterId ?? null,
-    meterLabel: device.meter ? `Meter ${device.meter.meterNumber || device.meter.id.slice(-5)}` : null,
+    meterIdentifier: device.meter ? String(device.meter.meterNumber || device.meter.id.slice(-5)) : null,
     externalId: device.externalId ?? null,
     protocol: device.protocol ?? null,
     lastSeenAt: device.lastSeenAt ? device.lastSeenAt.toISOString() : null,

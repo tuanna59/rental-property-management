@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import type { ActionState } from "@/lib/action-state";
+import { getActionFeedback } from "@/i18n/action-feedback";
 
 import type { AssetAttachmentType, AssetStatus, DeviceStatus } from "./domain/types";
 import {
@@ -37,13 +38,14 @@ function revalidateAssets(assetId?: string) {
   revalidatePath("/");
 }
 
-async function action(work: () => Promise<unknown>, success: string, assetId?: string): Promise<ActionState> {
+async function action(work: () => Promise<unknown>, successKey: string, assetId?: string): Promise<ActionState> {
+  const feedback = await getActionFeedback("assets");
   try {
     await work();
     revalidateAssets(assetId);
-    return { ok: true, message: success };
+    return { ok: true, message: feedback(successKey) };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "Could not save Assets changes." };
+    return { ok: false, message: error instanceof Error ? error.message : feedback("saveFailed") };
   }
 }
 
@@ -65,48 +67,49 @@ function assetInput(data: FormData) {
 }
 
 export async function createAssetAction(_: ActionState, data: FormData) {
-  return action(() => createAsset(assetInput(data)), "Asset added.");
+  return action(() => createAsset(assetInput(data)), "assetAdded");
 }
 
 export async function updateAssetAction(_: ActionState, data: FormData) {
   const assetId = text(data, "assetId");
-  return action(() => updateAsset(assetId, assetInput(data)), "Asset updated.", assetId);
+  return action(() => updateAsset(assetId, assetInput(data)), "assetUpdated", assetId);
 }
 
 export async function replaceAssetAction(_: ActionState, data: FormData) {
   const assetId = text(data, "assetId");
-  return action(() => replaceAsset(assetId, assetInput(data)), "Replacement asset created.", assetId);
+  return action(() => replaceAsset(assetId, assetInput(data)), "replacementCreated", assetId);
 }
 
 export async function setAssetStatusAction(_: ActionState, data: FormData) {
   const assetId = text(data, "assetId");
-  return action(() => setAssetStatus(assetId, text(data, "status") as AssetStatus), "Asset lifecycle updated.", assetId);
+  return action(() => setAssetStatus(assetId, text(data, "status") as AssetStatus), "lifecycleUpdated", assetId);
 }
 
 export async function createAssetCategoryAction(_: ActionState, data: FormData) {
   return action(
     () => createAssetCategory(text(data, "propertyId"), text(data, "name"), optional(data, "description")),
-    "Category added.",
+    "categoryAdded",
   );
 }
 
 export async function updateAssetCategoryAction(_: ActionState, data: FormData) {
   return action(
     () => updateAssetCategory(text(data, "categoryId"), text(data, "propertyId"), text(data, "name"), optional(data, "description")),
-    "Category updated.",
+    "categoryUpdated",
   );
 }
 
 export async function archiveAssetCategoryAction(_: ActionState, data: FormData) {
-  return action(() => archiveAssetCategory(text(data, "categoryId"), text(data, "propertyId")), "Category archived.");
+  return action(() => archiveAssetCategory(text(data, "categoryId"), text(data, "propertyId")), "categoryArchived");
 }
 
 export async function addAssetAttachmentAction(_: ActionState, data: FormData) {
   const assetId = text(data, "assetId");
   const upload = file(data, "file");
+  const feedback = await getActionFeedback("assets");
   return action(
     () => {
-      if (!upload) throw new Error("Choose a file to upload.");
+      if (!upload) throw new Error(feedback("chooseFile"));
       return addAssetAttachment({
         assetId,
         propertyId: text(data, "propertyId"),
@@ -115,7 +118,7 @@ export async function addAssetAttachmentAction(_: ActionState, data: FormData) {
         file: upload,
       });
     },
-    "Asset document added.",
+    "documentAdded",
     assetId,
   );
 }
@@ -123,9 +126,10 @@ export async function addAssetAttachmentAction(_: ActionState, data: FormData) {
 export async function replaceAssetAttachmentAction(_: ActionState, data: FormData) {
   const assetId = text(data, "assetId");
   const upload = file(data, "file");
+  const feedback = await getActionFeedback("assets");
   return action(
     () => {
-      if (!upload) throw new Error("Choose a replacement file.");
+      if (!upload) throw new Error(feedback("chooseReplacementFile"));
       return replaceAssetAttachment({
         attachmentId: text(data, "attachmentId"),
         assetId,
@@ -133,14 +137,14 @@ export async function replaceAssetAttachmentAction(_: ActionState, data: FormDat
         file: upload,
       });
     },
-    "Asset document replaced.",
+    "documentReplaced",
     assetId,
   );
 }
 
 export async function removeAssetAttachmentAction(_: ActionState, data: FormData) {
   const assetId = text(data, "assetId");
-  return action(() => removeAssetAttachment(text(data, "attachmentId"), assetId), "Asset document removed.", assetId);
+  return action(() => removeAssetAttachment(text(data, "attachmentId"), assetId), "documentRemoved", assetId);
 }
 
 function deviceInput(data: FormData) {
@@ -161,13 +165,13 @@ function deviceInput(data: FormData) {
 }
 
 export async function createDeviceAction(_: ActionState, data: FormData) {
-  return action(() => createDevice(deviceInput(data)), "Device registered.");
+  return action(() => createDevice(deviceInput(data)), "deviceRegistered");
 }
 
 export async function updateDeviceAction(_: ActionState, data: FormData) {
-  return action(() => updateDevice(text(data, "deviceId"), deviceInput(data)), "Device updated.");
+  return action(() => updateDevice(text(data, "deviceId"), deviceInput(data)), "deviceUpdated");
 }
 
 export async function archiveDeviceAction(_: ActionState, data: FormData) {
-  return action(() => archiveDevice(text(data, "deviceId")), "Device archived.");
+  return action(() => archiveDevice(text(data, "deviceId")), "deviceArchived");
 }

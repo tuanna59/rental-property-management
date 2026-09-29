@@ -33,7 +33,7 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 z-[120] grid w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-6 text-[var(--app-text-primary)] shadow-[var(--app-shadow-elevated)]",
+        "fixed left-1/2 top-1/2 z-[120] grid max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto overscroll-contain rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-4 text-[var(--app-text-primary)] shadow-[var(--app-shadow-elevated)] sm:max-h-[90dvh] sm:w-[calc(100%-2rem)] sm:p-6",
         className,
       )}
       {...props}
@@ -70,7 +70,7 @@ const AlertDialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold", className)}
+    className={cn("min-w-0 break-words text-lg font-semibold", className)}
     {...props}
   />
 ));
@@ -82,7 +82,7 @@ const AlertDialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-[var(--app-text-secondary)]", className)}
+    className={cn("min-w-0 break-words text-sm leading-6 text-[var(--app-text-secondary)]", className)}
     {...props}
   />
 ));

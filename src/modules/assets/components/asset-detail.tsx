@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Archive,
   ChevronLeft,
@@ -22,10 +23,11 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { formatDate, formatVnd } from "@/lib/presentation";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale, formatVndLocale } from "@/i18n/format";
 import { ExpenseFormDialog, MaintenanceFormDialog } from "@/modules/operations/components/operation-dialogs";
 
-import type { AssetCategoryView, AssetDetailView, AssetLocationOption, AssetOptionView } from "../domain/types";
+import type { AssetCategoryView, AssetDetailView, AssetLocationOption, AssetOptionView, AssetStatus } from "../domain/types";
 import {
   AssetAttachmentActions,
   AssetDocumentDialog,
@@ -48,41 +50,52 @@ export function AssetDetailWorkspace({
   locations: AssetLocationOption[];
   assetOptions: AssetOptionView[];
 }) {
+  const t = useTranslations("assets");
+  const locale = useLocale() as AppLocale;
   const [tab, setTab] = React.useState<Tab>("OVERVIEW");
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [replaceOpen, setReplaceOpen] = React.useState(false);
   const coverPhoto = asset.attachments.find((item) => item.type === "PHOTO");
+  const tabs: Array<{ id: Tab; label: string }> = [
+    { id: "OVERVIEW", label: t("overview") },
+    { id: "MAINTENANCE", label: t("maintenance") },
+    { id: "EXPENSES", label: t("expenses") },
+    { id: "DOCUMENTS", label: t("documents") },
+    { id: "HISTORY", label: t("history") },
+  ];
 
   return (
     <>
-      <div className="asset-detail-back"><Link href="/assets">← Back to assets</Link></div>
+      <div className="asset-detail-back"><Link href="/assets">← {t("backToAssets")}</Link></div>
       <header className="asset-detail-header">
-        <div className={`asset-detail-icon${coverPhoto ? " has-cover" : ""}`}>{coverPhoto ? <img src={coverPhoto.url} alt={`${asset.name} asset`} /> : <ImageIcon />}</div>
+        <div className={`asset-detail-icon${coverPhoto ? " has-cover" : ""}`}>
+          {coverPhoto ? <img src={coverPhoto.url} alt={t("assetImageAlt", { name: asset.name })} /> : <ImageIcon />}
+        </div>
         <div className="asset-detail-identity">
           <div className="asset-detail-title-row"><h1>{asset.name}</h1><AssetStatusBadge status={asset.status} />{asset.underMaintenance && <UnderMaintenanceBadge />}</div>
-          <strong>{asset.categoryName}</strong>
-          <span><MapPin /> {asset.locationLabel}</span>
-          <small>{[asset.brand, asset.model, asset.serialNumber ? `SN ${asset.serialNumber}` : null].filter(Boolean).join(" · ") || "No manufacturer metadata"}</small>
+          <strong>{asset.categoryName === "Uncategorized" ? t("uncategorized") : asset.categoryName}</strong>
+          <span><MapPin /> {asset.locationLabel === "Property" ? t("propertyLevel") : asset.locationLabel}</span>
+          <small>{[asset.brand, asset.model, asset.serialNumber ? t("serialAbbr", { serial: asset.serialNumber }) : null].filter(Boolean).join(" · ") || t("noManufacturerMetadata")}</small>
         </div>
         <div className="asset-detail-actions">
-          <AssetFormDialog propertyId={asset.propertyId} categories={categories} locations={locations} asset={asset} trigger={<Button variant="outline"><Pencil /> Edit</Button>} />
+          <AssetFormDialog propertyId={asset.propertyId} categories={categories} locations={locations} asset={asset} trigger={<Button variant="outline"><Pencil /> {t("edit")}</Button>} />
           <div className="asset-action-menu-wrap">
-            <Button variant="outline" size="icon" aria-label="More asset actions" onClick={() => setMenuOpen((value) => !value)}><MoreHorizontal /></Button>
+            <Button variant="outline" size="icon" aria-label={t("moreAssetActions")} onClick={() => setMenuOpen((value) => !value)}><MoreHorizontal /></Button>
             {menuOpen && (
               <div className="asset-action-menu">
                 {asset.status === "ACTIVE" && (
                   <button type="button" onClick={() => { setMenuOpen(false); setReplaceOpen(true); }}>
-                    <RefreshCw /> Replace asset
+                    <RefreshCw /> {t("replaceAsset")}
                   </button>
                 )}
                 {asset.status === "ACTIVE" && (
                   <AssetLifecycleButton assetId={asset.id} status="RETIRED" variant="ghost" onSuccess={() => setMenuOpen(false)}>
-                    <Archive /> Retire asset
+                    <Archive /> {t("retireAsset")}
                   </AssetLifecycleButton>
                 )}
                 {asset.status !== "DISPOSED" && (
                   <AssetLifecycleButton assetId={asset.id} status="DISPOSED" variant="ghost" onSuccess={() => setMenuOpen(false)}>
-                    <Trash2 /> Dispose asset
+                    <Trash2 /> {t("disposeAsset")}
                   </AssetLifecycleButton>
                 )}
               </div>
@@ -91,27 +104,19 @@ export function AssetDetailWorkspace({
         </div>
       </header>
       {asset.status === "ACTIVE" && (
-        <ReplaceAssetDialog
-          asset={asset}
-          categories={categories}
-          locations={locations}
-          open={replaceOpen}
-          onOpenChange={setReplaceOpen}
-        />
+        <ReplaceAssetDialog asset={asset} categories={categories} locations={locations} open={replaceOpen} onOpenChange={setReplaceOpen} />
       )}
 
       <section className="asset-detail-summary-grid">
-        <DetailStat icon={<CircleDollarSign />} label="Purchase" value={asset.purchasePriceVnd ? formatVnd(asset.purchasePriceVnd) : "Not recorded"} insight={asset.purchaseDate ? formatDate(asset.purchaseDate) : "No purchase date"} />
-        <DetailStat icon={<ShieldCheck />} label="Warranty" value={asset.warrantyExpiresAt ? formatDate(asset.warrantyExpiresAt) : "No warranty"} insight={<WarrantyBadge state={asset.warrantyState} />} />
-        <DetailStat icon={<Wrench />} label="Maintenance" value={`${asset.maintenanceSummary.open + asset.maintenanceSummary.inProgress} active`} insight={`${asset.maintenanceSummary.completed} completed`} />
-        <DetailStat icon={<ReceiptText />} label="Lifetime cost" value={formatVnd(asset.lifetimeCostVnd)} insight={`${formatVnd(asset.linkedExpenseTotalVnd)} linked expenses`} />
+        <DetailStat icon={<CircleDollarSign />} label={t("purchase")} value={asset.purchasePriceVnd ? formatVndLocale(asset.purchasePriceVnd, locale) : t("notRecorded")} insight={asset.purchaseDate ? formatDateOnlyLocale(asset.purchaseDate, locale) : t("noPurchaseDate")} />
+        <DetailStat icon={<ShieldCheck />} label={t("warranty")} value={asset.warrantyExpiresAt ? formatDateOnlyLocale(asset.warrantyExpiresAt, locale) : t("noWarranty")} insight={<WarrantyBadge state={asset.warrantyState} />} />
+        <DetailStat icon={<Wrench />} label={t("maintenance")} value={t("maintenanceActiveCount", { count: asset.maintenanceSummary.open + asset.maintenanceSummary.inProgress })} insight={t("completedCount", { count: asset.maintenanceSummary.completed })} />
+        <DetailStat icon={<ReceiptText />} label={t("lifetimeCost")} value={formatVndLocale(asset.lifetimeCostVnd, locale)} insight={t("linkedExpensesValue", { amount: formatVndLocale(asset.linkedExpenseTotalVnd, locale) })} />
       </section>
 
       <section className="asset-detail-panel">
-        <nav className="asset-detail-tabs" aria-label="Asset detail sections">
-          {(["OVERVIEW", "MAINTENANCE", "EXPENSES", "DOCUMENTS", "HISTORY"] as Tab[]).map((item) => (
-            <button key={item} className={tab === item ? "is-active" : ""} type="button" onClick={() => setTab(item)}>{item.charAt(0) + item.slice(1).toLowerCase()}</button>
-          ))}
+        <nav className="asset-detail-tabs" aria-label={t("detailSections")}>
+          {tabs.map((item) => <button key={item.id} className={tab === item.id ? "is-active" : ""} type="button" onClick={() => setTab(item.id)}>{item.label}</button>)}
         </nav>
         <div className="asset-tab-content">
           {tab === "OVERVIEW" && <OverviewTab asset={asset} />}
@@ -130,71 +135,116 @@ function DetailStat({ icon, label, value, insight }: { icon: React.ReactNode; la
 }
 
 function OverviewTab({ asset }: { asset: AssetDetailView }) {
+  const t = useTranslations("assets");
+  const locale = useLocale() as AppLocale;
   const metadata = [
-    ["Category", asset.categoryName], ["Location", asset.locationLabel], ["Brand", asset.brand || "Not provided"], ["Model", asset.model || "Not provided"], ["Serial number", asset.serialNumber || "Not provided"], ["Purchase date", asset.purchaseDate ? formatDate(asset.purchaseDate) : "Not provided"], ["Purchase price", asset.purchasePriceVnd ? formatVnd(asset.purchasePriceVnd) : "Not provided"], ["Warranty expires", asset.warrantyExpiresAt ? formatDate(asset.warrantyExpiresAt) : "Not provided"],
+    [t("category"), asset.categoryName === "Uncategorized" ? t("uncategorized") : asset.categoryName],
+    [t("location"), asset.locationLabel === "Property" ? t("propertyLevel") : asset.locationLabel],
+    [t("brand"), asset.brand || t("notProvided")],
+    [t("model"), asset.model || t("notProvided")],
+    [t("serialNumber"), asset.serialNumber || t("notProvided")],
+    [t("purchaseDate"), asset.purchaseDate ? formatDateOnlyLocale(asset.purchaseDate, locale) : t("notProvided")],
+    [t("purchasePrice"), asset.purchasePriceVnd ? formatVndLocale(asset.purchasePriceVnd, locale) : t("notProvided")],
+    [t("warrantyExpires"), asset.warrantyExpiresAt ? formatDateOnlyLocale(asset.warrantyExpiresAt, locale) : t("notProvided")],
   ];
   return (
     <div className="asset-overview-flow">
       <section className="asset-metadata-grid">{metadata.map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</section>
-      <section className="asset-notes-block"><div><FileText /><strong>Notes</strong></div><p>{asset.notes || "No notes recorded."}</p></section>
+      <section className="asset-notes-block"><div><FileText /><strong>{t("notes")}</strong></div><p>{asset.notes || t("noNotes")}</p></section>
       {(asset.replacementForAsset || asset.replacedByAsset) && (
-        <section className="asset-replacement-chain"><History /><div><strong>Replacement history</strong>{asset.replacementForAsset && <p>Replaced <Link href={`/assets/${asset.replacementForAsset.id}`}>{asset.replacementForAsset.name}</Link></p>}{asset.replacedByAsset && <p>Replaced by <Link href={`/assets/${asset.replacedByAsset.id}`}>{asset.replacedByAsset.name}</Link></p>}</div></section>
+        <section className="asset-replacement-chain"><History /><div><strong>{t("replacementHistory")}</strong>{asset.replacementForAsset && <p>{t("replaced")} <Link href={`/assets/${asset.replacementForAsset.id}`}>{asset.replacementForAsset.name}</Link></p>}{asset.replacedByAsset && <p>{t("replacedBy")} <Link href={`/assets/${asset.replacedByAsset.id}`}>{asset.replacedByAsset.name}</Link></p>}</div></section>
       )}
     </div>
   );
 }
 
 function MaintenanceTab({ asset, locations, assetOptions }: { asset: AssetDetailView; locations: AssetLocationOption[]; assetOptions: AssetOptionView[] }) {
+  const t = useTranslations("assets");
+  const op = useTranslations("operations");
+  const locale = useLocale() as AppLocale;
   return (
     <div className="asset-tab-stack">
-      <div className="asset-tab-toolbar"><div><h2>Maintenance history</h2><p>Existing MaintenanceIssue records linked to this physical asset.</p></div>{asset.status === "ACTIVE" && <MaintenanceFormDialog propertyId={asset.propertyId} locations={locations} assetOptions={assetOptions} defaultAssetId={asset.id} defaultFloorId={asset.floorId} defaultSpaceId={asset.spaceId} trigger={<Button><Wrench /> Create maintenance issue</Button>} />}</div>
-      {asset.maintenance.length ? <div className="asset-timeline">{asset.maintenance.map((item) => <article key={item.id}><span className={`asset-timeline-dot is-${item.status.toLowerCase()}`} /><div><div className="asset-history-head"><strong>{item.title}</strong><span>{formatDate(item.reportedAt)}</span></div><p>{item.description}</p><small>{item.priority.replace("_", " ")} · {item.status.replace("_", " ")}{item.costVnd !== "0" ? ` · ${formatVnd(item.costVnd)}` : ""}</small><Button asChild variant="ghost" size="sm"><Link href={`/operations/maintenance?issue=${item.id}`}>Open maintenance</Link></Button></div></article>)}</div> : <AssetEmpty title="No maintenance history" detail="Create an issue when this asset needs repair or attention." />}
+      <div className="asset-tab-toolbar"><div><h2>{t("maintenanceHistory")}</h2><p>{t("maintenanceHistorySubtitle")}</p></div>{asset.status === "ACTIVE" && <MaintenanceFormDialog propertyId={asset.propertyId} locations={locations} assetOptions={assetOptions} defaultAssetId={asset.id} defaultFloorId={asset.floorId} defaultSpaceId={asset.spaceId} trigger={<Button><Wrench /> {t("createMaintenanceIssue")}</Button>} />}</div>
+      {asset.maintenance.length ? (
+        <div className="asset-timeline">
+          {asset.maintenance.map((item) => (
+            <article key={item.id}>
+              <span className={`asset-timeline-dot is-${item.status.toLowerCase()}`} />
+              <div>
+                <div className="asset-history-head"><strong>{item.title}</strong><span>{formatDateOnlyLocale(item.reportedAt, locale)}</span></div>
+                <p>{item.description}</p>
+                <small>{maintenancePriorityLabel(item.priority, op)} · {maintenanceStatusLabel(item.status, op)}{item.costVnd !== "0" ? ` · ${formatVndLocale(item.costVnd, locale)}` : ""}</small>
+                <Button asChild variant="ghost" size="sm"><Link href={`/operations/maintenance?issue=${item.id}`}>{t("openMaintenance")}</Link></Button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : <AssetEmpty title={t("noMaintenanceHistory")} detail={t("noMaintenanceHistoryDetail")} />}
     </div>
   );
 }
 
 function ExpensesTab({ asset, locations, assetOptions }: { asset: AssetDetailView; locations: AssetLocationOption[]; assetOptions: AssetOptionView[] }) {
+  const t = useTranslations("assets");
+  const op = useTranslations("operations");
+  const locale = useLocale() as AppLocale;
   return (
     <div className="asset-tab-stack">
-      <div className="asset-tab-toolbar"><div><h2>Linked expenses</h2><p>Owner costs remain sourced from the Expenses module.</p></div><ExpenseFormDialog propertyId={asset.propertyId} locations={locations} maintenanceOptions={[]} assetOptions={assetOptions} defaultAssetId={asset.id} defaultFloorId={asset.floorId} defaultSpaceId={asset.spaceId} trigger={<Button variant="outline"><ReceiptText /> Add expense</Button>} /></div>
-      <div className="asset-cost-breakdown"><span>Purchase <strong>{asset.purchasePriceVnd ? formatVnd(asset.purchasePriceVnd) : "0 đ"}</strong></span><span>Linked expenses <strong>{formatVnd(asset.linkedExpenseTotalVnd)}</strong></span><span>Lifetime <strong>{formatVnd(asset.lifetimeCostVnd)}</strong></span></div>
-      {asset.expenses.length ? <div className="asset-simple-list">{asset.expenses.map((expense) => <article key={expense.id}><div><strong>{expense.description}</strong><span>{formatDate(expense.expenseDate)} · {expense.category}</span>{expense.maintenanceTitle && <small>Maintenance · {expense.maintenanceTitle}</small>}</div><strong>{formatVnd(expense.amountVnd)}</strong></article>)}</div> : <AssetEmpty title="No linked expenses" detail="Asset lifetime cost currently contains purchase price only." />}
+      <div className="asset-tab-toolbar"><div><h2>{t("linkedExpenses")}</h2><p>{t("linkedExpensesSubtitle")}</p></div><ExpenseFormDialog propertyId={asset.propertyId} locations={locations} maintenanceOptions={[]} assetOptions={assetOptions} defaultAssetId={asset.id} defaultFloorId={asset.floorId} defaultSpaceId={asset.spaceId} trigger={<Button variant="outline"><ReceiptText /> {t("addExpense")}</Button>} /></div>
+      <div className="asset-cost-breakdown"><span>{t("purchaseLabel")} <strong>{formatVndLocale(asset.purchasePriceVnd ?? 0, locale)}</strong></span><span>{t("linkedExpenses")} <strong>{formatVndLocale(asset.linkedExpenseTotalVnd, locale)}</strong></span><span>{t("lifetime")} <strong>{formatVndLocale(asset.lifetimeCostVnd, locale)}</strong></span></div>
+      {asset.expenses.length ? (
+        <div className="asset-simple-list">
+          {asset.expenses.map((expense) => <article key={expense.id}><div><strong>{expense.description}</strong><span>{formatDateOnlyLocale(expense.expenseDate, locale)} · {expenseCategoryLabel(expense.category, op)}</span>{expense.maintenanceTitle && <small>{op("maintenance")} · {expense.maintenanceTitle}</small>}</div><strong>{formatVndLocale(expense.amountVnd, locale)}</strong></article>)}
+        </div>
+      ) : <AssetEmpty title={t("noLinkedExpenses")} detail={t("noLinkedExpensesDetail")} />}
     </div>
   );
 }
 
 function DocumentsTab({ asset }: { asset: AssetDetailView }) {
+  const t = useTranslations("assets");
+  const locale = useLocale() as AppLocale;
   const photos = asset.attachments.filter((item) => item.type === "PHOTO");
   const documents = asset.attachments.filter((item) => item.type !== "PHOTO");
   return (
     <div className="asset-tab-stack">
-      <div className="asset-tab-toolbar"><div><h2>Documents & photos</h2><p>Private purchase, warranty, manual, serial, and other records.</p></div><AssetDocumentDialog propertyId={asset.propertyId} assetId={asset.id} /></div>
+      <div className="asset-tab-toolbar"><div><h2>{t("documentsPhotos")}</h2><p>{t("documentsPhotosSubtitle")}</p></div><AssetDocumentDialog propertyId={asset.propertyId} assetId={asset.id} /></div>
       <PhotoGallery photos={photos} />
-      {documents.length ? <div className="asset-document-list">{documents.map((item) => <article key={item.id}><div><FileText /><span><strong>{item.title || documentTypeLabel(item.type)}</strong><small>{documentTypeLabel(item.type)} · {formatDate(item.createdAt.slice(0, 10))}</small></span></div><AssetAttachmentActions propertyId={asset.propertyId} assetId={asset.id} attachment={item} /></article>)}</div> : <AssetEmpty title="No asset documents" detail="Add a purchase receipt, warranty, manual, serial label, or custom document." />}
+      {documents.length ? <div className="asset-document-list">{documents.map((item) => <article key={item.id}><div><FileText /><span><strong>{item.title || documentTypeLabel(item.type, t)}</strong><small>{documentTypeLabel(item.type, t)} · {formatDateOnlyLocale(item.createdAt.slice(0, 10), locale)}</small></span></div><AssetAttachmentActions propertyId={asset.propertyId} assetId={asset.id} attachment={item} /></article>)}</div> : <AssetEmpty title={t("noAssetDocuments")} detail={t("noAssetDocumentsDetail")} />}
     </div>
   );
 }
 
 function PhotoGallery({ photos }: { photos: AssetDetailView["attachments"] }) {
+  const t = useTranslations("assets");
   const [index, setIndex] = React.useState(0);
-  if (!photos.length) return <div className="asset-photo-empty"><ImageIcon /><span>No asset photos.</span></div>;
+  if (!photos.length) return <div className="asset-photo-empty"><ImageIcon /><span>{t("noAssetPhotos")}</span></div>;
   const current = photos[Math.min(index, photos.length - 1)]!;
   return (
     <section className="asset-photo-section">
-      <div className="asset-section-heading"><strong>Photos</strong><span>{photos.length} attached</span></div>
+      <div className="asset-section-heading"><strong>{t("photos")}</strong><span>{t("attachedCount", { count: photos.length })}</span></div>
       <div className="asset-photo-thumbnails">{photos.map((photo, photoIndex) => <button key={photo.id} type="button" className={index === photoIndex ? "is-active" : ""} onClick={() => setIndex(photoIndex)}><img src={photo.url} alt="" /></button>)}</div>
-      <Dialog><DialogTrigger asChild><button type="button" className="asset-photo-viewer-trigger"><img src={current.url} alt="Selected asset" /></button></DialogTrigger><DialogContent className="asset-photo-dialog"><DialogHeader><DialogTitle>Asset photos · {index + 1} / {photos.length}</DialogTitle></DialogHeader><div className="asset-photo-viewer"><img src={current.url} alt="Asset attachment" />{photos.length > 1 && <><button type="button" className="is-prev" onClick={() => setIndex((value) => (value - 1 + photos.length) % photos.length)}><ChevronLeft /></button><button type="button" className="is-next" onClick={() => setIndex((value) => (value + 1) % photos.length)}><ChevronRight /></button></>}</div></DialogContent></Dialog>
+      <Dialog>
+        <DialogTrigger asChild><button type="button" className="asset-photo-viewer-trigger"><img src={current.url} alt={t("selectedAssetAlt")} /></button></DialogTrigger>
+        <DialogContent className="asset-photo-dialog">
+          <DialogHeader><DialogTitle>{t("assetPhotosTitle", { current: index + 1, total: photos.length })}</DialogTitle></DialogHeader>
+          <div className="asset-photo-viewer"><img src={current.url} alt={t("assetAttachmentAlt")} />{photos.length > 1 && <><button type="button" className="is-prev" onClick={() => setIndex((value) => (value - 1 + photos.length) % photos.length)} aria-label={t("previousPhoto")}><ChevronLeft /></button><button type="button" className="is-next" onClick={() => setIndex((value) => (value + 1) % photos.length)} aria-label={t("nextPhoto")}><ChevronRight /></button></>}</div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
 
 function HistoryTab({ asset }: { asset: AssetDetailView }) {
+  const t = useTranslations("assets");
+  const locale = useLocale() as AppLocale;
+  const op = useTranslations("operations");
   return (
     <div className="asset-tab-stack">
       {(asset.replacementForAsset || asset.replacedByAsset) && (
-        <section className="asset-replacement-chain"><History /><div><strong>Replacement relationship</strong>{asset.replacementForAsset && <p>Replaces <Link href={`/assets/${asset.replacementForAsset.id}`}>{asset.replacementForAsset.name}</Link> · {asset.replacementForAsset.status}</p>}{asset.replacedByAsset && <p>Replaced by <Link href={`/assets/${asset.replacedByAsset.id}`}>{asset.replacedByAsset.name}</Link> · {asset.replacedByAsset.status}</p>}</div></section>
+        <section className="asset-replacement-chain"><History /><div><strong>{t("replacementRelationship")}</strong>{asset.replacementForAsset && <p>{t("replaces")} <Link href={`/assets/${asset.replacementForAsset.id}`}>{asset.replacementForAsset.name}</Link> · {assetStatusText(asset.replacementForAsset.status, t)}</p>}{asset.replacedByAsset && <p>{t("replacedBy")} <Link href={`/assets/${asset.replacedByAsset.id}`}>{asset.replacedByAsset.name}</Link> · {assetStatusText(asset.replacedByAsset.status, t)}</p>}</div></section>
       )}
-      {asset.history.length ? <div className="asset-timeline">{asset.history.map((item) => <article key={item.id}><span className={`asset-timeline-dot is-${item.tone}`} /><div><div className="asset-history-head"><strong>{item.title}</strong><span>{formatDate(item.date)}</span></div>{item.detail && <p>{item.detail.match(/^\d+$/) ? formatVnd(item.detail) : item.detail}</p>}</div></article>)}</div> : <AssetEmpty title="No history yet" detail="Lifecycle and operational history will appear as records are created." />}
+      {asset.history.length ? <div className="asset-timeline">{asset.history.map((item) => <article key={item.id}><span className={`asset-timeline-dot is-${item.tone}`} /><div><div className="asset-history-head"><strong>{historyTitleLabel(item.title, t, op)}</strong><span>{formatDateOnlyLocale(item.date, locale)}</span></div>{item.detail && <p>{item.detail.match(/^\d+$/) ? formatVndLocale(item.detail, locale) : historyDetailLabel(item.detail, op)}</p>}</div></article>)}</div> : <AssetEmpty title={t("noHistoryYet")} detail={t("noHistoryDetail")} />}
     </div>
   );
 }
@@ -203,6 +253,35 @@ function AssetEmpty({ title, detail }: { title: string; detail: string }) {
   return <div className="asset-empty-state is-compact"><History /><strong>{title}</strong><p>{detail}</p></div>;
 }
 
-function documentTypeLabel(type: string) {
-  return { RECEIPT: "Purchase receipt", WARRANTY: "Warranty", MANUAL: "Manual", SERIAL: "Serial label", OTHER: "Other", PHOTO: "Photo" }[type] || type;
+function assetStatusText(status: AssetStatus, t: any) {
+  return status === "ACTIVE" ? t("active") : status === "RETIRED" ? t("retired") : t("disposed");
+}
+
+function maintenancePriorityLabel(priority: AssetDetailView["maintenance"][number]["priority"], opT: any) {
+  return priority === "URGENT" ? opT("urgent") : priority === "HIGH" ? opT("high") : priority === "MEDIUM" ? opT("medium") : opT("low");
+}
+
+function maintenanceStatusLabel(status: AssetDetailView["maintenance"][number]["status"], opT: any) {
+  return status === "OPEN" ? opT("open") : status === "IN_PROGRESS" ? opT("inProgress") : opT("completed");
+}
+
+function expenseCategoryLabel(category: string, opT: any) {
+  return category === "REPAIR" ? opT("repair") : category === "UTILITIES" ? opT("utilitiesCategory") : category === "CLEANING" ? opT("cleaning") : category === "SUPPLIES" ? opT("supplies") : category === "OTHER" ? opT("other") : category;
+}
+
+function historyTitleLabel(title: string, t: any, op: any) {
+  if (title === "Purchased") return t("purchased");
+  if (title === "Recorded in inventory") return t("recordedInInventory");
+  if (title === "Retired") return t("retired");
+  if (title === "Disposed") return t("disposed");
+  if (title.startsWith("Maintenance · ")) return `${op("maintenance")} · ${title.slice("Maintenance · ".length)}`;
+  return title;
+}
+
+function historyDetailLabel(detail: string, op: any) {
+  return detail === "Completed" ? op("completed") : detail === "In progress" ? op("inProgress") : detail === "Open" ? op("open") : detail;
+}
+
+function documentTypeLabel(type: string, t: any) {
+  return type === "RECEIPT" ? t("purchaseReceipt") : type === "WARRANTY" ? t("warranty") : type === "MANUAL" ? t("manual") : type === "SERIAL" ? t("serialLabel") : type === "OTHER" ? t("other") : type === "PHOTO" ? t("photo") : type;
 }

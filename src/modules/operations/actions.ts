@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import type { ActionState } from "@/lib/action-state";
+import { getActionFeedback } from "@/i18n/action-feedback";
 
 import type {
   ExpenseCategory,
@@ -45,15 +46,16 @@ function revalidateOperations() {
   revalidatePath("/");
 }
 
-async function action(work: () => Promise<unknown>, success: string): Promise<ActionState> {
+async function action(work: () => Promise<unknown>, successKey: string): Promise<ActionState> {
+  const feedback = await getActionFeedback("operations");
   try {
     await work();
     revalidateOperations();
-    return { ok: true, message: success };
+    return { ok: true, message: feedback(successKey) };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Could not save Operations changes.",
+      message: error instanceof Error ? error.message : feedback("saveFailed"),
     };
   }
 }
@@ -74,7 +76,7 @@ export async function createExpenseAction(_: ActionState, data: FormData) {
         notes: optional(data, "notes"),
         receipt: file(data, "receipt"),
       }),
-    "Expense recorded.",
+    "expenseRecorded",
   );
 }
 
@@ -94,18 +96,18 @@ export async function updateExpenseAction(_: ActionState, data: FormData) {
         notes: optional(data, "notes"),
         receipt: file(data, "receipt"),
       }),
-    "Expense updated.",
+    "expenseUpdated",
   );
 }
 
 export async function archiveExpenseAction(_: ActionState, data: FormData) {
-  return action(() => archiveExpense(text(data, "expenseId")), "Expense archived.");
+  return action(() => archiveExpense(text(data, "expenseId")), "expenseArchived");
 }
 
 export async function removeExpenseReceiptAction(_: ActionState, data: FormData) {
   return action(
     () => removeExpenseReceipt(text(data, "expenseId")),
-    "Receipt removed.",
+    "receiptRemoved",
   );
 }
 
@@ -126,7 +128,7 @@ export async function createMaintenanceAction(_: ActionState, data: FormData) {
         notes: optional(data, "notes"),
         photos: files(data, "photos"),
       }),
-    "Maintenance issue reported.",
+    "issueReported",
   );
 }
 
@@ -146,14 +148,14 @@ export async function updateMaintenanceAction(_: ActionState, data: FormData) {
         assignedTo: optional(data, "assignedTo"),
         notes: optional(data, "notes"),
       }),
-    "Maintenance issue updated.",
+    "issueUpdated",
   );
 }
 
 export async function startMaintenanceAction(_: ActionState, data: FormData) {
   return action(
     () => startMaintenanceIssue(text(data, "issueId"), optional(data, "assignedTo")),
-    "Work started.",
+    "workStarted",
   );
 }
 
@@ -170,14 +172,14 @@ export async function completeMaintenanceAction(_: ActionState, data: FormData) 
         expenseDescription: optional(data, "expenseDescription"),
         expenseNotes: optional(data, "expenseNotes"),
       }),
-    "Maintenance issue completed.",
+    "issueCompleted",
   );
 }
 
 export async function archiveMaintenanceAction(_: ActionState, data: FormData) {
   return action(
     () => archiveMaintenanceIssue(text(data, "issueId")),
-    "Maintenance issue archived.",
+    "issueArchived",
   );
 }
 
@@ -189,14 +191,14 @@ export async function addMaintenancePhotosAction(_: ActionState, data: FormData)
         text(data, "propertyId"),
         files(data, "photos"),
       ),
-    "Photos added.",
+    "photosAdded",
   );
 }
 
 export async function removeMaintenancePhotoAction(_: ActionState, data: FormData) {
   return action(
     () => removeMaintenancePhoto(text(data, "issueId"), text(data, "photoId")),
-    "Photo removed.",
+    "photoRemoved",
   );
 }
 
@@ -217,20 +219,20 @@ function taskInput(data: FormData) {
 }
 
 export async function createTaskAction(_: ActionState, data: FormData) {
-  return action(() => createTask(taskInput(data)), "Task created.");
+  return action(() => createTask(taskInput(data)), "taskCreated");
 }
 
 export async function updateTaskAction(_: ActionState, data: FormData) {
   return action(
     () => updateTask(text(data, "taskId"), taskInput(data)),
-    "Task updated.",
+    "taskUpdated",
   );
 }
 
 export async function completeTaskAction(_: ActionState, data: FormData) {
-  return action(() => completeTask(text(data, "taskId")), "Task completed.");
+  return action(() => completeTask(text(data, "taskId")), "taskCompleted");
 }
 
 export async function archiveTaskAction(_: ActionState, data: FormData) {
-  return action(() => archiveTask(text(data, "taskId")), "Task archived.");
+  return action(() => archiveTask(text(data, "taskId")), "taskArchived");
 }

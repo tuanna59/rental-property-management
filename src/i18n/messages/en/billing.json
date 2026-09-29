@@ -361,5 +361,21 @@
   "electricityPeriodDetail": "Electricity usage {period}",
   "waterPeriodDetail": "Water usage {period}",
   "meterReadingSummary": "Meter reading: {opening} → {closing}",
-  "meterCycleCount": "Usage cycle spans {count} meters"
+  "meterCycleCount": "Usage cycle spans {count} meters",
+  "missingMonthlyClosing": "Missing required monthly closing",
+  "incompleteElectricityAttribution": "Electricity attribution is incomplete",
+  "missingMeterData": "Missing electricity meter data",
+  "feedback": {
+    "saveFailed": "Could not save billing changes.",
+    "draftGenerated": "Draft invoice generated.",
+    "adjustmentAdded": "Adjustment added.",
+    "adjustmentUpdated": "Adjustment updated.",
+    "adjustmentRemoved": "Adjustment removed.",
+    "allReadyGenerated": "All ready invoices generated.",
+    "lineUpdated": "Invoice line updated.",
+    "invoiceFinalized": "Invoice finalized.",
+    "paymentRecorded": "Payment recorded.",
+    "paymentUpdated": "Payment updated.",
+    "depositTransactionRecorded": "Deposit transaction recorded."
+  }
 }

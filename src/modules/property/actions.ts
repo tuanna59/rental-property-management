@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { getActionFeedback } from "@/i18n/action-feedback";
 import type { ActionState } from "@/lib/action-state";
 
 import { DomainError } from "./domain/rules";
@@ -37,14 +38,15 @@ async function runAction<TSchema extends z.ZodType>(
   schema: TSchema,
   formData: FormData,
   handler: (input: z.infer<TSchema>) => Promise<void>,
-  successMessage: string,
+  successKey: string,
 ): Promise<ActionState> {
+  const feedback = await getActionFeedback("property");
   const parsed = schema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {
       ok: false,
-      message: "Please check the highlighted fields.",
+      message: feedback("checkFields"),
       fieldErrors: z.flattenError(parsed.error).fieldErrors,
     };
   }
@@ -52,7 +54,7 @@ async function runAction<TSchema extends z.ZodType>(
   try {
     await handler(parsed.data);
     revalidatePath("/");
-    return { ok: true, message: successMessage };
+    return { ok: true, message: feedback(successKey) };
   } catch (error) {
     if (error instanceof DomainError) {
       return { ok: false, message: error.message };
@@ -61,7 +63,7 @@ async function runAction<TSchema extends z.ZodType>(
     console.error(error);
     return {
       ok: false,
-      message: "The change could not be saved. Please try again.",
+      message: feedback("saveFailed"),
     };
   }
 }
@@ -74,7 +76,7 @@ export async function updatePropertyAction(
     updatePropertySchema,
     formData,
     updateProperty,
-    "Property updated.",
+    "propertyUpdated",
   );
 }
 
@@ -82,14 +84,14 @@ export async function createFloorAction(
   _state: ActionState,
   formData: FormData,
 ) {
-  return runAction(createFloorSchema, formData, createFloor, "Floor added.");
+  return runAction(createFloorSchema, formData, createFloor, "floorAdded");
 }
 
 export async function updateFloorAction(
   _state: ActionState,
   formData: FormData,
 ) {
-  return runAction(updateFloorSchema, formData, updateFloor, "Floor updated.");
+  return runAction(updateFloorSchema, formData, updateFloor, "floorUpdated");
 }
 
 export async function reorderFloorAction(
@@ -100,7 +102,7 @@ export async function reorderFloorAction(
     reorderFloorSchema,
     formData,
     reorderFloor,
-    "Floor order updated.",
+    "floorOrderUpdated",
   );
 }
 
@@ -112,7 +114,7 @@ export async function archiveFloorAction(
     archiveFloorSchema,
     formData,
     archiveFloor,
-    "Floor archived.",
+    "floorArchived",
   );
 }
 
@@ -120,21 +122,21 @@ export async function deleteFloorAction(
   _state: ActionState,
   formData: FormData,
 ) {
-  return runAction(deleteFloorSchema, formData, deleteFloor, "Floor deleted.");
+  return runAction(deleteFloorSchema, formData, deleteFloor, "floorDeleted");
 }
 
 export async function createSpaceAction(
   _state: ActionState,
   formData: FormData,
 ) {
-  return runAction(createSpaceSchema, formData, createSpace, "Space added.");
+  return runAction(createSpaceSchema, formData, createSpace, "spaceAdded");
 }
 
 export async function updateSpaceAction(
   _state: ActionState,
   formData: FormData,
 ) {
-  return runAction(updateSpaceSchema, formData, updateSpace, "Space updated.");
+  return runAction(updateSpaceSchema, formData, updateSpace, "spaceUpdated");
 }
 
 export async function reorderSpaceAction(
@@ -145,7 +147,7 @@ export async function reorderSpaceAction(
     reorderSpaceSchema,
     formData,
     reorderSpace,
-    "Space order updated.",
+    "spaceOrderUpdated",
   );
 }
 
@@ -157,7 +159,7 @@ export async function archiveSpaceAction(
     archiveSpaceSchema,
     formData,
     archiveSpace,
-    "Space archived.",
+    "spaceArchived",
   );
 }
 
@@ -165,5 +167,5 @@ export async function deleteSpaceAction(
   _state: ActionState,
   formData: FormData,
 ) {
-  return runAction(deleteSpaceSchema, formData, deleteSpace, "Space deleted.");
+  return runAction(deleteSpaceSchema, formData, deleteSpace, "spaceDeleted");
 }

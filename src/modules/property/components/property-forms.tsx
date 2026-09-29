@@ -140,15 +140,15 @@ export function PropertyFormDialog({
         {trigger ?? (
           <Button variant="outline">
             <Pencil />
-            Property settings
+            {t("forms.propertySettings")}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit property</DialogTitle>
+          <DialogTitle>{t("forms.editProperty")}</DialogTitle>
           <DialogDescription>
-            Update the basic information shown on the dashboard.
+            {t("forms.propertyDescription")}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={formAction} className="grid gap-4">
@@ -163,7 +163,7 @@ export function PropertyFormDialog({
           <Field
             id="property-address"
             name="addressLine1"
-            label="Address"
+            label={t("forms.address")}
             defaultValue={property.addressLine1 ?? ""}
             error={state.fieldErrors?.addressLine1?.[0]}
           />
@@ -171,14 +171,14 @@ export function PropertyFormDialog({
             <Field
               id="property-city"
               name="city"
-              label="City"
+              label={t("forms.city")}
               defaultValue={property.city ?? ""}
               error={state.fieldErrors?.city?.[0]}
             />
             <Field
               id="property-country"
               name="country"
-              label="Country"
+              label={t("forms.country")}
               defaultValue={property.country ?? ""}
               error={state.fieldErrors?.country?.[0]}
             />
@@ -186,13 +186,13 @@ export function PropertyFormDialog({
           <TextAreaField
             id="property-description"
             name="description"
-            label="Description"
+            label={t("forms.description")}
             defaultValue={property.description ?? ""}
             error={state.fieldErrors?.description?.[0]}
           />
           <FormStatus state={state} />
           <DialogFooter>
-            <SubmitButton>Save property</SubmitButton>
+            <SubmitButton>{t("forms.saveProperty")}</SubmitButton>
           </DialogFooter>
         </PreservingActionForm>
       </DialogContent>

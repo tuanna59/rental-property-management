@@ -361,5 +361,21 @@
   "electricityPeriodDetail": "Điện sử dụng {period}",
   "waterPeriodDetail": "Nước sử dụng {period}",
   "meterReadingSummary": "Chỉ số công tơ: {opening} → {closing}",
-  "meterCycleCount": "Chu kỳ sử dụng qua {count} công tơ"
+  "meterCycleCount": "Chu kỳ sử dụng qua {count} công tơ",
+  "missingMonthlyClosing": "Thiếu chỉ số chốt tháng bắt buộc",
+  "incompleteElectricityAttribution": "Chưa phân bổ đầy đủ điện năng tiêu thụ",
+  "missingMeterData": "Thiếu dữ liệu công tơ điện",
+  "feedback": {
+    "saveFailed": "Không thể lưu thay đổi hóa đơn.",
+    "draftGenerated": "Đã tạo hóa đơn nháp.",
+    "adjustmentAdded": "Đã thêm điều chỉnh.",
+    "adjustmentUpdated": "Đã cập nhật điều chỉnh.",
+    "adjustmentRemoved": "Đã xóa điều chỉnh.",
+    "allReadyGenerated": "Đã tạo tất cả hóa đơn đủ điều kiện.",
+    "lineUpdated": "Đã cập nhật dòng hóa đơn.",
+    "invoiceFinalized": "Đã chốt hóa đơn.",
+    "paymentRecorded": "Đã ghi nhận thanh toán.",
+    "paymentUpdated": "Đã cập nhật thanh toán.",
+    "depositTransactionRecorded": "Đã ghi nhận giao dịch tiền cọc."
+  }
 }

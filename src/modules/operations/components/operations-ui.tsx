@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -24,14 +25,19 @@ export function OperationsStatusBadge({
 }: {
   status: MaintenanceStatus | TaskStatus;
 }) {
+  const t = useTranslations("operations");
   const config =
     status === "OPEN"
-      ? { label: "Open", tone: "warning", icon: CircleDot }
+      ? { label: t("open"), tone: "warning", icon: CircleDot }
       : status === "IN_PROGRESS"
-        ? { label: "In progress", tone: "info", icon: Clock3 }
+        ? { label: t("inProgress"), tone: "info", icon: Clock3 }
         : status === "COMPLETED" || status === "DONE"
-          ? { label: status === "DONE" ? "Done" : "Completed", tone: "success", icon: CheckCircle2 }
-          : { label: "To do", tone: "neutral", icon: CircleDot };
+          ? {
+              label: status === "DONE" ? t("done") : t("completed"),
+              tone: "success",
+              icon: CheckCircle2,
+            }
+          : { label: t("toDo"), tone: "neutral", icon: CircleDot };
   const Icon = config.icon;
   return (
     <span className={cn("operations-badge", `is-${config.tone}`)}>
@@ -46,14 +52,15 @@ export function OperationsPriorityBadge({
 }: {
   priority: MaintenancePriority | TaskPriority;
 }) {
+  const t = useTranslations("operations");
   const config =
     priority === "URGENT"
-      ? { label: "Urgent", tone: "danger", icon: Flame }
+      ? { label: t("urgent"), tone: "danger", icon: Flame }
       : priority === "HIGH"
-        ? { label: "High", tone: "warning", icon: AlertTriangle }
+        ? { label: t("high"), tone: "warning", icon: AlertTriangle }
         : priority === "MEDIUM"
-          ? { label: "Medium", tone: "info", icon: Info }
-          : { label: "Low", tone: "neutral", icon: Wrench };
+          ? { label: t("medium"), tone: "info", icon: Info }
+          : { label: t("low"), tone: "neutral", icon: Wrench };
   const Icon = config.icon;
   return (
     <span className={cn("operations-badge", `is-${config.tone}`)}>
@@ -88,29 +95,28 @@ export function OperationsEmptyState({
   );
 }
 
-export function recurrenceLabel(unit: string | null, interval: number | null) {
-  if (!unit || !interval) return "One-time";
-  const noun =
-    unit === "DAYS"
-      ? interval === 1
-        ? "day"
-        : "days"
-      : unit === "MONTHS"
-        ? interval === 1
-          ? "month"
-          : "months"
-        : interval === 1
-          ? "year"
-          : "years";
-  return `Every ${interval} ${noun}`;
-}
+export function useOperationsLabels() {
+  const t = useTranslations("operations");
 
-export function categoryLabel(value: string) {
-  return {
-    REPAIR: "Repair",
-    UTILITIES: "Utilities",
-    CLEANING: "Cleaning",
-    SUPPLIES: "Supplies",
-    OTHER: "Other",
-  }[value] ?? value;
+  const localizedCategoryLabel = React.useCallback(
+    (value: string) => {
+      switch (value) {
+        case "REPAIR":
+          return t("repair");
+        case "UTILITIES":
+          return t("utilitiesCategory");
+        case "CLEANING":
+          return t("cleaning");
+        case "SUPPLIES":
+          return t("supplies");
+        case "OTHER":
+          return t("other");
+        default:
+          return value;
+      }
+    },
+    [t],
+  );
+
+  return { categoryLabel: localizedCategoryLabel };
 }

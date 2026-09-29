@@ -440,7 +440,10 @@ function conciseIssue(issue: string, t: ReturnType<typeof useTranslations<"billi
   if (issue.toLowerCase().includes("move-out")) return t("missingMoveOutBoundary");
   if (issue.toLowerCase().includes("move-in")) return t("missingMoveInBoundary");
   if (issue.toLowerCase().includes("rate")) return t("missingRate");
-  return issue;
+  if (issue.toLowerCase().includes("closing")) return t("missingMonthlyClosing");
+  if (issue.toLowerCase().includes("attribution")) return t("incompleteElectricityAttribution");
+  if (issue.toLowerCase().includes("meter")) return t("missingMeterData");
+  return t("missingData");
 }
 function statusLabel(value: Filter, t: ReturnType<typeof useTranslations<"billing">>) {
   return ({ ALL: t("all"), DRAFT: t("draft"), FINALIZED: t("finalized"), UNPAID: t("unpaid"), PARTIAL: t("partial"), PAID: t("paid") })[value];

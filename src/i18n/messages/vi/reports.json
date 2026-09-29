@@ -27,7 +27,8 @@
     "usage": "Mức sử dụng",
     "location": "Vị trí",
     "description": "Nội dung",
-    "category": "Loại chi phí"
+    "category": "Loại chi phí",
+    "property": "Nhà trọ"
   },
   "financial": {
     "billedRevenue": "Doanh thu đã lập hóa đơn",

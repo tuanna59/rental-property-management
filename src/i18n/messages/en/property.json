@@ -5,5 +5,20 @@
   "rentalRoom": "Rental Room",
   "ownerHome": "Owner Home",
   "garage": "Garage",
-  "rooftop": "Rooftop"
+  "rooftop": "Rooftop",
+  "feedback": {
+    "checkFields": "Please check the highlighted fields.",
+    "saveFailed": "The change could not be saved. Please try again.",
+    "propertyUpdated": "Property updated.",
+    "floorAdded": "Floor added.",
+    "floorUpdated": "Floor updated.",
+    "floorOrderUpdated": "Floor order updated.",
+    "floorArchived": "Floor archived.",
+    "floorDeleted": "Floor deleted.",
+    "spaceAdded": "Space added.",
+    "spaceUpdated": "Space updated.",
+    "spaceOrderUpdated": "Space order updated.",
+    "spaceArchived": "Space archived.",
+    "spaceDeleted": "Space deleted."
+  }
 }

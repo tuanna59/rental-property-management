@@ -70,7 +70,7 @@
   border: 1px solid var(--app-border);
   border-radius: 12px;
   background: var(--app-surface);
-  box-shadow: 0 14px 38px rgb(38 58 49 / 0.07);
+  box-shadow: var(--app-shadow-elevated);
 }
 
 .people-directory {
@@ -98,7 +98,7 @@
 
 .people-search:focus-within {
   border-color: color-mix(in srgb, var(--app-brand) 52%, var(--app-card-bg));
-  box-shadow: 0 0 0 3px rgb(45 128 96 / 0.08);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-focus-ring) 12%, transparent);
 }
 
 .people-search svg {
@@ -197,7 +197,7 @@
   border: 1px solid var(--app-border);
   border-radius: 9px;
   background: var(--app-surface);
-  box-shadow: 0 12px 30px rgb(34 54 45 / 0.14);
+  box-shadow: var(--app-shadow-elevated);
 }
 
 .people-archive-menu a,
@@ -1837,7 +1837,7 @@ button.tenant-summary-card:hover {
   gap: 7px;
   padding: 16px 17px;
   border-radius: 12px;
-  box-shadow: 0 5px 18px rgb(38 58 49 / 0.035);
+  box-shadow: var(--app-shadow-card);
 }
 
 .tenant-kpi-icon {
@@ -2284,7 +2284,7 @@ button.tenant-summary-card:hover {
   grid-template-columns: minmax(320px, 35%) minmax(0, 65%);
   background: var(--app-surface);
   border: 1px solid var(--app-border);
-  box-shadow: 0 14px 38px rgb(38 58 49 / 0.08);
+  box-shadow: var(--app-shadow-elevated);
 }
 
 .people-directory,
@@ -2335,7 +2335,7 @@ button.tenant-summary-card:hover {
   border: 1px solid var(--app-border);
   border-radius: 14px;
   background: var(--app-surface);
-  box-shadow: 0 4px 16px rgb(38 58 49 / 0.05);
+  box-shadow: var(--app-shadow-card);
 }
 
 .tenant-profile-avatar-wrap,
@@ -2355,7 +2355,7 @@ button.tenant-summary-card:hover {
   flex-basis: 200px;
   border: 1px solid var(--app-border);
   font-size: calc(42px + var(--app-font-size-bump));
-  box-shadow: 0 1px 3px rgb(38 58 49 / 0.08);
+  box-shadow: var(--app-shadow-sm);
 }
 
 .tenant-avatar-upload label {

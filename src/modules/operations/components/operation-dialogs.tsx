@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Archive,
   ArrowRight,
@@ -34,7 +35,8 @@ import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import { PrivateAttachmentPicker } from "@/components/ui/private-attachment";
 import { Textarea } from "@/components/ui/textarea";
 import { emptyActionState, type ActionState } from "@/lib/action-state";
-import { formatDate, formatVnd } from "@/lib/presentation";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale, formatVndLocale } from "@/i18n/format";
 
 import {
   addMaintenancePhotosAction,
@@ -62,10 +64,9 @@ import type {
   TaskListItemView,
 } from "../domain/types";
 import {
-  categoryLabel,
   OperationsPriorityBadge,
   OperationsStatusBadge,
-  recurrenceLabel,
+  useOperationsLabels,
 } from "./operations-ui";
 
 const todayDate = () => {
@@ -169,6 +170,7 @@ function LocationFields({
   defaultFloorId?: string | null;
   defaultSpaceId?: string | null;
 }) {
+  const t = useTranslations("operations");
   const inferredFloor =
     defaultFloorId ||
     locations.find((location) => location.spaceId === defaultSpaceId)?.floorId ||
@@ -198,12 +200,12 @@ function LocationFields({
   return (
     <div className="operations-form-grid">
       <SelectField
-        label="Floor"
+        label={t("floor")}
         name="floorId"
         value={floorId}
         onChange={(event) => setFloorId(event.target.value)}
       >
-        <option value="">Property level</option>
+        <option value="">{t("propertyLevel")}</option>
         {floorOptions.map((floor) => (
           <option key={floor.id} value={floor.id}>
             {floor.name}
@@ -211,13 +213,13 @@ function LocationFields({
         ))}
       </SelectField>
       <SelectField
-        label="Room / space"
+        label={t("roomSpace")}
         name="spaceId"
         value={spaceId}
         disabled={!floorId}
         onChange={(event) => setSpaceId(event.target.value)}
       >
-        <option value="">None</option>
+        <option value="">{t("none")}</option>
         {roomOptions.map((location) => (
           <option key={location.spaceId} value={location.spaceId}>
             {location.spaceName}
@@ -251,6 +253,7 @@ export function ExpenseFormDialog({
   defaultSpaceId?: string | null;
   autoOpen?: boolean;
 }) {
+  const t = useTranslations("operations");
   const [open, setOpen] = React.useState(autoOpen);
   const serverAction = expense ? updateExpenseAction : createExpenseAction;
   const [state, action] = useDialogAction(serverAction, () => setOpen(false));
@@ -260,44 +263,42 @@ export function ExpenseFormDialog({
       <DialogTrigger asChild>
         {trigger ?? (
           <Button>
-            <Plus /> Add expense
+            <Plus /> {t("addExpense")}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="operations-dialog operations-dialog-wide">
         <DialogHeader>
-          <DialogTitle>{expense ? "Edit expense" : "Add expense"}</DialogTitle>
-          <DialogDescription>
-            Record an actual owner/property cost. Expense amounts are kept exactly as entered.
-          </DialogDescription>
+          <DialogTitle>{expense ? t("editExpense") : t("addExpense")}</DialogTitle>
+          <DialogDescription>{t("expenseFormDescription")}</DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="operations-form">
           <input type="hidden" name="propertyId" value={propertyId} />
           {expense && <input type="hidden" name="expenseId" value={expense.id} />}
           <div className="operations-form-grid">
             <Field
-              label="Date"
+              label={t("expenseDate")}
               name="expenseDate"
               type="date"
               defaultValue={expense?.expenseDate ?? todayDate()}
               required
             />
             <SelectField
-              label="Category"
+              label={t("expenseCategory")}
               name="category"
               defaultValue={expense?.category ?? "REPAIR"}
               required
             >
-              <option value="REPAIR">Repair</option>
-              <option value="UTILITIES">Utilities</option>
-              <option value="CLEANING">Cleaning</option>
-              <option value="SUPPLIES">Supplies</option>
-              <option value="OTHER">Other</option>
+              <option value="REPAIR">{t("repair")}</option>
+              <option value="UTILITIES">{t("utilitiesCategory")}</option>
+              <option value="CLEANING">{t("cleaning")}</option>
+              <option value="SUPPLIES">{t("supplies")}</option>
+              <option value="OTHER">{t("other")}</option>
             </SelectField>
           </div>
           <div className="operations-form-grid">
             <Field
-              label="Amount (VND)"
+              label={t("amountVnd")}
               name="amount"
               type="number"
               min="1"
@@ -306,7 +307,7 @@ export function ExpenseFormDialog({
               required
             />
             <Field
-              label="Description"
+              label={t("description")}
               name="description"
               defaultValue={expense?.description ?? ""}
               required
@@ -319,50 +320,50 @@ export function ExpenseFormDialog({
           />
           {assetOptions.length > 0 && (
             <SelectField
-              label="Asset (optional)"
+              label={t("assetOptional")}
               name="assetId"
               defaultValue={expense?.assetId ?? defaultAssetId ?? ""}
             >
-              <option value="">No linked asset</option>
+              <option value="">{t("noLinkedAsset")}</option>
               {assetOptions.map((asset) => (
-                <option key={asset.id} value={asset.id}>{asset.name} · {asset.locationLabel}</option>
+                <option key={asset.id} value={asset.id}>{asset.name} · {asset.locationLabel === "Property" ? t("propertyLevel") : asset.locationLabel}</option>
               ))}
             </SelectField>
           )}
           <SelectField
-            label="Linked maintenance (optional)"
+            label={t("linkedMaintenanceOptional")}
             name="maintenanceIssueId"
             defaultValue={expense?.maintenanceIssueId ?? ""}
           >
-            <option value="">No linked issue</option>
+            <option value="">{t("noLinkedIssue")}</option>
             {maintenanceOptions.map((issue) => (
               <option key={issue.id} value={issue.id}>
                 {issue.title} · {issue.locationLabel}
               </option>
             ))}
           </SelectField>
-          <TextareaField label="Notes (optional)" name="notes" defaultValue={expense?.notes ?? ""} />
+          <TextareaField label={t("notesOptional")} name="notes" defaultValue={expense?.notes ?? ""} />
           <div className="operations-attachment-field">
             <PrivateAttachmentPicker
-              title="Receipt"
+              title={t("receipt")}
               name="receipt"
               accept="application/pdf,image/jpeg,image/png,image/webp"
-              emptyText="No receipt attached"
+              emptyText={t("noReceiptAttached")}
               existingCount={expense?.hasReceipt ? 1 : 0}
-              actionLabel={expense?.hasReceipt ? "Choose replacement" : "Add receipt"}
+              actionLabel={expense?.hasReceipt ? t("chooseReplacement") : t("addReceipt")}
               kind="receipt"
             />
             {expense?.hasReceipt && (
               <ExpenseReceiptViewer
                 expense={expense}
-                trigger={<button type="button" className="operations-attachment-view"><Eye /> View current receipt</button>}
+                trigger={<button type="button" className="operations-attachment-view"><Eye /> {t("viewCurrentReceipt")}</button>}
               />
             )}
           </div>
           <ActionDialogState state={state} />
           <DialogFooter>
             <Button type="submit">
-              <ReceiptText /> {expense ? "Save expense" : "Record expense"}
+              <ReceiptText /> {expense ? t("saveExpense") : t("recordExpense")}
             </Button>
           </DialogFooter>
         </PreservingActionForm>
@@ -392,6 +393,7 @@ export function MaintenanceFormDialog({
   defaultSpaceId?: string | null;
   autoOpen?: boolean;
 }) {
+  const t = useTranslations("operations");
   const [open, setOpen] = React.useState(autoOpen);
   const serverAction = issue ? updateMaintenanceAction : createMaintenanceAction;
   const [state, action] = useDialogAction(serverAction, () => setOpen(false));
@@ -401,41 +403,41 @@ export function MaintenanceFormDialog({
       <DialogTrigger asChild>
         {trigger ?? (
           <Button>
-            <Plus /> Report issue
+            <Plus /> {t("reportIssue")}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="operations-dialog operations-dialog-wide">
         <DialogHeader>
-          <DialogTitle>{issue ? "Edit maintenance issue" : "Report maintenance issue"}</DialogTitle>
+          <DialogTitle>{issue ? t("editMaintenanceIssue") : t("reportMaintenanceIssue")}</DialogTitle>
           <DialogDescription>
-            Capture the problem, location, priority, and any useful evidence.
+            {t("maintenanceFormDescription")}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="operations-form">
           <input type="hidden" name="propertyId" value={propertyId} />
           {issue && <input type="hidden" name="issueId" value={issue.id} />}
-          <Field label="Issue title" name="title" defaultValue={issue?.title ?? ""} required />
+          <Field label={t("issueTitle")} name="title" defaultValue={issue?.title ?? ""} required />
           <TextareaField
-            label="Description"
+            label={t("description")}
             name="description"
             defaultValue={issue?.description ?? ""}
             required
           />
           <div className="operations-form-grid">
             <SelectField
-              label="Priority"
+              label={t("priority")}
               name="priority"
               defaultValue={issue?.priority ?? "MEDIUM"}
               required
             >
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-              <option value="URGENT">Urgent</option>
+              <option value="LOW">{t("low")}</option>
+              <option value="MEDIUM">{t("medium")}</option>
+              <option value="HIGH">{t("high")}</option>
+              <option value="URGENT">{t("urgent")}</option>
             </SelectField>
             <Field
-              label="Reported date"
+              label={t("reportedDate")}
               name="reportedAt"
               type="date"
               defaultValue={issue?.reportedAt ?? todayDate()}
@@ -449,36 +451,36 @@ export function MaintenanceFormDialog({
           />
           {assetOptions.length > 0 && (
             <SelectField
-              label="Asset (optional)"
+              label={t("assetOptional")}
               name="assetId"
               defaultValue={issue?.assetId ?? defaultAssetId ?? ""}
             >
-              <option value="">No linked asset</option>
+              <option value="">{t("noLinkedAsset")}</option>
               {assetOptions.map((asset) => (
-                <option key={asset.id} value={asset.id}>{asset.name} · {asset.locationLabel}</option>
+                <option key={asset.id} value={asset.id}>{asset.name} · {asset.floorId || asset.spaceId ? asset.locationLabel : t("property")}</option>
               ))}
             </SelectField>
           )}
           <div className="operations-form-grid">
-            <Field label="Reported by (optional)" name="reportedBy" defaultValue={issue?.reportedBy ?? ""} />
-            <Field label="Assigned to (optional)" name="assignedTo" defaultValue={issue?.assignedTo ?? ""} />
+            <Field label={t("reportedByOptional")} name="reportedBy" defaultValue={issue?.reportedBy ?? ""} />
+            <Field label={t("assignedToOptional")} name="assignedTo" defaultValue={issue?.assignedTo ?? ""} />
           </div>
-          <TextareaField label="Notes (optional)" name="notes" defaultValue={issue?.notes ?? ""} />
+          <TextareaField label={t("notesOptional")} name="notes" defaultValue={issue?.notes ?? ""} />
           {!issue && (
             <PrivateAttachmentPicker
-              title="Photos"
+              title={t("photos")}
               name="photos"
               accept="image/jpeg,image/png,image/webp"
               multiple
-              emptyText="No photos attached"
-              actionLabel="Add photos"
+              emptyText={t("noPhotosAttached")}
+              actionLabel={t("addPhotos")}
               kind="image"
             />
           )}
           <ActionDialogState state={state} />
           <DialogFooter>
             <Button type="submit">
-              <Wrench /> {issue ? "Save issue" : "Report issue"}
+              <Wrench /> {issue ? t("saveIssue") : t("reportIssue")}
             </Button>
           </DialogFooter>
         </PreservingActionForm>
@@ -506,6 +508,7 @@ export function TaskFormDialog({
   defaultLinkedEntityType?: "PROPERTY" | "SPACE" | "MAINTENANCE" | "INVOICE" | null;
   defaultLinkedEntityId?: string | null;
 }) {
+  const t = useTranslations("operations");
   const [open, setOpen] = React.useState(false);
   const [linkType, setLinkType] = React.useState<string>(task?.linkedEntityType ?? defaultLinkedEntityType ?? "");
   const [recurrence, setRecurrence] = React.useState<string>(task?.recurrenceUnit ?? "");
@@ -535,52 +538,50 @@ export function TaskFormDialog({
       <DialogTrigger asChild>
         {trigger ?? (
           <Button>
-            <Plus /> Add task
+            <Plus /> {t("addTask")}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="operations-dialog operations-dialog-wide">
         <DialogHeader>
-          <DialogTitle>{task ? "Edit task" : "Add task"}</DialogTitle>
-          <DialogDescription>
-            Keep operational work lightweight. Recurring tasks create the next occurrence only when completed.
-          </DialogDescription>
+          <DialogTitle>{task ? t("editTask") : t("addTask")}</DialogTitle>
+          <DialogDescription>{t("taskFormDescription")}</DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="operations-form">
           <input type="hidden" name="propertyId" value={propertyId} />
           {task && <input type="hidden" name="taskId" value={task.id} />}
-          <Field label="Title" name="title" defaultValue={task?.title ?? ""} required />
-          <TextareaField label="Description (optional)" name="description" defaultValue={task?.description ?? ""} />
+          <Field label={t("titleField")} name="title" defaultValue={task?.title ?? ""} required />
+          <TextareaField label={t("descriptionOptional")} name="description" defaultValue={task?.description ?? ""} />
           <div className="operations-form-grid">
-            <SelectField label="Priority" name="priority" defaultValue={task?.priority ?? "MEDIUM"} required>
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
+            <SelectField label={t("priority")} name="priority" defaultValue={task?.priority ?? "MEDIUM"} required>
+              <option value="LOW">{t("low")}</option>
+              <option value="MEDIUM">{t("medium")}</option>
+              <option value="HIGH">{t("high")}</option>
             </SelectField>
-            <Field label="Due date (optional)" name="dueDate" type="date" defaultValue={task?.dueDate ?? ""} />
+            <Field label={t("dueDateOptional")} name="dueDate" type="date" defaultValue={task?.dueDate ?? ""} />
           </div>
           <div className="operations-form-grid">
             <SelectField
-              label="Linked context (optional)"
+              label={t("linkedContextOptional")}
               name="linkedEntityType"
               value={linkType}
               onChange={(event) => setLinkType(event.target.value)}
             >
-              <option value="">No link</option>
-              <option value="PROPERTY">Property</option>
-              <option value="SPACE">Room / space</option>
-              <option value="MAINTENANCE">Maintenance issue</option>
-              <option value="INVOICE">Invoice</option>
+              <option value="">{t("noLink")}</option>
+              <option value="PROPERTY">{t("property")}</option>
+              <option value="SPACE">{t("roomSpace")}</option>
+              <option value="MAINTENANCE">{t("maintenanceIssue")}</option>
+              <option value="INVOICE">{t("invoice")}</option>
             </SelectField>
             {linkType && linkType !== "PROPERTY" ? (
               <SelectField
                 key={`${linkType}-${task?.linkedEntityId ?? ""}`}
                 label={
                   linkType === "MAINTENANCE"
-                    ? "Choose maintenance issue"
+                    ? t("chooseMaintenanceIssue")
                     : linkType === "SPACE"
-                      ? "Choose room / space"
-                      : "Choose invoice"
+                      ? t("chooseRoomSpace")
+                      : t("chooseInvoice")
                 }
                 name="linkedEntityId"
                 defaultValue={
@@ -592,7 +593,7 @@ export function TaskFormDialog({
                 }
                 required
               >
-                <option value="">Choose record</option>
+                <option value="">{t("chooseRecord")}</option>
                 {linkedOptions.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.label}
@@ -601,25 +602,25 @@ export function TaskFormDialog({
               </SelectField>
             ) : (
               <div className="operations-form-context">
-                <span>{linkType === "PROPERTY" ? "Linked to this property" : "No operational link"}</span>
+                <span>{linkType === "PROPERTY" ? t("linkedToProperty") : t("noOperationalLink")}</span>
               </div>
             )}
           </div>
           <div className="operations-form-grid">
             <SelectField
-              label="Recurrence"
+              label={t("recurrence")}
               name="recurrenceUnit"
               value={recurrence}
               onChange={(event) => setRecurrence(event.target.value)}
             >
-              <option value="">One-time</option>
-              <option value="DAYS">Repeat by days</option>
-              <option value="MONTHS">Repeat by months</option>
-              <option value="YEARS">Repeat by years</option>
+              <option value="">{t("oneTime")}</option>
+              <option value="DAYS">{t("repeatByDays")}</option>
+              <option value="MONTHS">{t("repeatByMonths")}</option>
+              <option value="YEARS">{t("repeatByYears")}</option>
             </SelectField>
             {recurrence ? (
               <Field
-                label={`Repeat every (${recurrence === "DAYS" ? "days" : recurrence === "MONTHS" ? "months" : "years"})`}
+                label={t("repeatEveryUnit", { unit: recurrence === "DAYS" ? t("days") : recurrence === "MONTHS" ? t("months") : t("years") })}
                 name="recurrenceInterval"
                 type="number"
                 min="1"
@@ -629,14 +630,14 @@ export function TaskFormDialog({
               />
             ) : (
               <div className="operations-form-context">
-                <span>Complete once and keep the history.</span>
+                <span>{t("completeOnceHistory")}</span>
               </div>
             )}
           </div>
           <ActionDialogState state={state} />
           <DialogFooter>
             <Button type="submit">
-              <Check /> {task ? "Save task" : "Create task"}
+              <Check /> {task ? t("saveTask") : t("createTask")}
             </Button>
           </DialogFooter>
         </PreservingActionForm>
@@ -662,7 +663,11 @@ export function MaintenanceDetailDialog({
   autoOpen?: boolean;
   suppressTrigger?: boolean;
 }) {
+  const t = useTranslations("operations");
+  const locale = useLocale() as AppLocale;
+  const { categoryLabel: localizedCategoryLabel } = useOperationsLabels();
   const [open, setOpen] = React.useState(autoOpen);
+  const [activeTab, setActiveTab] = React.useState<"OVERVIEW" | "PHOTOS" | "EXPENSES" | "HISTORY">("OVERVIEW");
   const router = useRouter();
   const [startState, startAction] = React.useActionState(
     async (previous: ActionState, data: FormData) => {
@@ -684,13 +689,71 @@ export function MaintenanceDetailDialog({
     emptyActionState,
   );
 
+  const historyEvents = React.useMemo(() => {
+    const events: Array<{
+      id: string;
+      date: string;
+      title: string;
+      detail?: string | null;
+    }> = [
+      {
+        id: `reported-${issue.id}`,
+        date: issue.reportedAt,
+        title: t("reportedEvent"),
+        detail: issue.reportedBy ? t("byPerson", { name: issue.reportedBy }) : null,
+      },
+    ];
+
+    issue.photos.forEach((photo, index) => {
+      events.push({
+        id: `photo-${photo.id}`,
+        date: photo.createdAt,
+        title: t("photoAddedEvent"),
+        detail: t("photoNumber", { index: index + 1 }),
+      });
+    });
+
+    issue.relatedExpenses.forEach((expense) => {
+      events.push({
+        id: `expense-${expense.id}`,
+        date: expense.expenseDate,
+        title: t("expenseRecordedEvent"),
+        detail: `${expense.description} · ${formatVndLocale(expense.amountVnd, locale)}`,
+      });
+    });
+
+    if (issue.completedAt) {
+      events.push({
+        id: `completed-${issue.id}`,
+        date: issue.completedAt,
+        title: t("issueCompletedEvent"),
+        detail: issue.resolution || t("completed"),
+      });
+    }
+
+    return events.sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+  }, [issue, locale, t]);
+
+  const tabs = [
+    { id: "OVERVIEW" as const, label: t("overview") },
+    { id: "PHOTOS" as const, label: t("photos") },
+    { id: "EXPENSES" as const, label: t("expenses") },
+    { id: "HISTORY" as const, label: t("history") },
+  ];
+
+  const issueLocationLabel = issue.spaceName
+    ? issue.floorName
+      ? `${issue.spaceName} · ${issue.floorName}`
+      : issue.spaceName
+    : issue.floorName || t("property");
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {!suppressTrigger && (
         <DialogTrigger asChild>
           {trigger ?? (
             <Button size="sm" variant="ghost" className="operations-view-button">
-              <Eye /> View
+              <Eye /> {t("view")}
             </Button>
           )}
         </DialogTrigger>
@@ -700,7 +763,9 @@ export function MaintenanceDetailDialog({
           <div className="operations-detail-title-row">
             <div>
               <DialogTitle>{issue.title}</DialogTitle>
-              <DialogDescription>{issue.locationLabel} · Reported {formatDate(issue.reportedAt)}</DialogDescription>
+              <DialogDescription>
+                {issueLocationLabel} · {t("reportedOn", { date: formatDateOnlyLocale(issue.reportedAt, locale) })}
+              </DialogDescription>
             </div>
             <div className="operations-detail-badges">
               <OperationsPriorityBadge priority={issue.priority} />
@@ -709,97 +774,182 @@ export function MaintenanceDetailDialog({
           </div>
         </DialogHeader>
 
-        <div className="operations-detail-meta">
-          <div>
-            <span>Reported</span>
-            <strong>{formatDate(issue.reportedAt)}</strong>
-            {issue.reportedBy && <small>by {issue.reportedBy}</small>}
-          </div>
-          <div><span>Assigned to</span><strong>{issue.assignedTo || "Unassigned"}</strong></div>
-          <div><span>Location</span><strong>{issue.locationLabel}</strong></div>
-          <div><span>Related cost</span><strong>{formatVnd(issue.costVnd)}</strong>{issue.assetName && issue.assetId && <small><a className="operations-context-link" href={`/assets/${issue.assetId}`}>Asset · {issue.assetName}</a></small>}</div>
+        <div
+          className="operations-detail-tabs"
+          role="tablist"
+          aria-label={t("maintenanceDetailSections")}
+        >
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              className={activeTab === tab.id ? "is-active" : ""}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        <section className="operations-detail-section">
-          <h3>Description</h3>
-          <p>{issue.description}</p>
-          {issue.notes && <div className="operations-note"><strong>Notes</strong><p>{issue.notes}</p></div>}
-        </section>
-
-        <section className="operations-detail-section operations-attachments-section">
-          <div className="operations-section-heading-inline">
-            <h3>Photos</h3>
-            <span>{issue.photos.length ? `${issue.photos.length} attached` : "No photos attached"}</span>
-          </div>
-          {issue.photos.length > 0 ? (
-            <MaintenancePhotoGallery issue={issue} />
-          ) : (
-            <p className="operations-muted">No photos attached.</p>
-          )}
-          {issue.status !== "COMPLETED" && (
-            <MaintenancePhotoUpload propertyId={propertyId} issueId={issue.id} existingCount={issue.photos.length} />
-          )}
-        </section>
-
-        {issue.status !== "COMPLETED" && (
-          <section className="operations-detail-section operations-detail-actions-section">
-            <h3>Work</h3>
-            <div className="operations-detail-actions">
-              {issue.status === "OPEN" && (
-                <PreservingActionForm action={startAction} className="operations-inline-action">
-                  <input type="hidden" name="issueId" value={issue.id} />
-                  <Input name="assignedTo" defaultValue={issue.assignedTo ?? ""} placeholder="Assign to (optional)" />
-                  <Button type="submit"><ArrowRight /> Start work</Button>
-                </PreservingActionForm>
-              )}
-              {issue.status === "IN_PROGRESS" && (
-                <CompleteMaintenanceDialog issue={issue} />
-              )}
-              <MaintenanceFormDialog
-                propertyId={propertyId}
-                locations={locations}
-                assetOptions={assetOptions}
-                issue={issue}
-                trigger={<Button type="button" variant="outline"><Pencil /> Edit</Button>}
-              />
-            </div>
-            <ActionDialogState state={startState} />
-          </section>
-        )}
-
-        {issue.status === "COMPLETED" && (
-          <section className="operations-detail-section operations-resolution">
-            <h3>Resolution</h3>
-            <p>{issue.resolution || "Completed"}</p>
-            {issue.completedAt && <span>Completed {formatDate(issue.completedAt)}</span>}
-          </section>
-        )}
-
-        <section className="operations-detail-section">
-          <div className="operations-section-heading-inline">
-            <h3>Related expenses</h3>
-            <span>{issue.relatedExpenses.length}</span>
-          </div>
-          {issue.relatedExpenses.length ? (
-            <div className="operations-related-list">
-              {issue.relatedExpenses.map((expense) => (
-                <div key={expense.id}>
-                  <span>{formatDate(expense.expenseDate)}</span>
-                  <strong>{expense.description}</strong>
-                  <small>{categoryLabel(expense.category)}</small>
-                  <b>{formatVnd(expense.amountVnd)}</b>
+        <div className="operations-detail-tab-panel" role="tabpanel">
+          {activeTab === "OVERVIEW" && (
+            <div className="operations-detail-tab-stack">
+              <div className="operations-detail-meta">
+                <div>
+                  <span>{t("reported")}</span>
+                  <strong>{formatDateOnlyLocale(issue.reportedAt, locale)}</strong>
+                  {issue.reportedBy && <small>{t("byPerson", { name: issue.reportedBy })}</small>}
                 </div>
-              ))}
+                <div>
+                  <span>{t("assignedTo")}</span>
+                  <strong>{issue.assignedTo || t("unassigned")}</strong>
+                </div>
+                <div>
+                  <span>{t("location")}</span>
+                  <strong>{issueLocationLabel}</strong>
+                </div>
+                <div>
+                  <span>{t("relatedCost")}</span>
+                  <strong>{formatVndLocale(issue.costVnd, locale)}</strong>
+                  {issue.assetName && issue.assetId && (
+                    <small>
+                      <a className="operations-context-link" href={`/assets/${issue.assetId}`}>
+                        {t("assetContext", { name: issue.assetName })}
+                      </a>
+                    </small>
+                  )}
+                </div>
+              </div>
+
+              <section className="operations-detail-section">
+                <h3>{t("description")}</h3>
+                <p>{issue.description}</p>
+                {issue.notes && (
+                  <div className="operations-note">
+                    <strong>{t("notes")}</strong>
+                    <p>{issue.notes}</p>
+                  </div>
+                )}
+              </section>
+
+              {issue.status !== "COMPLETED" && (
+                <section className="operations-detail-section operations-detail-actions-section">
+                  <h3>{t("work")}</h3>
+                  <div className="operations-detail-actions">
+                    {issue.status === "OPEN" && (
+                      <PreservingActionForm action={startAction} className="operations-inline-action">
+                        <input type="hidden" name="issueId" value={issue.id} />
+                        <Input
+                          name="assignedTo"
+                          defaultValue={issue.assignedTo ?? ""}
+                          placeholder={t("assignToOptional")}
+                        />
+                        <Button type="submit"><ArrowRight /> {t("startWork")}</Button>
+                      </PreservingActionForm>
+                    )}
+                    {issue.status === "IN_PROGRESS" && (
+                      <CompleteMaintenanceDialog issue={issue} />
+                    )}
+                    <MaintenanceFormDialog
+                      propertyId={propertyId}
+                      locations={locations}
+                      assetOptions={assetOptions}
+                      issue={issue}
+                      trigger={<Button type="button" variant="outline"><Pencil /> {t("edit")}</Button>}
+                    />
+                  </div>
+                  <ActionDialogState state={startState} />
+                </section>
+              )}
+
+              {issue.status === "COMPLETED" && (
+                <section className="operations-detail-section operations-resolution">
+                  <h3>{t("resolution")}</h3>
+                  <p>{issue.resolution || t("completed")}</p>
+                  {issue.completedAt && (
+                    <span>{t("completedOn", { date: formatDateOnlyLocale(issue.completedAt, locale) })}</span>
+                  )}
+                </section>
+              )}
             </div>
-          ) : (
-            <p className="operations-muted">No owner costs linked to this issue yet.</p>
           )}
-        </section>
+
+          {activeTab === "PHOTOS" && (
+            <section className="operations-detail-section operations-attachments-section">
+              <div className="operations-section-heading-inline">
+                <h3>{t("photos")}</h3>
+                <span>
+                  {issue.photos.length
+                    ? t("attachedCount", { count: issue.photos.length })
+                    : t("noPhotosAttached")}
+                </span>
+              </div>
+              {issue.photos.length > 0 ? (
+                <MaintenancePhotoGallery issue={issue} />
+              ) : (
+                <p className="operations-muted">{t("noPhotosAttached")}</p>
+              )}
+              {issue.status !== "COMPLETED" && (
+                <MaintenancePhotoUpload
+                  propertyId={propertyId}
+                  issueId={issue.id}
+                  existingCount={issue.photos.length}
+                />
+              )}
+            </section>
+          )}
+
+          {activeTab === "EXPENSES" && (
+            <section className="operations-detail-section">
+              <div className="operations-section-heading-inline">
+                <h3>{t("relatedExpenses")}</h3>
+                <span>{issue.relatedExpenses.length}</span>
+              </div>
+              {issue.relatedExpenses.length ? (
+                <div className="operations-related-list">
+                  {issue.relatedExpenses.map((expense) => (
+                    <div key={expense.id}>
+                      <span>{formatDateOnlyLocale(expense.expenseDate, locale)}</span>
+                      <strong>{expense.description}</strong>
+                      <small>{localizedCategoryLabel(expense.category)}</small>
+                      <b>{formatVndLocale(expense.amountVnd, locale)}</b>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="operations-muted">{t("noRelatedOwnerCosts")}</p>
+              )}
+            </section>
+          )}
+
+          {activeTab === "HISTORY" && (
+            <section className="operations-detail-section">
+              <div className="operations-section-heading-inline">
+                <h3>{t("history")}</h3>
+                <span>{historyEvents.length}</span>
+              </div>
+              <div className="operations-history-list">
+                {historyEvents.map((event) => (
+                  <div key={event.id} className="operations-history-item">
+                    <span className="operations-history-dot" aria-hidden="true" />
+                    <div>
+                      <strong>{event.title}</strong>
+                      {event.detail && <p>{event.detail}</p>}
+                    </div>
+                    <time>{formatDateOnlyLocale(event.date, locale)}</time>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
 
         <div className="operations-detail-danger">
           <PreservingActionForm action={archiveAction}>
             <input type="hidden" name="issueId" value={issue.id} />
-            <Button type="submit" variant="ghost"><Archive /> Archive issue</Button>
+            <Button type="submit" variant="ghost"><Archive /> {t("archiveIssue")}</Button>
           </PreservingActionForm>
           <ActionDialogState state={archiveState} />
         </div>
@@ -809,52 +959,55 @@ export function MaintenanceDetailDialog({
 }
 
 function CompleteMaintenanceDialog({ issue }: { issue: MaintenanceListItemView }) {
+  const t = useTranslations("operations");
   const [open, setOpen] = React.useState(false);
   const [includeCost, setIncludeCost] = React.useState(false);
   const [state, action] = useDialogAction(completeMaintenanceAction, () => setOpen(false));
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type="button"><Check /> Complete</Button>
+        <Button type="button"><Check /> {t("complete")}</Button>
       </DialogTrigger>
       <DialogContent className="operations-dialog">
         <DialogHeader>
-          <DialogTitle>Complete maintenance</DialogTitle>
-          <DialogDescription>
-            Close the issue and optionally record the actual owner cost as a linked expense.
-          </DialogDescription>
+          <DialogTitle>{t("completeMaintenance")}</DialogTitle>
+          <DialogDescription>{t("completeMaintenanceDescription")}</DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="operations-form">
           <input type="hidden" name="issueId" value={issue.id} />
-          <TextareaField label="Resolution" name="resolution" required />
-          <Field label="Completed date" name="completedAt" type="date" defaultValue={todayDate()} required />
+          <TextareaField label={t("resolution")} name="resolution" required />
+          <Field label={t("completedDate")} name="completedAt" type="date" defaultValue={todayDate()} required />
           <label className="operations-check-row">
             <input type="checkbox" checked={includeCost} onChange={(event) => setIncludeCost(event.target.checked)} />
             <span>
-              <strong>Record maintenance cost</strong>
-              <small>Create a linked Expense in the same transaction.</small>
+              <strong>{t("recordMaintenanceCost")}</strong>
+              <small>{t("createLinkedExpenseSameTransaction")}</small>
             </span>
           </label>
           {includeCost && (
             <div className="operations-cost-panel">
               <div className="operations-form-grid">
-                <Field label="Cost (VND)" name="cost" type="number" min="1" step="1" required />
-                <SelectField label="Expense category" name="expenseCategory" defaultValue="REPAIR" required>
-                  <option value="REPAIR">Repair</option>
-                  <option value="UTILITIES">Utilities</option>
-                  <option value="CLEANING">Cleaning</option>
-                  <option value="SUPPLIES">Supplies</option>
-                  <option value="OTHER">Other</option>
+                <Field label={t("costVnd")} name="cost" type="number" min="1" step="1" required />
+                <SelectField label={t("expenseCategory")} name="expenseCategory" defaultValue="REPAIR" required>
+                  <option value="REPAIR">{t("repair")}</option>
+                  <option value="UTILITIES">{t("utilitiesCategory")}</option>
+                  <option value="CLEANING">{t("cleaning")}</option>
+                  <option value="SUPPLIES">{t("supplies")}</option>
+                  <option value="OTHER">{t("other")}</option>
                 </SelectField>
               </div>
-              <Field label="Expense date" name="expenseDate" type="date" defaultValue={todayDate()} required />
-              <Field label="Expense description (optional)" name="expenseDescription" placeholder={`Maintenance: ${issue.title}`} />
-              <TextareaField label="Expense notes (optional)" name="expenseNotes" />
+              <Field label={t("expenseDate")} name="expenseDate" type="date" defaultValue={todayDate()} required />
+              <Field
+                label={t("expenseDescriptionOptional")}
+                name="expenseDescription"
+                placeholder={t("maintenanceExpensePlaceholder", { title: issue.title })}
+              />
+              <TextareaField label={t("expenseNotesOptional")} name="expenseNotes" />
             </div>
           )}
           <ActionDialogState state={state} />
           <DialogFooter>
-            <Button type="submit"><Check /> Complete issue</Button>
+            <Button type="submit"><Check /> {t("completeMaintenance")}</Button>
           </DialogFooter>
         </PreservingActionForm>
       </DialogContent>
@@ -871,6 +1024,7 @@ function MaintenancePhotoUpload({
   issueId: string;
   existingCount?: number;
 }) {
+  const t = useTranslations("operations");
   const router = useRouter();
   const [state, action] = React.useActionState(
     async (previous: ActionState, data: FormData) => {
@@ -885,23 +1039,24 @@ function MaintenancePhotoUpload({
       <input type="hidden" name="propertyId" value={propertyId} />
       <input type="hidden" name="issueId" value={issueId} />
       <PrivateAttachmentPicker
-        title="Maintenance photos"
+        title={t("maintenancePhotos")}
         name="photos"
         accept="image/jpeg,image/png,image/webp"
         multiple
         required
         existingCount={existingCount}
-        emptyText="No photos attached"
-        actionLabel="Add photos"
+        emptyText={t("noPhotosAttached")}
+        actionLabel={t("addPhotos")}
         kind="image"
       />
-      <Button type="submit" size="sm" variant="outline"><Camera /> Upload selected</Button>
+      <Button type="submit" size="sm" variant="outline"><Camera /> {t("uploadSelected")}</Button>
       <ActionDialogState state={state} />
     </PreservingActionForm>
   );
 }
 
 function MaintenancePhotoGallery({ issue }: { issue: MaintenanceListItemView }) {
+  const t = useTranslations("operations");
   const [index, setIndex] = React.useState(0);
   const photo = issue.photos[index];
   const router = useRouter();
@@ -921,13 +1076,23 @@ function MaintenancePhotoGallery({ issue }: { issue: MaintenanceListItemView }) 
     <div className="operations-photo-gallery">
       <div className="operations-photo-stage">
         {/* protected application route */}
-        <img src={photo.url} alt={`Maintenance evidence ${index + 1}`} />
+        <img src={photo.url} alt={t("maintenanceEvidenceAlt", { index: index + 1 })} />
         {issue.photos.length > 1 && (
           <>
-            <button type="button" className="operations-photo-nav is-prev" aria-label="Previous photo" onClick={() => setIndex((index - 1 + issue.photos.length) % issue.photos.length)}>
+            <button
+              type="button"
+              className="operations-photo-nav is-prev"
+              aria-label={t("previousPhoto")}
+              onClick={() => setIndex((index - 1 + issue.photos.length) % issue.photos.length)}
+            >
               <ChevronLeft />
             </button>
-            <button type="button" className="operations-photo-nav is-next" aria-label="Next photo" onClick={() => setIndex((index + 1) % issue.photos.length)}>
+            <button
+              type="button"
+              className="operations-photo-nav is-next"
+              aria-label={t("nextPhoto")}
+              onClick={() => setIndex((index + 1) % issue.photos.length)}
+            >
               <ChevronRight />
             </button>
           </>
@@ -941,7 +1106,7 @@ function MaintenancePhotoGallery({ issue }: { issue: MaintenanceListItemView }) 
             key={item.id}
             className={photoIndex === index ? "is-active" : ""}
             onClick={() => setIndex(photoIndex)}
-            aria-label={`View photo ${photoIndex + 1}`}
+            aria-label={t("viewPhotoNumber", { index: photoIndex + 1 })}
           >
             <img src={item.url} alt="" />
           </button>
@@ -951,7 +1116,7 @@ function MaintenancePhotoGallery({ issue }: { issue: MaintenanceListItemView }) 
         <PreservingActionForm action={action} className="operations-photo-remove">
           <input type="hidden" name="issueId" value={issue.id} />
           <input type="hidden" name="photoId" value={photo.id} />
-          <Button type="submit" size="sm" variant="ghost"><Trash2 /> Remove current photo</Button>
+          <Button type="submit" size="sm" variant="ghost"><Trash2 /> {t("removeCurrentPhoto")}</Button>
         </PreservingActionForm>
       )}
       <ActionDialogState state={state} />
@@ -972,6 +1137,7 @@ export function ExpenseActions({
   maintenanceOptions: Array<{ id: string; title: string; locationLabel: string }>;
   assetOptions?: OperationsAssetOption[];
 }) {
+  const t = useTranslations("operations");
   const router = useRouter();
   const [state, archiveAction] = React.useActionState(
     async (previous: ActionState, data: FormData) => {
@@ -993,7 +1159,7 @@ export function ExpenseActions({
   const closeMenu = () => { if (menuRef.current) menuRef.current.open = false; };
   return (
     <details ref={menuRef} className="operations-row-menu">
-      <summary aria-label={`Actions for ${expense.description}`}>•••</summary>
+      <summary aria-label={t("actionsFor", { name: expense.description })}>•••</summary>
       <div onClick={(event) => { if ((event.target as HTMLElement).closest("button,a")) queueMicrotask(closeMenu); }}>
         <ExpenseFormDialog
           propertyId={propertyId}
@@ -1001,21 +1167,21 @@ export function ExpenseActions({
           locations={locations}
           maintenanceOptions={maintenanceOptions}
           assetOptions={assetOptions}
-          trigger={<button type="button"><Pencil /> Edit expense</button>}
+          trigger={<button type="button"><Pencil /> {t("editExpense")}</button>}
         />
         {expense.hasReceipt && (
           <>
-            <ExpenseReceiptViewer expense={expense} trigger={<button type="button"><Eye /> View receipt</button>} />
+            <ExpenseReceiptViewer expense={expense} trigger={<button type="button"><Eye /> {t("viewCurrentReceipt")}</button>} />
             <PreservingActionForm action={receiptAction}>
               <input type="hidden" name="expenseId" value={expense.id} />
-              <button type="submit"><Trash2 /> Remove receipt</button>
+              <button type="submit"><Trash2 /> {t("removeReceipt")}</button>
             </PreservingActionForm>
           </>
         )}
         <div className="operations-menu-separator" />
         <PreservingActionForm action={archiveAction}>
           <input type="hidden" name="expenseId" value={expense.id} />
-          <button type="submit" className="is-danger"><Archive /> Archive</button>
+          <button type="submit" className="is-danger"><Archive /> {t("archive")}</button>
         </PreservingActionForm>
         {(state.message || receiptState.message) && (
           <span className="operations-menu-message">{state.message || receiptState.message}</span>
@@ -1038,6 +1204,7 @@ export function TaskActions({
   maintenanceOptions: Array<{ id: string; title: string; locationLabel: string }>;
   invoiceOptions: OperationsInvoiceOption[];
 }) {
+  const t = useTranslations("operations");
   const router = useRouter();
   const [completeState, completeAction] = React.useActionState(
     async (previous: ActionState, data: FormData) => {
@@ -1060,7 +1227,7 @@ export function TaskActions({
   if (task.status === "DONE") {
     return (
       <span className="operations-task-done-action">
-        <Check /> Done
+        <Check /> {t("done")}
       </span>
     );
   }
@@ -1068,10 +1235,10 @@ export function TaskActions({
     <div className="operations-task-actions">
       <PreservingActionForm action={completeAction}>
         <input type="hidden" name="taskId" value={task.id} />
-        <Button type="submit" size="sm"><Check /> Complete</Button>
+        <Button type="submit" size="sm"><Check /> {t("complete")}</Button>
       </PreservingActionForm>
       <details ref={menuRef} className="operations-row-menu">
-        <summary aria-label={`Actions for ${task.title}`}>•••</summary>
+        <summary aria-label={t("actionsFor", { name: task.title })}>•••</summary>
         <div onClick={(event) => { if ((event.target as HTMLElement).closest("button,a")) queueMicrotask(closeMenu); }}>
           <TaskFormDialog
             propertyId={propertyId}
@@ -1079,12 +1246,12 @@ export function TaskActions({
             locations={locations}
             maintenanceOptions={maintenanceOptions}
             invoiceOptions={invoiceOptions}
-            trigger={<button type="button"><Pencil /> Edit task</button>}
+            trigger={<button type="button"><Pencil /> {t("editTask")}</button>}
           />
           <div className="operations-menu-separator" />
           <PreservingActionForm action={archiveAction}>
             <input type="hidden" name="taskId" value={task.id} />
-            <button type="submit" className="is-danger"><Archive /> Archive</button>
+            <button type="submit" className="is-danger"><Archive /> {t("archive")}</button>
           </PreservingActionForm>
         </div>
       </details>
@@ -1101,22 +1268,24 @@ export function ExpenseReceiptIndicator({ expense }: { expense: ExpenseListItemV
 }
 
 function ExpenseReceiptViewer({ expense, trigger }: { expense: ExpenseListItemView; trigger?: React.ReactNode }) {
+  const t = useTranslations("operations");
+  const locale = useLocale() as AppLocale;
   const url = `/api/operations/expenses/${expense.id}/receipt`;
   return (
     <Dialog>
       <DialogTrigger asChild>
-        {trigger ?? <button type="button" className="operations-receipt-link"><ImageIcon /> View</button>}
+        {trigger ?? <button type="button" className="operations-receipt-link"><ImageIcon /> {t("view")}</button>}
       </DialogTrigger>
       <DialogContent className="operations-dialog operations-receipt-dialog">
         <DialogHeader>
-          <DialogTitle>Expense receipt</DialogTitle>
-          <DialogDescription>{expense.description} · {formatDate(expense.expenseDate)}</DialogDescription>
+          <DialogTitle>{t("expenseReceipt")}</DialogTitle>
+          <DialogDescription>{expense.description} · {formatDateOnlyLocale(expense.expenseDate, locale)}</DialogDescription>
         </DialogHeader>
         {expense.receiptMediaType === "pdf" ? (
           <iframe
             className="operations-receipt-frame"
             src={url}
-            title={`Receipt for ${expense.description}`}
+            title={t("receiptFor", { name: expense.description })}
           />
         ) : (
           <div className="operations-receipt-image-wrap">
@@ -1125,12 +1294,12 @@ function ExpenseReceiptViewer({ expense, trigger }: { expense: ExpenseListItemVi
             <img
               className="operations-receipt-image"
               src={url}
-              alt={`Receipt for ${expense.description}`}
+              alt={t("receiptFor", { name: expense.description })}
             />
           </div>
         )}
         <DialogFooter>
-          <Button asChild variant="outline"><a href={url} target="_blank" rel="noreferrer"><Eye /> Open original</a></Button>
+          <Button asChild variant="outline"><a href={url} target="_blank" rel="noreferrer"><Eye /> {t("openOriginal")}</a></Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1138,5 +1307,14 @@ function ExpenseReceiptViewer({ expense, trigger }: { expense: ExpenseListItemVi
 }
 
 export function TaskRecurrence({ task }: { task: TaskListItemView }) {
-  return <span className="operations-recurrence">{recurrenceLabel(task.recurrenceUnit, task.recurrenceInterval)}</span>;
+  const t = useTranslations("operations");
+  const interval = task.recurrenceInterval;
+  const label = !task.recurrenceUnit || !interval
+    ? t("oneTime")
+    : task.recurrenceUnit === "DAYS"
+      ? t("everyDays", { count: interval })
+      : task.recurrenceUnit === "MONTHS"
+        ? t("everyMonths", { count: interval })
+        : t("everyYears", { count: interval });
+  return <span className="operations-recurrence">{label}</span>;
 }

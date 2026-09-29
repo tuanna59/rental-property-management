@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import {
   CalendarCheck2,
   CalendarClock,
@@ -12,7 +13,8 @@ import {
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
-import { formatDate } from "@/lib/presentation";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale } from "@/i18n/format";
 
 import type { TaskPageView } from "../domain/types";
 import { TaskActions, TaskFormDialog, TaskRecurrence } from "./operation-dialogs";
@@ -29,6 +31,8 @@ export function TasksDashboard({
   propertyId: string;
   view: TaskPageView;
 }) {
+  const t = useTranslations("operations");
+  const locale = useLocale() as AppLocale;
   const [tab, setTab] = React.useState<"DUE" | "UPCOMING" | "COMPLETED">("DUE");
   const [search, setSearch] = React.useState("");
   const [priority, setPriority] = React.useState("ALL");
@@ -60,9 +64,9 @@ export function TasksDashboard({
     <>
       <header className="operations-header">
         <div className="operations-header-copy">
-          <p className="operations-eyebrow">PROPERTY OPERATIONS</p>
-          <h1>Tasks</h1>
-          <p>Track recurring and one-time property work.</p>
+          <p className="operations-eyebrow">{t("propertyOperations")}</p>
+          <h1>{t("tasks")}</h1>
+          <p>{t("tasksSubtitle")}</p>
         </div>
         <TaskFormDialog
           propertyId={propertyId}
@@ -72,57 +76,57 @@ export function TasksDashboard({
         />
       </header>
 
-      <section className="operations-summary-grid operations-task-summary-grid" aria-label="Task summary">
+      <section className="operations-summary-grid operations-task-summary-grid" aria-label={t("taskSummary")}>
         <TaskSummaryCard
           icon={<CircleAlert />}
-          label="Due / overdue"
+          label={t("dueOverdue")}
           value={view.summary.dueOrOverdue}
-          insight={view.summary.overdue ? `${view.summary.overdue} overdue` : "Nothing overdue"}
+          insight={view.summary.overdue ? t("overdueCount", { count: view.summary.overdue }) : t("nothingOverdue")}
           active={tab === "DUE"}
           onClick={() => setTab("DUE")}
         />
         <TaskSummaryCard
           icon={<CalendarClock />}
-          label="Upcoming"
+          label={t("upcoming")}
           value={view.summary.upcoming}
-          insight={nextUpcoming ? `Next due ${formatDate(nextUpcoming)}` : "No upcoming due dates"}
+          insight={nextUpcoming ? t("nextDue", { date: formatDateOnlyLocale(nextUpcoming, locale) }) : t("noUpcomingDueDates")}
           active={tab === "UPCOMING"}
           onClick={() => setTab("UPCOMING")}
         />
         <TaskSummaryCard
           icon={<CheckCircle2 />}
-          label="Completed this month"
+          label={t("completedThisMonth")}
           value={view.summary.completedThisMonth}
-          insight="Completed occurrences"
+          insight={t("completedOccurrences")}
           active={tab === "COMPLETED"}
           onClick={() => setTab("COMPLETED")}
         />
       </section>
       <section className="operations-panel operations-task-panel">
         <div className="operations-panel-header operations-task-panel-head">
-          <div className="operations-segmented-tabs" role="tablist" aria-label="Task views">
-            <button type="button" role="tab" aria-selected={tab === "DUE"} className={tab === "DUE" ? "is-active" : ""} onClick={() => setTab("DUE")}>Due / Overdue</button>
-            <button type="button" role="tab" aria-selected={tab === "UPCOMING"} className={tab === "UPCOMING" ? "is-active" : ""} onClick={() => setTab("UPCOMING")}>Upcoming</button>
-            <button type="button" role="tab" aria-selected={tab === "COMPLETED"} className={tab === "COMPLETED" ? "is-active" : ""} onClick={() => setTab("COMPLETED")}>Completed</button>
+          <div className="operations-segmented-tabs" role="tablist" aria-label={t("taskViews")}>
+            <button type="button" role="tab" aria-selected={tab === "DUE"} className={tab === "DUE" ? "is-active" : ""} onClick={() => setTab("DUE")}>{t("dueOverdue")}</button>
+            <button type="button" role="tab" aria-selected={tab === "UPCOMING"} className={tab === "UPCOMING" ? "is-active" : ""} onClick={() => setTab("UPCOMING")}>{t("upcoming")}</button>
+            <button type="button" role="tab" aria-selected={tab === "COMPLETED"} className={tab === "COMPLETED" ? "is-active" : ""} onClick={() => setTab("COMPLETED")}>{t("completed")}</button>
           </div>
-          <div className="operations-count-pill">{items.length} shown</div>
+          <div className="operations-count-pill">{t("shownCount", { count: items.length })}</div>
         </div>
         <div className="operations-filters operations-task-filters">
           <label className="operations-search">
             <Search aria-hidden="true" />
-            <span className="sr-only">Search tasks</span>
+            <span className="sr-only">{t("searchTasks")}</span>
             <Input
               type="search"
-              placeholder="Search task or linked context"
+              placeholder={t("searchTaskPlaceholder")}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
           </label>
-          <select value={priority} onChange={(event) => setPriority(event.target.value)} aria-label="Task priority filter">
-            <option value="ALL">All priorities</option>
-            <option value="HIGH">High</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="LOW">Low</option>
+          <select value={priority} onChange={(event) => setPriority(event.target.value)} aria-label={t("taskPriorityFilter")}>
+            <option value="ALL">{t("allPriorities")}</option>
+            <option value="HIGH">{t("high")}</option>
+            <option value="MEDIUM">{t("medium")}</option>
+            <option value="LOW">{t("low")}</option>
           </select>
         </div>
 
@@ -143,7 +147,11 @@ export function TasksDashboard({
                   <div className="operations-task-meta">
                     {task.linkedLabel && <TaskContextLink task={task} />}
                     <span className={task.overdue ? "is-overdue" : ""}>
-                      {task.dueDate ? `${task.overdue ? "Overdue" : "Due"} ${formatDate(task.dueDate)}` : "No due date"}
+                      {task.dueDate
+                        ? task.overdue
+                          ? t("overdueOn", { date: formatDateOnlyLocale(task.dueDate, locale) })
+                          : t("dueOn", { date: formatDateOnlyLocale(task.dueDate, locale) })
+                        : t("noDueDate")}
                     </span>
                     <TaskRecurrence task={task} />
                   </div>
@@ -161,12 +169,8 @@ export function TasksDashboard({
         ) : (
           <OperationsEmptyState
             icon={tab === "COMPLETED" ? CheckCircle2 : ListTodo}
-            title={view.items.length ? "No tasks in this view" : "No tasks due"}
-            description={
-              view.items.length
-                ? "Try another view, priority, or search term."
-                : "You're caught up. Add a one-time or recurring task when work needs tracking."
-            }
+            title={view.items.length ? t("noTasksInView") : t("noTasksDue")}
+            description={view.items.length ? t("tryAnotherTaskView") : t("caughtUpTasks")}
             action={
               !view.items.length ? (
                 <TaskFormDialog
@@ -217,6 +221,7 @@ function TaskSummaryCard({
 }
 
 function TaskContextLink({ task }: { task: import("../domain/types").TaskListItemView }) {
+  const t = useTranslations("operations");
   if (!task.linkedLabel || !task.linkedEntityType || !task.linkedEntityId) return null;
   const href =
     task.linkedEntityType === "SPACE"
@@ -226,5 +231,17 @@ function TaskContextLink({ task }: { task: import("../domain/types").TaskListIte
         : task.linkedEntityType === "INVOICE"
           ? `/billing/invoices/${task.linkedEntityId}`
           : "/building";
-  return <Link className="operations-context-link" href={href}>{task.linkedLabel}</Link>;
+  return <Link className="operations-context-link" href={href}>{localizedTaskLinkLabel(task, t)}</Link>;
+}
+
+function localizedTaskLinkLabel(
+  task: import("../domain/types").TaskListItemView,
+  t: ReturnType<typeof useTranslations<"operations">>,
+) {
+  if (!task.linkedLabel) return null;
+  if (task.linkedEntityType === "PROPERTY" && task.linkedLabel === "Property") return t("property");
+  if (task.linkedEntityType === "SPACE" && task.linkedLabel === "Space") return t("space");
+  if (task.linkedEntityType === "MAINTENANCE" && task.linkedLabel === "Maintenance issue") return t("maintenanceIssue");
+  if (task.linkedEntityType === "INVOICE" && task.linkedLabel === "Invoice") return t("invoice");
+  return task.linkedLabel;
 }

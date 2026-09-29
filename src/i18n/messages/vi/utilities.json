@@ -294,5 +294,21 @@
   "missingMoveOutReading": "Thiếu chỉ số khi chuyển đi của {tenant} ngày {date}",
   "monthlyClosingNotReady": "Chỉ số chốt tháng chưa sẵn sàng để tính phí.",
   "electricityAttributionIncomplete": "Phân bổ tiền điện chưa hoàn tất.",
-  "noElectricityRateConfigured": "Chưa cấu hình đơn giá điện."
+  "noElectricityRateConfigured": "Chưa cấu hình đơn giá điện.",
+  "editReadingDescription": "{meter} · Các chỉnh sửa vẫn được lưu trên cùng công tơ vật lý.",
+  "feedback": {
+    "saveFailed": "Không thể lưu thay đổi điện nước.",
+    "meterInstalled": "Đã lắp công tơ.",
+    "readingRecorded": "Đã ghi chỉ số.",
+    "monthlyClosingSet": "Đã đặt chỉ số chốt tháng.",
+    "invalidClosingSelection": "Không thể đọc danh sách chỉ số chốt đã chọn.",
+    "currentReadingsClosings": "Đã đặt các chỉ số hiện tại làm chỉ số chốt tháng.",
+    "readingUpdated": "Đã cập nhật chỉ số.",
+    "evidencePhotoAdded": "Đã thêm ảnh đối chứng.",
+    "boundaryReadingRecorded": "Đã ghi chỉ số biên.",
+    "manualReadingClosing": "Đã ghi chỉ số thủ công và đặt làm chỉ số chốt tháng.",
+    "meterReplaced": "Đã thay công tơ.",
+    "rateSaved": "Đã lưu đơn giá.",
+    "overrideSaved": "Đã lưu đơn giá ghi đè cho phòng."
+  }
 }

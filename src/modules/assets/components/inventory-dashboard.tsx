@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Boxes,
   CircleDollarSign,
@@ -14,7 +15,8 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatDate, formatVnd } from "@/lib/presentation";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale, formatVndLocale } from "@/i18n/format";
 
 import type { AssetInventoryPageView } from "../domain/types";
 import { AssetFormDialog, CategoryManager } from "./asset-dialogs";
@@ -29,6 +31,8 @@ export function InventoryDashboard({
   view: AssetInventoryPageView;
   initialLocation?: string;
 }) {
+  const t = useTranslations("assets");
+  const locale = useLocale() as AppLocale;
   const [search, setSearch] = React.useState("");
   const [category, setCategory] = React.useState("ALL");
   const validInitialLocation = initialLocation && (
@@ -66,15 +70,15 @@ export function InventoryDashboard({
     <>
       <header className="assets-header">
         <div className="assets-header-copy">
-          <p className="assets-eyebrow">PROPERTY ASSETS</p>
-          <h1>Assets</h1>
-          <p>Track property equipment, warranty, maintenance, documents, and lifetime cost.</p>
+          <p className="assets-eyebrow">{t("propertyAssets")}</p>
+          <h1>{t("title")}</h1>
+          <p>{t("assetsSubtitle")}</p>
         </div>
         <div className="assets-header-actions">
           <CategoryManager
             propertyId={propertyId}
             categories={view.categories}
-            trigger={<Button variant="outline"><Settings2 /> Manage categories</Button>}
+            trigger={<Button variant="outline"><Settings2 /> {t("manageCategories")}</Button>}
           />
           <AssetFormDialog
             propertyId={propertyId}
@@ -87,44 +91,44 @@ export function InventoryDashboard({
       {!view.schemaReady && (
         <section className="asset-schema-banner">
           <Boxes />
-          <div><strong>Assets schema is not installed yet.</strong><span>Apply the Phase 7 migration and regenerate Prisma Client.</span></div>
+          <div><strong>{t("schemaMissingTitle")}</strong><span>{t("schemaMissingDescription")}</span></div>
         </section>
       )}
 
-      <section className="assets-summary-grid" aria-label="Asset inventory summary">
-        <SummaryCard icon={<PackageOpen />} label="Active assets" value={view.summary.active} insight="Current physical inventory" />
-        <SummaryCard icon={<Wrench />} label="Under maintenance" value={view.summary.underMaintenance} insight="Active assets needing attention" />
-        <SummaryCard icon={<ShieldAlert />} label="Warranty expiring" value={view.summary.warrantyExpiring} insight="Within the next 30 days" />
-        <SummaryCard icon={<CircleDollarSign />} label="Recorded purchase value" value={formatVnd(view.summary.recordedPurchaseValueVnd)} insight="Informational · excludes disposed" />
+      <section className="assets-summary-grid" aria-label={t("assetInventorySummary")}>
+        <SummaryCard icon={<PackageOpen />} label={t("activeAssets")} value={view.summary.active} insight={t("currentPhysicalInventory")} />
+        <SummaryCard icon={<Wrench />} label={t("underMaintenance")} value={view.summary.underMaintenance} insight={t("activeAssetsNeedingAttention")} />
+        <SummaryCard icon={<ShieldAlert />} label={t("warrantyExpiring")} value={view.summary.warrantyExpiring} insight={t("withinNext30Days")} />
+        <SummaryCard icon={<CircleDollarSign />} label={t("recordedPurchaseValue")} value={formatVndLocale(view.summary.recordedPurchaseValueVnd, locale)} insight={t("excludesDisposed")} />
       </section>
 
       <section className="assets-panel assets-list-panel">
         <div className="assets-panel-header">
-          <div><h2>Inventory</h2><p>Physical lifecycle and operational state are tracked separately.</p></div>
-          <span className="assets-count-pill">{items.length} shown</span>
+          <div><h2>{t("inventory")}</h2><p>{t("inventorySubtitle")}</p></div>
+          <span className="assets-count-pill">{t("shownCount", { count: items.length })}</span>
         </div>
         <div className="assets-filters">
           <label className="assets-search">
             <Search aria-hidden="true" />
-            <span className="sr-only">Search assets</span>
-            <Input type="search" placeholder="Search asset, serial, location" value={search} onChange={(event) => setSearch(event.target.value)} />
+            <span className="sr-only">{t("searchAssets")}</span>
+            <Input type="search" placeholder={t("searchAssetPlaceholder")} value={search} onChange={(event) => setSearch(event.target.value)} />
           </label>
-          <select aria-label="Category filter" value={category} onChange={(event) => setCategory(event.target.value)}>
-            <option value="ALL">All categories</option>
+          <select aria-label={t("categoryFilter")} value={category} onChange={(event) => setCategory(event.target.value)}>
+            <option value="ALL">{t("allCategories")}</option>
             {activeCategories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
-          <select aria-label="Location filter" value={location} onChange={(event) => setLocation(event.target.value)}>
-            <option value="ALL">All locations</option>
-            <option value="PROPERTY">Property level</option>
+          <select aria-label={t("locationFilter")} value={location} onChange={(event) => setLocation(event.target.value)}>
+            <option value="ALL">{t("allLocations")}</option>
+            <option value="PROPERTY">{t("propertyLevel")}</option>
             {floorOptions.map((floor) => <option key={`floor-${floor.id}`} value={floor.id}>{floor.name}</option>)}
             {view.locations.map((item) => <option key={item.spaceId} value={item.spaceId}>{item.spaceName} · {item.floorName}</option>)}
           </select>
-          <select aria-label="Status filter" value={status} onChange={(event) => setStatus(event.target.value)}>
-            <option value="ACTIVE">Active</option>
-            <option value="ALL">All lifecycle states</option>
-            <option value="MAINTENANCE">Under maintenance</option>
-            <option value="RETIRED">Retired</option>
-            <option value="DISPOSED">Disposed</option>
+          <select aria-label={t("statusFilter")} value={status} onChange={(event) => setStatus(event.target.value)}>
+            <option value="ACTIVE">{t("active")}</option>
+            <option value="ALL">{t("allLifecycleStates")}</option>
+            <option value="MAINTENANCE">{t("underMaintenance")}</option>
+            <option value="RETIRED">{t("retired")}</option>
+            <option value="DISPOSED">{t("disposed")}</option>
           </select>
         </div>
 
@@ -132,23 +136,23 @@ export function InventoryDashboard({
           <>
             <div className="assets-desktop-table">
               <table className="assets-table">
-                <thead><tr><th>Asset</th><th>Category</th><th>Location</th><th>Status</th><th>Warranty</th><th>Maintenance</th><th><span className="sr-only">Action</span></th></tr></thead>
+                <thead><tr><th>{t("asset")}</th><th>{t("category")}</th><th>{t("location")}</th><th>{t("status")}</th><th>{t("warranty")}</th><th>{t("maintenance")}</th><th><span className="sr-only">{t("action")}</span></th></tr></thead>
                 <tbody>
                   {items.map((item) => (
                     <tr key={item.id}>
                       <td>
                         <div className="asset-primary-cell">
                           <strong>{item.name}</strong>
-                          <span>{[item.brand, item.model].filter(Boolean).join(" · ") || "Physical asset"}</span>
-                          {item.serialNumber && <small>SN {item.serialNumber}</small>}
+                          <span>{[item.brand, item.model].filter(Boolean).join(" · ") || t("physicalAsset")}</span>
+                          {item.serialNumber && <small>{t("serialAbbr", { serial: item.serialNumber })}</small>}
                         </div>
                       </td>
-                      <td>{item.categoryName}</td>
-                      <td><strong>{item.locationLabel}</strong></td>
+                      <td>{item.categoryName === "Uncategorized" ? t("uncategorized") : item.categoryName}</td>
+                      <td><strong>{item.locationLabel === "Property" ? t("propertyLevel") : item.locationLabel}</strong></td>
                       <td><div className="asset-badge-stack"><AssetStatusBadge status={item.status} />{item.underMaintenance && <UnderMaintenanceBadge />}</div></td>
-                      <td><div className="asset-warranty-cell"><WarrantyBadge state={item.warrantyState} />{item.warrantyExpiresAt && <span>{formatDate(item.warrantyExpiresAt)}</span>}</div></td>
-                      <td>{item.activeMaintenanceCount ? `${item.activeMaintenanceCount} active issue${item.activeMaintenanceCount === 1 ? "" : "s"}` : <span className="asset-muted">Clear</span>}</td>
-                      <td><Button asChild variant="outline" size="sm"><Link href={`/assets/${item.id}`}>View</Link></Button></td>
+                      <td><div className="asset-warranty-cell"><WarrantyBadge state={item.warrantyState} />{item.warrantyExpiresAt && <span>{formatDateOnlyLocale(item.warrantyExpiresAt, locale)}</span>}</div></td>
+                      <td>{item.activeMaintenanceCount ? t("activeIssueCount", { count: item.activeMaintenanceCount }) : <span className="asset-muted">{t("clear")}</span>}</td>
+                      <td><Button asChild variant="outline" size="sm"><Link href={`/assets/${item.id}`}>{t("view")}</Link></Button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -157,10 +161,10 @@ export function InventoryDashboard({
             <div className="assets-mobile-list">
               {items.map((item) => (
                 <article key={item.id} className="asset-mobile-card">
-                  <div className="asset-mobile-card-head"><div><strong>{item.name}</strong><span>{item.categoryName}</span></div><AssetStatusBadge status={item.status} /></div>
-                  <p>{item.locationLabel}</p>
+                  <div className="asset-mobile-card-head"><div><strong>{item.name}</strong><span>{item.categoryName === "Uncategorized" ? t("uncategorized") : item.categoryName}</span></div><AssetStatusBadge status={item.status} /></div>
+                  <p>{item.locationLabel === "Property" ? t("propertyLevel") : item.locationLabel}</p>
                   <div className="asset-mobile-meta"><WarrantyBadge state={item.warrantyState} />{item.underMaintenance && <UnderMaintenanceBadge />}</div>
-                  <Button asChild variant="outline" size="sm"><Link href={`/assets/${item.id}`}>View asset</Link></Button>
+                  <Button asChild variant="outline" size="sm"><Link href={`/assets/${item.id}`}>{t("viewAsset")}</Link></Button>
                 </article>
               ))}
             </div>
@@ -168,8 +172,8 @@ export function InventoryDashboard({
         ) : (
           <div className="asset-empty-state">
             <PackageOpen />
-            <strong>{view.items.length ? "No assets match this view" : "No assets recorded yet"}</strong>
-            <p>{view.items.length ? "Adjust search or filters." : "Start tracking property equipment and appliances."}</p>
+            <strong>{view.items.length ? t("noAssetsMatch") : t("noAssetsRecorded")}</strong>
+            <p>{view.items.length ? t("adjustSearchFilters") : t("startTrackingAssets")}</p>
             {!view.items.length && <AssetFormDialog propertyId={propertyId} categories={view.categories} locations={view.locations} />}
           </div>
         )}

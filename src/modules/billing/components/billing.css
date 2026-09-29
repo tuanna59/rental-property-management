@@ -35,7 +35,13 @@
   overflow-x: auto;
   border-bottom: 1px solid var(--app-border);
   margin-bottom: 1rem;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
 }
+
+.billing-filter-tabs::-webkit-scrollbar,
+.invoice-tabs::-webkit-scrollbar { display: none; }
 
 .billing-filter-tabs button,
 .invoice-tabs button {
