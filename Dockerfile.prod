@@ -1,0 +1,35 @@
+FROM node:24-alpine AS base
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN npm install --global pnpm@11.19.0
+
+WORKDIR /app
+
+FROM base AS dependencies
+
+COPY . .
+RUN test -f pnpm-lock.yaml || (echo "pnpm-lock.yaml is required for a frozen production install." >&2 && exit 1)
+RUN pnpm install --frozen-lockfile
+
+FROM dependencies AS build
+
+ENV APP_ENV=production
+
+RUN pnpm prisma:generate
+RUN DATABASE_URL=postgresql://build:build@localhost:5432/build pnpm build
+
+FROM base AS runtime
+
+ENV NODE_ENV=production
+ENV APP_ENV=production
+
+# Keep the built application, Prisma CLI/migrations, and installed dependencies
+# together so this image can serve the app and run `prisma migrate deploy`.
+COPY --from=build /app /app
+
+EXPOSE 3000
+
+CMD ["pnpm", "start"]

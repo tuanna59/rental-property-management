@@ -23,6 +23,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      APP_ENV: development
       DATABASE_URL: postgresql://rental_user:rental_password@postgres:5432/rental_house?schema=public
       NODE_ENV: production
       PRIVATE_DATA_DIR: /app/private-data

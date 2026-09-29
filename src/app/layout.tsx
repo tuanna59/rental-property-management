@@ -4,6 +4,7 @@ import { Geist_Mono, Source_Sans_3 } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 
 import { AppShell } from "@/components/app-shell/app-shell";
+import { getAppEnvironment } from "@/lib/app-environment";
 import { getMessages } from "@/i18n/messages";
 import { getRequestLocale } from "@/i18n/server";
 import { getPrimaryPropertyShell } from "@/modules/property/server/property.queries";
@@ -24,8 +25,10 @@ const geistMono = Geist_Mono({
 
 export const dynamic = "force-dynamic";
 
+const appName = "Rental House";
+
 export const metadata: Metadata = {
-  title: "Rental House",
+  title: getAppEnvironment() === "production" ? appName : `DEV · ${appName}`,
   description: "Rental property building management foundation",
 };
 

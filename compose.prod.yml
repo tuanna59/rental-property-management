@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required in .env.production}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required in .env.production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env.production}
+    volumes:
+      - postgres-prod-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  app:
+    image: rental-house:${APP_VERSION:?APP_VERSION is required in .env.production}
+    pull_policy: never
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:?APP_ENV is required in .env.production}
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required in .env.production}
+      PRIVATE_DATA_DIR: /app/private-data
+      PERSON_CITIZEN_ID_ENCRYPTION_KEY: ${PERSON_CITIZEN_ID_ENCRYPTION_KEY:?PERSON_CITIZEN_ID_ENCRYPTION_KEY is required in .env.production}
+      PERSON_CITIZEN_ID_LOOKUP_HMAC_KEY: ${PERSON_CITIZEN_ID_LOOKUP_HMAC_KEY:?PERSON_CITIZEN_ID_LOOKUP_HMAC_KEY is required in .env.production}
+    ports:
+      - "8080:3000"
+    volumes:
+      - type: bind
+        source: ${PROD_UPLOADS_PATH:?PROD_UPLOADS_PATH is required in .env.production}
+        target: /app/private-data
+
+volumes:
+  postgres-prod-data:
+    name: rentalhouse_prod_postgres

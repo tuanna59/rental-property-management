@@ -6,6 +6,7 @@ services:
         condition: service_healthy
 
     environment:
+      APP_ENV: development
       DATABASE_URL: postgresql://rental_user:rental_password@postgres:5432/rental_house?schema=public
 
       # Quan trọng: đang chạy next dev

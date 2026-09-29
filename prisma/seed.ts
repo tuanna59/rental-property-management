@@ -3,6 +3,9 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import { Prisma, PrismaClient } from "../src/generated/prisma/client";
+import { assertNonProductionOperation } from "../src/lib/app-environment";
+
+assertNonProductionOperation("database seed");
 
 const databaseUrl = process.env.DATABASE_URL;
 
