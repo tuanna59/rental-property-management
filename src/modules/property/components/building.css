@@ -1073,3 +1073,35 @@
   text-decoration: none;
 }
 .space-maintenance-signal > a:hover { text-decoration: underline; }
+
+/* Phase 7: compact asset/device context; derived from registry data. */
+.space-asset-signal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface-subtle);
+}
+.space-asset-signal > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.space-asset-signal .space-maintenance-icon {
+  background: var(--app-brand-soft);
+  color: var(--app-brand);
+}
+.space-asset-signal strong { font-size: 13px; }
+.space-asset-signal p { margin: 2px 0 0; color: var(--app-text-secondary); font-size: 12px; }
+.space-asset-signal > a {
+  flex: none;
+  color: var(--app-brand);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.space-asset-signal > a:hover { text-decoration: underline; }

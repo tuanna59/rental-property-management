@@ -37,6 +37,14 @@ export type OperationsLocationOption = {
   spaceName: string;
 };
 
+export type OperationsAssetOption = {
+  id: string;
+  name: string;
+  floorId: string | null;
+  spaceId: string | null;
+  locationLabel: string;
+};
+
 export type OperationsInvoiceOption = {
   id: string;
   room: string;
@@ -79,6 +87,8 @@ export type MaintenanceListItemView = {
   photoCount: number;
   photos: MaintenancePhotoView[];
   relatedExpenses: RelatedExpenseView[];
+  assetId: string | null;
+  assetName: string | null;
 };
 
 export type MaintenanceSummaryView = {
@@ -93,6 +103,7 @@ export type MaintenancePageView = {
   summary: MaintenanceSummaryView;
   items: MaintenanceListItemView[];
   locations: OperationsLocationOption[];
+  assetOptions: OperationsAssetOption[];
 };
 
 export type ExpenseListItemView = {
@@ -111,6 +122,8 @@ export type ExpenseListItemView = {
   maintenanceTitle: string | null;
   hasReceipt: boolean;
   receiptMediaType: "image" | "pdf" | null;
+  assetId: string | null;
+  assetName: string | null;
 };
 
 export type ExpenseSummaryView = {
@@ -128,6 +141,7 @@ export type ExpensePageView = {
   locations: OperationsLocationOption[];
   maintenanceOptions: Array<{ id: string; title: string; locationLabel: string }>;
   maintenanceItems: MaintenanceListItemView[];
+  assetOptions: OperationsAssetOption[];
 };
 
 export type TaskListItemView = {

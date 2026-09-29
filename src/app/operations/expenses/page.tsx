@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function ExpensesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ month?: string; asset?: string }>;
 }) {
   const property = await getPrimaryPropertyDashboard();
   if (!property) return null;
@@ -22,6 +22,7 @@ export default async function ExpensesPage({
         propertyId={property.id}
         month={month}
         view={await getExpensePage(property.id, month)}
+        initialAssetId={params.asset ?? null}
       />
     </OperationsShell>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   Banknote,
   CircleDollarSign,
@@ -28,14 +29,18 @@ export function ExpensesDashboard({
   propertyId,
   view,
   month,
+  initialAssetId = null,
 }: {
   propertyId: string;
   view: ExpensePageView;
   month: string;
+  initialAssetId?: string | null;
 }) {
   const [search, setSearch] = React.useState("");
   const [category, setCategory] = React.useState("ALL");
   const [location, setLocation] = React.useState("ALL");
+
+  const initialAsset = view.assetOptions.find((asset) => asset.id === initialAssetId) ?? null;
 
   const maintenanceById = React.useMemo(
     () => new Map(view.maintenanceItems.map((issue) => [issue.id, issue])),
@@ -49,7 +54,7 @@ export function ExpensesDashboard({
       if (location !== "ALL" && item.spaceId !== location) return false;
       if (
         normalized &&
-        !`${item.description} ${item.locationLabel} ${item.maintenanceTitle ?? ""}`
+        !`${item.description} ${item.locationLabel} ${item.maintenanceTitle ?? ""} ${item.assetName ?? ""}`
           .toLowerCase()
           .includes(normalized)
       )
@@ -72,6 +77,11 @@ export function ExpensesDashboard({
             propertyId={propertyId}
             locations={view.locations}
             maintenanceOptions={view.maintenanceOptions}
+            assetOptions={view.assetOptions}
+            defaultAssetId={initialAsset?.id ?? null}
+            defaultFloorId={initialAsset?.floorId ?? null}
+            defaultSpaceId={initialAsset?.spaceId ?? null}
+            autoOpen={Boolean(initialAsset)}
           />
         </div>
       </header>
@@ -164,6 +174,7 @@ export function ExpensesDashboard({
                         <div className="operations-description-cell">
                           <strong>{item.description}</strong>
                           {item.notes && <span>{item.notes}</span>}
+                          {item.assetName && item.assetId ? <small><Link className="operations-context-link" href={`/assets/${item.assetId}`}>Asset · {item.assetName}</Link></small> : item.assetName ? <small>Asset · {item.assetName}</small> : null}
                         </div>
                       </td>
                       <td><span className={`operations-category is-${item.category.toLowerCase()}`}>{categoryLabel(item.category)}</span></td>
@@ -174,6 +185,7 @@ export function ExpensesDashboard({
                             propertyId={propertyId}
                             issue={maintenanceById.get(item.maintenanceIssueId)!}
                             locations={view.locations}
+                            assetOptions={view.assetOptions}
                             trigger={
                               <button type="button" className="operations-context-link operations-context-button">
                                 {item.maintenanceTitle}
@@ -194,6 +206,7 @@ export function ExpensesDashboard({
                           expense={item}
                           locations={view.locations}
                           maintenanceOptions={view.maintenanceOptions}
+                          assetOptions={view.assetOptions}
                         />
                       </td>
                     </tr>
@@ -211,6 +224,7 @@ export function ExpensesDashboard({
                     </div>
                     <strong className="operations-money">{formatVnd(item.amountVnd)}</strong>
                   </div>
+                  {item.assetName && item.assetId && <Link className="operations-context-link" href={`/assets/${item.assetId}`}>Asset · {item.assetName}</Link>}
                   <div className="operations-mobile-meta">
                     <span className={`operations-category is-${item.category.toLowerCase()}`}>{categoryLabel(item.category)}</span>
                     {item.maintenanceIssueId && maintenanceById.get(item.maintenanceIssueId) ? (
@@ -218,6 +232,7 @@ export function ExpensesDashboard({
                         propertyId={propertyId}
                         issue={maintenanceById.get(item.maintenanceIssueId)!}
                         locations={view.locations}
+                        assetOptions={view.assetOptions}
                         trigger={
                           <button type="button" className="operations-context-link operations-context-button">
                             {item.maintenanceTitle}
@@ -234,6 +249,7 @@ export function ExpensesDashboard({
                     expense={item}
                     locations={view.locations}
                     maintenanceOptions={view.maintenanceOptions}
+                    assetOptions={view.assetOptions}
                   />
                 </article>
               ))}
@@ -254,6 +270,7 @@ export function ExpensesDashboard({
                   propertyId={propertyId}
                   locations={view.locations}
                   maintenanceOptions={view.maintenanceOptions}
+                  assetOptions={view.assetOptions}
                 />
               ) : undefined
             }

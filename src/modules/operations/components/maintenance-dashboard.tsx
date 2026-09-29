@@ -26,16 +26,19 @@ export function MaintenanceDashboard({
   view,
   initialSpaceId = "ALL",
   initialSearch = "",
+  initialIssueId = null,
 }: {
   propertyId: string;
   view: MaintenancePageView;
   initialSpaceId?: string;
   initialSearch?: string;
+  initialIssueId?: string | null;
 }) {
   const [search, setSearch] = React.useState(initialSearch);
   const [status, setStatus] = React.useState("ACTIVE");
   const [priority, setPriority] = React.useState("ALL");
   const [spaceId, setSpaceId] = React.useState(initialSpaceId);
+  const initialIssue = initialIssueId ? view.items.find((item) => item.id === initialIssueId) ?? null : null;
 
   const items = React.useMemo(() => {
     const normalized = search.trim().toLowerCase();
@@ -62,6 +65,16 @@ export function MaintenanceDashboard({
 
   return (
     <>
+      {initialIssue && (
+        <MaintenanceDetailDialog
+          propertyId={propertyId}
+          issue={initialIssue}
+          locations={view.locations}
+          assetOptions={view.assetOptions}
+          autoOpen
+          suppressTrigger
+        />
+      )}
       <header className="operations-header">
         <div className="operations-header-copy">
           <p className="operations-eyebrow">PROPERTY OPERATIONS</p>
@@ -71,6 +84,7 @@ export function MaintenanceDashboard({
         <MaintenanceFormDialog
           propertyId={propertyId}
           locations={view.locations}
+          assetOptions={view.assetOptions}
         />
       </header>
 
@@ -180,6 +194,7 @@ export function MaintenanceDashboard({
                         <div className="operations-issue-cell">
                           <strong>{item.title}</strong>
                           <span>{item.description}</span>
+                          {item.assetName && <small>Asset · {item.assetName}</small>}
                           {item.photoCount > 0 && <small>{item.photoCount} photo{item.photoCount === 1 ? "" : "s"}</small>}
                         </div>
                       </td>
@@ -197,6 +212,7 @@ export function MaintenanceDashboard({
                           propertyId={propertyId}
                           issue={item}
                           locations={view.locations}
+                          assetOptions={view.assetOptions}
                         />
                       </td>
                     </tr>
@@ -215,6 +231,7 @@ export function MaintenanceDashboard({
                     <OperationsStatusBadge status={item.status} />
                   </div>
                   <p>{item.description}</p>
+                  {item.assetName && <span className="operations-context-label">Asset · {item.assetName}</span>}
                   <div className="operations-mobile-meta">
                     <OperationsPriorityBadge priority={item.priority} />
                     <span>{formatDate(item.reportedAt)}</span>
@@ -224,6 +241,7 @@ export function MaintenanceDashboard({
                     propertyId={propertyId}
                     issue={item}
                     locations={view.locations}
+                    assetOptions={view.assetOptions}
                   />
                 </article>
               ))}
@@ -240,7 +258,7 @@ export function MaintenanceDashboard({
             }
             action={
               !view.items.length ? (
-                <MaintenanceFormDialog propertyId={propertyId} locations={view.locations} />
+                <MaintenanceFormDialog propertyId={propertyId} locations={view.locations} assetOptions={view.assetOptions} />
               ) : undefined
             }
           />

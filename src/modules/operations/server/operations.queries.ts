@@ -6,6 +6,7 @@ import type {
   ExpensePageView,
   MaintenanceListItemView,
   MaintenancePageView,
+  OperationsAssetOption,
   OperationsInvoiceOption,
   OperationsLocationOption,
   SpaceMaintenanceSignal,
@@ -70,17 +71,46 @@ export async function getOperationsLocations(
   );
 }
 
+
+export async function getOperationsAssetOptions(
+  propertyId: string,
+): Promise<OperationsAssetOption[]> {
+  const db = operationsDb();
+  if (!db.asset?.findMany) return [];
+  const assets = await db.asset.findMany({
+    where: { propertyId, archivedAt: null, status: "ACTIVE" },
+    orderBy: { name: "asc" },
+    include: {
+      floor: { select: { name: true } },
+      space: { select: { name: true } },
+    },
+  });
+  return assets.map((asset: any) => ({
+    id: asset.id,
+    name: asset.name,
+    floorId: asset.floorId ?? null,
+    spaceId: asset.spaceId ?? null,
+    locationLabel: asset.space?.name
+      ? `${asset.space.name}${asset.floor?.name ? ` · ${asset.floor.name}` : ""}`
+      : asset.floor?.name || "Property",
+  }));
+}
+
 export async function getMaintenancePage(
   propertyId: string,
   selectedMonth = new Date().toISOString().slice(0, 7),
 ): Promise<MaintenancePageView> {
-  const locations = await getOperationsLocations(propertyId);
+  const [locations, assetOptions] = await Promise.all([
+    getOperationsLocations(propertyId),
+    getOperationsAssetOptions(propertyId),
+  ]);
   if (!operationsSchemaReady()) {
     return {
       schemaReady: false,
       summary: { open: 0, inProgress: 0, urgent: 0, completedThisMonth: 0 },
       items: [],
       locations,
+      assetOptions,
     };
   }
 
@@ -96,6 +126,7 @@ export async function getMaintenancePage(
         orderBy: { expenseDate: "desc" },
       },
       photos: { orderBy: { createdAt: "asc" } },
+      asset: { select: { id: true, name: true } },
     },
   });
 
@@ -123,6 +154,7 @@ export async function getMaintenancePage(
     },
     items,
     locations,
+    assetOptions,
   };
 }
 
@@ -165,6 +197,8 @@ function mapMaintenance(issue: any): MaintenanceListItemView {
       amountVnd: stringMoney(expense.amount),
       description: expense.description,
     })),
+    assetId: issue.assetId ?? null,
+    assetName: issue.asset?.name ?? null,
   };
 }
 
@@ -172,7 +206,10 @@ export async function getExpensePage(
   propertyId: string,
   month: string,
 ): Promise<ExpensePageView> {
-  const locations = await getOperationsLocations(propertyId);
+  const [locations, assetOptions] = await Promise.all([
+    getOperationsLocations(propertyId),
+    getOperationsAssetOptions(propertyId),
+  ]);
   if (!operationsSchemaReady()) {
     return {
       schemaReady: false,
@@ -187,6 +224,7 @@ export async function getExpensePage(
       locations,
       maintenanceOptions: [],
       maintenanceItems: [],
+      assetOptions,
     };
   }
 
@@ -204,6 +242,7 @@ export async function getExpensePage(
         floor: { select: { id: true, name: true } },
         space: { select: { id: true, name: true } },
         maintenanceIssue: { select: { id: true, title: true } },
+        asset: { select: { id: true, name: true } },
       },
     }),
     db.maintenanceIssue!.findMany({
@@ -217,6 +256,7 @@ export async function getExpensePage(
           orderBy: { expenseDate: "desc" },
         },
         photos: { orderBy: { createdAt: "asc" } },
+        asset: { select: { id: true, name: true } },
       },
     }),
   ]);
@@ -264,6 +304,8 @@ export async function getExpensePage(
           ? "pdf"
           : "image"
         : null,
+      assetId: expense.assetId ?? null,
+      assetName: expense.asset?.name ?? null,
     })),
     locations,
     maintenanceOptions: maintenance.map((issue: any) => ({
@@ -274,6 +316,7 @@ export async function getExpensePage(
         : issue.floor?.name || "Property",
     })),
     maintenanceItems: maintenance.map((issue: any) => mapMaintenance(issue)),
+    assetOptions,
   };
 }
 

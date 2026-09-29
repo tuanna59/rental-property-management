@@ -1,4 +1,5 @@
 import {
+  Boxes,
   Building2,
   ClipboardCheck,
   ReceiptText,
@@ -57,9 +58,20 @@ export const appNavigation: readonly AppNavigationItem[] = [
       { label: "Expenses", href: "/operations/expenses" },
     ],
   },
+  {
+    label: "Assets",
+    icon: Boxes,
+    children: [
+      { label: "Inventory", href: "/assets" },
+      { label: "Devices", href: "/assets/devices" },
+    ],
+  },
 ] as const;
 
 export function isNavigationHrefActive(pathname: string, href: string) {
   if (href === "/" || href === "/utilities") return pathname === href;
+  if (href === "/assets") {
+    return pathname === href || (pathname.startsWith("/assets/") && !pathname.startsWith("/assets/devices"));
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }

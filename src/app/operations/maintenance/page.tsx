@@ -8,17 +8,19 @@ export const dynamic = "force-dynamic";
 export default async function MaintenancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ space?: string; search?: string }>;
+  searchParams: Promise<{ space?: string; search?: string; issue?: string }>;
 }) {
   const property = await getPrimaryPropertyDashboard();
   if (!property) return null;
+  const params = await searchParams;
   return (
     <OperationsShell>
       <MaintenanceDashboard
         propertyId={property.id}
         view={await getMaintenancePage(property.id)}
-        initialSpaceId={(await searchParams).space || "ALL"}
-        initialSearch={(await searchParams).search || ""}
+        initialSpaceId={params.space || "ALL"}
+        initialSearch={params.search || ""}
+        initialIssueId={params.issue || null}
       />
     </OperationsShell>
   );

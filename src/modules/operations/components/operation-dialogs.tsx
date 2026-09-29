@@ -56,6 +56,7 @@ import {
 import type {
   ExpenseListItemView,
   MaintenanceListItemView,
+  OperationsAssetOption,
   OperationsInvoiceOption,
   OperationsLocationOption,
   TaskListItemView,
@@ -231,16 +232,26 @@ export function ExpenseFormDialog({
   propertyId,
   locations,
   maintenanceOptions,
+  assetOptions = [],
   expense,
   trigger,
+  defaultAssetId,
+  defaultFloorId,
+  defaultSpaceId,
+  autoOpen = false,
 }: {
   propertyId: string;
   locations: OperationsLocationOption[];
   maintenanceOptions: Array<{ id: string; title: string; locationLabel: string }>;
+  assetOptions?: OperationsAssetOption[];
   expense?: ExpenseListItemView;
   trigger?: React.ReactNode;
+  defaultAssetId?: string | null;
+  defaultFloorId?: string | null;
+  defaultSpaceId?: string | null;
+  autoOpen?: boolean;
 }) {
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(autoOpen);
   const serverAction = expense ? updateExpenseAction : createExpenseAction;
   const [state, action] = useDialogAction(serverAction, () => setOpen(false));
 
@@ -303,9 +314,21 @@ export function ExpenseFormDialog({
           </div>
           <LocationFields
             locations={locations}
-            defaultFloorId={expense?.floorId}
-            defaultSpaceId={expense?.spaceId}
+            defaultFloorId={expense?.floorId ?? defaultFloorId}
+            defaultSpaceId={expense?.spaceId ?? defaultSpaceId}
           />
+          {assetOptions.length > 0 && (
+            <SelectField
+              label="Asset (optional)"
+              name="assetId"
+              defaultValue={expense?.assetId ?? defaultAssetId ?? ""}
+            >
+              <option value="">No linked asset</option>
+              {assetOptions.map((asset) => (
+                <option key={asset.id} value={asset.id}>{asset.name} · {asset.locationLabel}</option>
+              ))}
+            </SelectField>
+          )}
           <SelectField
             label="Linked maintenance (optional)"
             name="maintenanceIssueId"
@@ -351,15 +374,25 @@ export function ExpenseFormDialog({
 export function MaintenanceFormDialog({
   propertyId,
   locations,
+  assetOptions = [],
   issue,
   trigger,
+  defaultAssetId,
+  defaultFloorId,
+  defaultSpaceId,
+  autoOpen = false,
 }: {
   propertyId: string;
   locations: OperationsLocationOption[];
+  assetOptions?: OperationsAssetOption[];
   issue?: MaintenanceListItemView;
   trigger?: React.ReactNode;
+  defaultAssetId?: string | null;
+  defaultFloorId?: string | null;
+  defaultSpaceId?: string | null;
+  autoOpen?: boolean;
 }) {
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(autoOpen);
   const serverAction = issue ? updateMaintenanceAction : createMaintenanceAction;
   const [state, action] = useDialogAction(serverAction, () => setOpen(false));
 
@@ -411,9 +444,21 @@ export function MaintenanceFormDialog({
           </div>
           <LocationFields
             locations={locations}
-            defaultFloorId={issue?.floorId}
-            defaultSpaceId={issue?.spaceId}
+            defaultFloorId={issue?.floorId ?? defaultFloorId}
+            defaultSpaceId={issue?.spaceId ?? defaultSpaceId}
           />
+          {assetOptions.length > 0 && (
+            <SelectField
+              label="Asset (optional)"
+              name="assetId"
+              defaultValue={issue?.assetId ?? defaultAssetId ?? ""}
+            >
+              <option value="">No linked asset</option>
+              {assetOptions.map((asset) => (
+                <option key={asset.id} value={asset.id}>{asset.name} · {asset.locationLabel}</option>
+              ))}
+            </SelectField>
+          )}
           <div className="operations-form-grid">
             <Field label="Reported by (optional)" name="reportedBy" defaultValue={issue?.reportedBy ?? ""} />
             <Field label="Assigned to (optional)" name="assignedTo" defaultValue={issue?.assignedTo ?? ""} />
@@ -594,14 +639,20 @@ export function MaintenanceDetailDialog({
   propertyId,
   issue,
   locations,
+  assetOptions = [],
   trigger,
+  autoOpen = false,
+  suppressTrigger = false,
 }: {
   propertyId: string;
   issue: MaintenanceListItemView;
   locations: OperationsLocationOption[];
+  assetOptions?: OperationsAssetOption[];
   trigger?: React.ReactNode;
+  autoOpen?: boolean;
+  suppressTrigger?: boolean;
 }) {
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(autoOpen);
   const router = useRouter();
   const [startState, startAction] = React.useActionState(
     async (previous: ActionState, data: FormData) => {
@@ -625,13 +676,15 @@ export function MaintenanceDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button size="sm" variant="ghost" className="operations-view-button">
-            <Eye /> View
-          </Button>
-        )}
-      </DialogTrigger>
+      {!suppressTrigger && (
+        <DialogTrigger asChild>
+          {trigger ?? (
+            <Button size="sm" variant="ghost" className="operations-view-button">
+              <Eye /> View
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="operations-dialog operations-detail-dialog">
         <DialogHeader>
           <div className="operations-detail-title-row">
@@ -654,7 +707,7 @@ export function MaintenanceDetailDialog({
           </div>
           <div><span>Assigned to</span><strong>{issue.assignedTo || "Unassigned"}</strong></div>
           <div><span>Location</span><strong>{issue.locationLabel}</strong></div>
-          <div><span>Related cost</span><strong>{formatVnd(issue.costVnd)}</strong></div>
+          <div><span>Related cost</span><strong>{formatVnd(issue.costVnd)}</strong>{issue.assetName && issue.assetId && <small><a className="operations-context-link" href={`/assets/${issue.assetId}`}>Asset · {issue.assetName}</a></small>}</div>
         </div>
 
         <section className="operations-detail-section">
@@ -695,6 +748,7 @@ export function MaintenanceDetailDialog({
               <MaintenanceFormDialog
                 propertyId={propertyId}
                 locations={locations}
+                assetOptions={assetOptions}
                 issue={issue}
                 trigger={<Button type="button" variant="outline"><Pencil /> Edit</Button>}
               />
@@ -900,11 +954,13 @@ export function ExpenseActions({
   expense,
   locations,
   maintenanceOptions,
+  assetOptions = [],
 }: {
   propertyId: string;
   expense: ExpenseListItemView;
   locations: OperationsLocationOption[];
   maintenanceOptions: Array<{ id: string; title: string; locationLabel: string }>;
+  assetOptions?: OperationsAssetOption[];
 }) {
   const router = useRouter();
   const [state, archiveAction] = React.useActionState(
@@ -934,6 +990,7 @@ export function ExpenseActions({
           expense={expense}
           locations={locations}
           maintenanceOptions={maintenanceOptions}
+          assetOptions={assetOptions}
           trigger={<button type="button"><Pencil /> Edit expense</button>}
         />
         {expense.hasReceipt && (

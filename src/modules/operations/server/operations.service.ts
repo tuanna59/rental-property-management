@@ -36,6 +36,7 @@ type ExpenseInput = LocationInput & {
   description: string;
   amount: string;
   maintenanceIssueId?: string | null;
+  assetId?: string | null;
   notes?: string | null;
   receipt?: File | null;
 };
@@ -48,6 +49,7 @@ type MaintenanceInput = LocationInput & {
   reportedBy?: string | null;
   assignedTo?: string | null;
   notes?: string | null;
+  assetId?: string | null;
   photos?: File[];
 };
 
@@ -103,25 +105,61 @@ async function validateLocation(input: LocationInput) {
   return { floorId, spaceId };
 }
 
+
+async function validateAssetLink(
+  propertyId: string,
+  assetId?: string | null,
+  location?: { floorId: string | null; spaceId: string | null },
+  client: unknown = prisma,
+) {
+  if (!assetId) return { assetId: null, location };
+  const db = operationsDb(client);
+  if (!db.asset?.findFirst) {
+    throw new Error("Assets schema is not installed yet.");
+  }
+  const asset = await db.asset.findFirst({
+    where: { id: assetId, propertyId, archivedAt: null },
+    select: { id: true, floorId: true, spaceId: true },
+  });
+  if (!asset) throw new Error("Linked asset was not found.");
+  if (location?.spaceId && asset.spaceId && location.spaceId !== asset.spaceId) {
+    throw new Error("Selected asset does not belong to the selected room.");
+  }
+  if (location?.floorId && asset.floorId && location.floorId !== asset.floorId) {
+    throw new Error("Selected asset does not belong to the selected floor.");
+  }
+  return {
+    assetId: asset.id as string,
+    location: {
+      floorId: (asset.floorId as string | null) ?? location?.floorId ?? null,
+      spaceId: (asset.spaceId as string | null) ?? location?.spaceId ?? null,
+    },
+  };
+}
+
 async function validateMaintenanceLink(propertyId: string, id?: string | null) {
   if (!id) return null;
   const db = requireOperationsSchema();
   const issue = await db.maintenanceIssue!.findFirst({
     where: { id, propertyId, archivedAt: null },
-    select: { id: true },
+    select: { id: true, assetId: true, floorId: true, spaceId: true },
   });
   if (!issue) throw new Error("Linked maintenance issue was not found.");
-  return id;
+  return issue as { id: string; assetId: string | null; floorId: string | null; spaceId: string | null };
 }
 
 export async function createExpense(input: ExpenseInput) {
   const db = requireOperationsSchema();
-  const location = await validateLocation(input);
+  let location = await validateLocation(input);
   const category = enumValue(input.category, EXPENSE_CATEGORIES, "Choose an expense category.");
-  const maintenanceIssueId = await validateMaintenanceLink(
-    input.propertyId,
-    input.maintenanceIssueId,
-  );
+  const maintenanceIssue = await validateMaintenanceLink(input.propertyId, input.maintenanceIssueId);
+  const requestedAssetId = input.assetId || maintenanceIssue?.assetId || null;
+  const assetLink = await validateAssetLink(input.propertyId, requestedAssetId, location);
+  location = assetLink.location ?? location;
+  if (maintenanceIssue?.assetId && assetLink.assetId && maintenanceIssue.assetId !== assetLink.assetId) {
+    throw new Error("Expense asset must match the linked maintenance issue asset.");
+  }
+  const maintenanceIssueId = maintenanceIssue?.id ?? null;
   const id = randomUUID();
   let receiptStorageKey: string | null = null;
 
@@ -140,6 +178,7 @@ export async function createExpense(input: ExpenseInput) {
         floorId: location.floorId,
         spaceId: location.spaceId,
         maintenanceIssueId,
+        assetId: assetLink.assetId,
         expenseDate: date(input.expenseDate),
         category,
         description: requiredText(input.description, "Description is required."),
@@ -161,12 +200,16 @@ export async function updateExpense(expenseId: string, input: ExpenseInput) {
   });
   if (!existing) throw new Error("Expense was not found.");
 
-  const location = await validateLocation(input);
+  let location = await validateLocation(input);
   const category = enumValue(input.category, EXPENSE_CATEGORIES, "Choose an expense category.");
-  const maintenanceIssueId = await validateMaintenanceLink(
-    input.propertyId,
-    input.maintenanceIssueId,
-  );
+  const maintenanceIssue = await validateMaintenanceLink(input.propertyId, input.maintenanceIssueId);
+  const requestedAssetId = input.assetId || maintenanceIssue?.assetId || null;
+  const assetLink = await validateAssetLink(input.propertyId, requestedAssetId, location);
+  location = assetLink.location ?? location;
+  if (maintenanceIssue?.assetId && assetLink.assetId && maintenanceIssue.assetId !== assetLink.assetId) {
+    throw new Error("Expense asset must match the linked maintenance issue asset.");
+  }
+  const maintenanceIssueId = maintenanceIssue?.id ?? null;
   let nextReceipt = existing.receiptStorageKey as string | null;
   let storedNewReceipt: string | null = null;
   if (input.receipt && input.receipt.size > 0) {
@@ -185,6 +228,7 @@ export async function updateExpense(expenseId: string, input: ExpenseInput) {
         floorId: location.floorId,
         spaceId: location.spaceId,
         maintenanceIssueId,
+        assetId: assetLink.assetId,
         expenseDate: date(input.expenseDate),
         category,
         description: requiredText(input.description, "Description is required."),
@@ -224,7 +268,9 @@ export async function removeExpenseReceipt(expenseId: string) {
 
 export async function createMaintenanceIssue(input: MaintenanceInput) {
   const db = requireOperationsSchema();
-  const location = await validateLocation(input);
+  let location = await validateLocation(input);
+  const assetLink = await validateAssetLink(input.propertyId, input.assetId, location);
+  location = assetLink.location ?? location;
   const priority = enumValue(
     input.priority,
     MAINTENANCE_PRIORITIES,
@@ -244,6 +290,7 @@ export async function createMaintenanceIssue(input: MaintenanceInput) {
         propertyId: input.propertyId,
         floorId: location.floorId,
         spaceId: location.spaceId,
+        assetId: assetLink.assetId,
         title: requiredText(input.title, "Issue title is required."),
         description: requiredText(input.description, "Issue description is required."),
         status: "OPEN",
@@ -275,12 +322,15 @@ export async function updateMaintenanceIssue(
   if (issue.status === "COMPLETED") {
     throw new Error("Completed maintenance is read-only.");
   }
-  const location = await validateLocation(input);
+  let location = await validateLocation(input);
+  const assetLink = await validateAssetLink(input.propertyId, input.assetId, location);
+  location = assetLink.location ?? location;
   return db.maintenanceIssue!.update({
     where: { id: issueId },
     data: {
       floorId: location.floorId,
       spaceId: location.spaceId,
+      assetId: assetLink.assetId,
       title: requiredText(input.title, "Issue title is required."),
       description: requiredText(input.description, "Issue description is required."),
       priority: enumValue(
@@ -354,6 +404,7 @@ export async function completeMaintenanceIssue(input: {
           floorId: issue.floorId,
           spaceId: issue.spaceId,
           maintenanceIssueId: issue.id,
+          assetId: issue.assetId ?? null,
           expenseDate: date(input.expenseDate || input.completedAt),
           category,
           description:

@@ -141,6 +141,27 @@ enum TaskRecurrenceUnit {
   YEARS
 }
 
+enum AssetStatus {
+  ACTIVE
+  RETIRED
+  DISPOSED
+}
+
+enum AssetAttachmentType {
+  PHOTO
+  RECEIPT
+  WARRANTY
+  MANUAL
+  SERIAL
+  OTHER
+}
+
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+  UNKNOWN
+}
+
 model Property {
   id                String             @id @default(cuid())
   name              String
@@ -153,6 +174,9 @@ model Property {
   maintenanceIssues MaintenanceIssue[]
   expenses          Expense[]
   tasks             Task[]
+  assetCategories   AssetCategory[]
+  assets            Asset[]
+  devices           Device[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   archivedAt        DateTime?
@@ -171,6 +195,8 @@ model Floor {
   spaces            Space[]
   maintenanceIssues MaintenanceIssue[]
   expenses          Expense[]
+  assets            Asset[]
+  devices           Device[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   archivedAt        DateTime?
@@ -191,6 +217,8 @@ model Space {
   electricityRateOverrides ElectricityRateOverride[]
   maintenanceIssues        MaintenanceIssue[]
   expenses                 Expense[]
+  assets                   Asset[]
+  devices                  Device[]
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   archivedAt               DateTime?
@@ -408,6 +436,7 @@ model Meter {
   notes           String?
   readings        MeterReading[]
   monthlyClosings MeterMonthlyClosing[]
+  devices         Device[]
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
 
@@ -496,6 +525,8 @@ model MaintenanceIssue {
   floor       Floor?              @relation(fields: [floorId], references: [id], onDelete: Restrict)
   spaceId     String?
   space       Space?              @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  assetId     String?
+  asset       Asset?              @relation(fields: [assetId], references: [id], onDelete: Restrict)
   title       String
   description String
   status      MaintenanceStatus   @default(OPEN)
@@ -515,6 +546,7 @@ model MaintenanceIssue {
   @@index([propertyId, status, priority])
   @@index([floorId, status])
   @@index([spaceId, status])
+  @@index([assetId, status])
   @@index([reportedAt])
   @@index([archivedAt])
 }
@@ -539,6 +571,8 @@ model Expense {
   space              Space?            @relation(fields: [spaceId], references: [id], onDelete: Restrict)
   maintenanceIssueId String?
   maintenanceIssue   MaintenanceIssue? @relation(fields: [maintenanceIssueId], references: [id], onDelete: Restrict)
+  assetId            String?
+  asset              Asset?            @relation(fields: [assetId], references: [id], onDelete: Restrict)
   expenseDate        DateTime           @db.Date
   category           ExpenseCategory
   description        String
@@ -553,6 +587,7 @@ model Expense {
   @@index([floorId, expenseDate])
   @@index([spaceId, expenseDate])
   @@index([maintenanceIssueId])
+  @@index([assetId, expenseDate])
   @@index([archivedAt])
 }
 
@@ -582,3 +617,97 @@ model Task {
   @@index([archivedAt])
 }
 
+
+
+model AssetCategory {
+  id          String   @id @default(cuid())
+  propertyId  String
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  name        String
+  description String?
+  assets      Asset[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  archivedAt  DateTime?
+
+  @@unique([propertyId, name])
+  @@index([propertyId, archivedAt, name])
+}
+
+model Asset {
+  id                    String          @id @default(cuid())
+  propertyId            String
+  property              Property        @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  floorId               String?
+  floor                 Floor?          @relation(fields: [floorId], references: [id], onDelete: Restrict)
+  spaceId               String?
+  space                 Space?          @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  categoryId            String
+  category              AssetCategory   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  name                  String
+  brand                 String?
+  model                 String?
+  serialNumber          String?
+  purchaseDate          DateTime?        @db.Date
+  purchasePrice         Decimal?         @db.Decimal(16, 0)
+  warrantyExpiresAt     DateTime?        @db.Date
+  notes                 String?
+  status                AssetStatus      @default(ACTIVE)
+  replacementForAssetId String?          @unique
+  replacementForAsset   Asset?           @relation("AssetReplacement", fields: [replacementForAssetId], references: [id], onDelete: Restrict)
+  replacedByAsset       Asset?           @relation("AssetReplacement")
+  maintenanceIssues     MaintenanceIssue[]
+  expenses              Expense[]
+  attachments           AssetAttachment[]
+  devices               Device[]
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  archivedAt            DateTime?
+
+  @@index([propertyId, status])
+  @@index([categoryId, status])
+  @@index([floorId, status])
+  @@index([spaceId, status])
+  @@index([warrantyExpiresAt])
+}
+
+model AssetAttachment {
+  id         String              @id @default(cuid())
+  assetId    String
+  asset      Asset               @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  type       AssetAttachmentType
+  title      String?
+  storageKey String
+  createdAt  DateTime            @default(now())
+
+  @@index([assetId, type, createdAt])
+}
+
+model Device {
+  id         String       @id @default(cuid())
+  propertyId String
+  property   Property     @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  floorId    String?
+  floor      Floor?       @relation(fields: [floorId], references: [id], onDelete: Restrict)
+  spaceId    String?
+  space      Space?       @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  assetId    String?
+  asset      Asset?       @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  meterId    String?
+  meter      Meter?       @relation(fields: [meterId], references: [id], onDelete: Restrict)
+  name       String
+  deviceType String
+  externalId String?
+  protocol   String?
+  status     DeviceStatus @default(UNKNOWN)
+  lastSeenAt DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  archivedAt DateTime?
+
+  @@index([propertyId, status])
+  @@index([spaceId, status])
+  @@index([assetId])
+  @@index([meterId])
+  @@index([archivedAt])
+}

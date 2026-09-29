@@ -5,6 +5,7 @@ export type OperationsPrismaClient = typeof prisma & {
   maintenancePhoto?: any;
   expense?: any;
   task?: any;
+  asset?: any;
 };
 
 export function operationsDb(client: unknown = prisma) {
