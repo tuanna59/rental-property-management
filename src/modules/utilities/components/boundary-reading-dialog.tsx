@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PrivateAttachmentPicker } from "@/components/ui/private-attachment";
 import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
@@ -106,11 +107,13 @@ export function BoundaryReadingDialog({
           {source === "ESTIMATED" && (
             <Field label="Estimate reason" name="reason" required />
           )}
-          <Field
-            label="Photo"
+          <PrivateAttachmentPicker
             name="photo"
-            type="file"
             accept="image/jpeg,image/png,image/webp"
+            title="Boundary photo"
+            emptyText="No photo selected"
+            actionLabel="Add photo"
+            kind="image"
           />
           <div className="field">
             <Label htmlFor="boundary-notes">Notes</Label>

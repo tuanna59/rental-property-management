@@ -16,6 +16,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PrivateAttachmentPicker } from "@/components/ui/private-attachment";
 import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
@@ -800,11 +801,14 @@ function PhotoAction({
         )}
         <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="readingId" value={readingId} />
-          <Input
+          <PrivateAttachmentPicker
             name="photo"
-            type="file"
             accept="image/jpeg,image/png,image/webp"
             required
+            title="Evidence photo"
+            emptyText="No photo selected"
+            actionLabel="Choose photo"
+            kind="image"
           />
           {state.message && (
             <p className={state.ok ? "form-success" : "form-error"}>

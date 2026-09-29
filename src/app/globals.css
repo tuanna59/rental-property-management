@@ -157,3 +157,101 @@ select {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Shared private attachment presentation */
+.private-attachment-picker {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px dashed var(--app-border-strong);
+  border-radius: var(--app-radius-control);
+  background: var(--app-surface-subtle);
+}
+.private-attachment-copy {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.private-attachment-copy > span:last-child { min-width: 0; display: grid; gap: 2px; }
+.private-attachment-copy strong { color: var(--app-text-primary); font-size: calc(13px + var(--app-font-size-bump)); }
+.private-attachment-copy small { overflow: hidden; color: var(--app-text-muted); font-size: calc(11px + var(--app-font-size-bump)); text-overflow: ellipsis; white-space: nowrap; }
+.private-attachment-icon {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--app-brand-soft);
+  color: var(--app-brand);
+}
+.private-attachment-icon svg { width: 17px; height: 17px; }
+.private-attachment-button {
+  min-height: 34px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-control);
+  background: var(--app-surface);
+  color: var(--app-text-primary);
+  font-size: calc(12px + var(--app-font-size-bump));
+  font-weight: 650;
+  cursor: pointer;
+}
+.private-attachment-button:hover { background: var(--app-row-hover-bg); }
+.private-attachment-button:focus-visible { outline: 2px solid var(--app-focus-ring); outline-offset: 2px; }
+.private-attachment-button svg { width: 15px; height: 15px; }
+.private-attachment-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 520px) {
+  .private-attachment-picker { align-items: stretch; flex-direction: column; }
+  .private-attachment-button { width: 100%; }
+}
+
+/* Shared private attachment compact variants */
+.private-attachment-copy em {
+  color: var(--app-text-muted);
+  font-size: calc(10px + var(--app-font-size-bump));
+  font-style: normal;
+  line-height: 1.35;
+}
+.private-attachment-inline-trigger {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-control);
+  background: var(--app-surface);
+  color: var(--app-text-primary);
+  font-size: calc(12px + var(--app-font-size-bump));
+  font-weight: 650;
+  cursor: pointer;
+}
+.private-attachment-inline-trigger:hover { background: var(--app-row-hover-bg); }
+.private-attachment-inline-trigger:focus-within { outline: 2px solid var(--app-focus-ring); outline-offset: 2px; }
+.private-attachment-inline-trigger svg { width: 15px; height: 15px; }
+.private-attachment-icon-trigger {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 2px solid var(--app-surface);
+  background: var(--app-brand);
+  color: var(--app-primary-foreground);
+  box-shadow: var(--app-shadow-sm);
+  cursor: pointer;
+}
+.private-attachment-icon-trigger:hover { background: var(--app-brand-hover); }
+.private-attachment-icon-trigger:focus-within { outline: 2px solid var(--app-focus-ring); outline-offset: 2px; }
+.private-attachment-icon-trigger svg { width: 15px; height: 15px; }

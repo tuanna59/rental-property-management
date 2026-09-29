@@ -109,7 +109,9 @@ export async function getMaintenancePage(
       open: items.filter((item) => item.status === "OPEN").length,
       inProgress: items.filter((item) => item.status === "IN_PROGRESS").length,
       urgent: items.filter(
-        (item) => item.priority === "URGENT" && item.status !== "COMPLETED",
+        (item) =>
+          item.priority === "URGENT" &&
+          (item.status === "OPEN" || item.status === "IN_PROGRESS"),
       ).length,
       completedThisMonth: issues.filter(
         (issue: any) =>
@@ -257,6 +259,11 @@ export async function getExpensePage(
       maintenanceIssueId: expense.maintenanceIssueId ?? null,
       maintenanceTitle: expense.maintenanceIssue?.title ?? null,
       hasReceipt: Boolean(expense.receiptStorageKey),
+      receiptMediaType: expense.receiptStorageKey
+        ? expense.receiptStorageKey.toLowerCase().endsWith(".pdf")
+          ? "pdf"
+          : "image"
+        : null,
     })),
     locations,
     maintenanceOptions: maintenance.map((issue: any) => ({

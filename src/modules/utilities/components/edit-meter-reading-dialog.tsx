@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { PrivateAttachmentPicker } from "@/components/ui/private-attachment";
 import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
@@ -97,11 +98,13 @@ export function EditMeterReadingDialog({
               required
             />
           )}
-          <Field
-            label="Add evidence photo"
+          <PrivateAttachmentPicker
             name="photo"
-            type="file"
             accept="image/jpeg,image/png,image/webp"
+            title="Evidence photo"
+            emptyText="No new photo selected"
+            actionLabel="Add photo"
+            kind="image"
           />
           {state.message && (
             <p className={state.ok ? "form-success" : "form-error"}>

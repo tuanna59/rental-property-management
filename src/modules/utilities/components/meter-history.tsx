@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PrivateAttachmentPicker } from "@/components/ui/private-attachment";
 import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
@@ -12,7 +13,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/presentation";
-import { Input } from "@/components/ui/input";
 import { emptyActionState } from "@/lib/action-state";
 import { appendMeterReadingPhotoAction } from "../actions";
 import { EditMeterReadingDialog } from "./edit-meter-reading-dialog";
@@ -266,11 +266,14 @@ function PhotoDialog({
         {!readOnly && (
           <PreservingActionForm action={action} className="dialog-form">
             <input type="hidden" name="readingId" value={readingId} />
-            <Input
+            <PrivateAttachmentPicker
               name="photo"
-              type="file"
               accept="image/jpeg,image/png,image/webp"
               required
+              title="Evidence photo"
+              emptyText="No photo selected"
+              actionLabel="Choose photo"
+              kind="image"
             />
             {state.message && (
               <p className={state.ok ? "form-success" : "form-error"}>

@@ -4,6 +4,7 @@ import * as React from "react";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PrivateAttachmentPicker } from "@/components/ui/private-attachment";
 import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,11 +94,13 @@ export function MeterReadingDialog({ meterId }: { meterId: string }) {
             />
           )}
           <div className="dialog-grid">
-            <Field
-              label="Meter photo"
+            <PrivateAttachmentPicker
               name="photo"
-              type="file"
               accept="image/jpeg,image/png,image/webp"
+              title="Meter photo"
+              emptyText="No photo selected"
+              actionLabel="Add photo"
+              kind="image"
             />
             <Field label="Notes" name="notes" />
           </div>

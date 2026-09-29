@@ -374,8 +374,7 @@
   width: 13px;
 }
 
-.tenant-avatar-upload input,
-.tenant-document-upload input {
+.tenant-avatar-upload input {
   display: none;
 }
 
@@ -912,23 +911,6 @@ button.tenant-summary-card:hover {
   gap: 6px;
 }
 
-.tenant-document-upload {
-  min-height: 32px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  cursor: pointer;
-  padding: 0 9px;
-  border: 1px solid var(--app-border);
-  border-radius: 6px;
-  color: var(--app-text-secondary);
-  font-size: calc(11px + var(--app-font-size-bump));
-  font-weight: 650;
-}
-
-.tenant-document-upload svg {
-  width: 14px;
-}
 
 .media-preview-dialog img {
   width: 100%;
@@ -1581,7 +1563,6 @@ button.tenant-summary-card:hover {
   gap: 5px;
 }
 
-.tenant-document-upload,
 .tenant-document-delete {
   min-height: 30px;
   display: inline-flex;
@@ -1597,7 +1578,6 @@ button.tenant-summary-card:hover {
   cursor: pointer;
 }
 
-.tenant-document-upload svg,
 .tenant-document-delete svg {
   width: 13px;
   height: 13px;

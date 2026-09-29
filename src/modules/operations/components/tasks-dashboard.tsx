@@ -47,6 +47,15 @@ export function TasksDashboard({
     });
   }, [priority, search, tab, view.items]);
 
+  const nextUpcoming = React.useMemo(() => {
+    const today = new Date();
+    const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    return view.items
+      .filter((item) => item.status === "TODO" && item.dueDate && item.dueDate > todayDate)
+      .map((item) => item.dueDate!)
+      .sort()[0] ?? null;
+  }, [view.items]);
+
   return (
     <>
       <header className="operations-header">
@@ -63,34 +72,32 @@ export function TasksDashboard({
         />
       </header>
 
-      <section className="operations-task-pulse" aria-label="Task summary">
-        <div className="operations-task-pulse-main">
-          <span className="operations-task-pulse-icon"><ListTodo /></span>
-          <div>
-            <span>Operational queue</span>
-            <strong>{view.summary.dueOrOverdue + view.summary.upcoming} active tasks</strong>
-            <small>{view.summary.overdue ? `${view.summary.overdue} overdue · prioritize these first` : "Nothing overdue right now"}</small>
-          </div>
-        </div>
-        <div className="operations-task-pulse-stats">
-          <button type="button" onClick={() => setTab("DUE")} className={tab === "DUE" ? "is-active" : ""}>
-            <CircleAlert />
-            <span>Due / overdue</span>
-            <strong>{view.summary.dueOrOverdue}</strong>
-          </button>
-          <button type="button" onClick={() => setTab("UPCOMING")} className={tab === "UPCOMING" ? "is-active" : ""}>
-            <CalendarClock />
-            <span>Upcoming</span>
-            <strong>{view.summary.upcoming}</strong>
-          </button>
-          <button type="button" onClick={() => setTab("COMPLETED")} className={tab === "COMPLETED" ? "is-active" : ""}>
-            <CheckCircle2 />
-            <span>Completed this month</span>
-            <strong>{view.summary.completedThisMonth}</strong>
-          </button>
-        </div>
+      <section className="operations-summary-grid operations-task-summary-grid" aria-label="Task summary">
+        <TaskSummaryCard
+          icon={<CircleAlert />}
+          label="Due / overdue"
+          value={view.summary.dueOrOverdue}
+          insight={view.summary.overdue ? `${view.summary.overdue} overdue` : "Nothing overdue"}
+          active={tab === "DUE"}
+          onClick={() => setTab("DUE")}
+        />
+        <TaskSummaryCard
+          icon={<CalendarClock />}
+          label="Upcoming"
+          value={view.summary.upcoming}
+          insight={nextUpcoming ? `Next due ${formatDate(nextUpcoming)}` : "No upcoming due dates"}
+          active={tab === "UPCOMING"}
+          onClick={() => setTab("UPCOMING")}
+        />
+        <TaskSummaryCard
+          icon={<CheckCircle2 />}
+          label="Completed this month"
+          value={view.summary.completedThisMonth}
+          insight="Completed occurrences"
+          active={tab === "COMPLETED"}
+          onClick={() => setTab("COMPLETED")}
+        />
       </section>
-
       <section className="operations-panel operations-task-panel">
         <div className="operations-panel-header operations-task-panel-head">
           <div className="operations-segmented-tabs" role="tablist" aria-label="Task views">
@@ -174,6 +181,38 @@ export function TasksDashboard({
         )}
       </section>
     </>
+  );
+}
+
+function TaskSummaryCard({
+  icon,
+  label,
+  value,
+  insight,
+  active,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  insight: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`operations-summary-card${active ? " is-active" : ""}`}
+      aria-pressed={active}
+      onClick={onClick}
+    >
+      <span className="operations-summary-icon">{icon}</span>
+      <span className="operations-summary-copy">
+        <span>{label}</span>
+        <strong>{value}</strong>
+        <small>{insight}</small>
+      </span>
+    </button>
   );
 }
 

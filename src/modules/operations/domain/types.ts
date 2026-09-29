@@ -110,6 +110,7 @@ export type ExpenseListItemView = {
   maintenanceIssueId: string | null;
   maintenanceTitle: string | null;
   hasReceipt: boolean;
+  receiptMediaType: "image" | "pdf" | null;
 };
 
 export type ExpenseSummaryView = {

@@ -4,6 +4,7 @@ import * as React from "react";
 import { Repeat2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PrivateAttachmentPicker } from "@/components/ui/private-attachment";
 import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,13 +81,15 @@ export function ReplaceMeterDialog({ spaceId }: { spaceId: string }) {
                   <option value="ESTIMATED">Estimated</option>
                 </select>
               </div>
-              <Field
-                label="Photo"
-                name="oldMeterPhoto"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-              />
             </div>
+            <PrivateAttachmentPicker
+              name="oldMeterPhoto"
+              accept="image/jpeg,image/png,image/webp"
+              title="Old meter photo"
+              emptyText="No photo selected"
+              actionLabel="Add photo"
+              kind="image"
+            />
           </div>
           {source === "ESTIMATED" && (
             <p className="text-xs text-[var(--app-warning)]">
@@ -109,13 +112,15 @@ export function ReplaceMeterDialog({ spaceId }: { spaceId: string }) {
                 step="0.001"
                 required
               />
-              <Field
-                label="Photo"
-                name="newMeterPhoto"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-              />
             </div>
+            <PrivateAttachmentPicker
+              name="newMeterPhoto"
+              accept="image/jpeg,image/png,image/webp"
+              title="New meter photo"
+              emptyText="No photo selected"
+              actionLabel="Add photo"
+              kind="image"
+            />
           </div>
           <Field label="Reason" name="reason" required />
           <div className="field">

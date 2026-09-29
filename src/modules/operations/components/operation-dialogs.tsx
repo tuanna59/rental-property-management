@@ -9,7 +9,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  FilePlus2,
   ImageIcon,
   Pencil,
   Plus,
@@ -32,6 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PreservingActionForm } from "@/components/ui/preserving-action-form";
+import { PrivateAttachmentPicker } from "@/components/ui/private-attachment";
 import { Textarea } from "@/components/ui/textarea";
 import { emptyActionState, type ActionState } from "@/lib/action-state";
 import { formatDate, formatVnd } from "@/lib/presentation";
@@ -127,6 +127,7 @@ function SelectField({
   defaultValue,
   children,
   required,
+  disabled,
   onChange,
   value,
 }: {
@@ -135,6 +136,7 @@ function SelectField({
   defaultValue?: string;
   children: React.ReactNode;
   required?: boolean;
+  disabled?: boolean;
   onChange?: React.ChangeEventHandler<HTMLSelectElement>;
   value?: string;
 }) {
@@ -148,6 +150,7 @@ function SelectField({
         defaultValue={value === undefined ? defaultValue : undefined}
         value={value}
         required={required}
+        disabled={disabled}
         onChange={onChange}
       >
         {children}
@@ -170,19 +173,31 @@ function LocationFields({
     locations.find((location) => location.spaceId === defaultSpaceId)?.floorId ||
     "";
   const [floorId, setFloorId] = React.useState(inferredFloor);
+  const [spaceId, setSpaceId] = React.useState(defaultSpaceId ?? "");
   const floorOptions = React.useMemo(() => {
     const seen = new Map<string, string>();
     for (const location of locations) seen.set(location.floorId, location.floorName);
     return [...seen.entries()].map(([id, name]) => ({ id, name }));
   }, [locations]);
-  const roomOptions = floorId
-    ? locations.filter((location) => location.floorId === floorId)
-    : locations;
+  const roomOptions = React.useMemo(
+    () => (floorId ? locations.filter((location) => location.floorId === floorId) : []),
+    [floorId, locations],
+  );
+
+  React.useEffect(() => {
+    if (!floorId) {
+      setSpaceId("");
+      return;
+    }
+    if (spaceId && !roomOptions.some((location) => location.spaceId === spaceId)) {
+      setSpaceId("");
+    }
+  }, [floorId, roomOptions, spaceId]);
 
   return (
     <div className="operations-form-grid">
       <SelectField
-        label="Floor (optional)"
+        label="Floor"
         name="floorId"
         value={floorId}
         onChange={(event) => setFloorId(event.target.value)}
@@ -195,15 +210,16 @@ function LocationFields({
         ))}
       </SelectField>
       <SelectField
-        key={`${floorId}-${defaultSpaceId ?? ""}`}
-        label="Room / space (optional)"
+        label="Room / space"
         name="spaceId"
-        defaultValue={defaultSpaceId ?? ""}
+        value={spaceId}
+        disabled={!floorId}
+        onChange={(event) => setSpaceId(event.target.value)}
       >
-        <option value="">{floorId ? "Floor level" : "Property level"}</option>
+        <option value="">None</option>
         {roomOptions.map((location) => (
           <option key={location.spaceId} value={location.spaceId}>
-            {location.spaceName} · {location.floorName}
+            {location.spaceName}
           </option>
         ))}
       </SelectField>
@@ -302,14 +318,23 @@ export function ExpenseFormDialog({
               </option>
             ))}
           </SelectField>
-          <div className="operations-form-grid">
-            <Field
-              label={expense?.hasReceipt ? "Replace receipt (optional)" : "Receipt (optional)"}
+          <TextareaField label="Notes (optional)" name="notes" defaultValue={expense?.notes ?? ""} />
+          <div className="operations-attachment-field">
+            <PrivateAttachmentPicker
+              title="Receipt"
               name="receipt"
-              type="file"
               accept="application/pdf,image/jpeg,image/png,image/webp"
+              emptyText="No receipt attached"
+              existingCount={expense?.hasReceipt ? 1 : 0}
+              actionLabel={expense?.hasReceipt ? "Choose replacement" : "Add receipt"}
+              kind="receipt"
             />
-            <TextareaField label="Notes (optional)" name="notes" defaultValue={expense?.notes ?? ""} />
+            {expense?.hasReceipt && (
+              <ExpenseReceiptViewer
+                expense={expense}
+                trigger={<button type="button" className="operations-attachment-view"><Eye /> View current receipt</button>}
+              />
+            )}
           </div>
           <ActionDialogState state={state} />
           <DialogFooter>
@@ -395,12 +420,14 @@ export function MaintenanceFormDialog({
           </div>
           <TextareaField label="Notes (optional)" name="notes" defaultValue={issue?.notes ?? ""} />
           {!issue && (
-            <Field
-              label="Photos (optional)"
+            <PrivateAttachmentPicker
+              title="Photos"
               name="photos"
-              type="file"
               accept="image/jpeg,image/png,image/webp"
               multiple
+              emptyText="No photos attached"
+              actionLabel="Add photos"
+              kind="image"
             />
           )}
           <ActionDialogState state={state} />
@@ -499,7 +526,13 @@ export function TaskFormDialog({
             {linkType && linkType !== "PROPERTY" ? (
               <SelectField
                 key={`${linkType}-${task?.linkedEntityId ?? ""}`}
-                label="Linked record"
+                label={
+                  linkType === "MAINTENANCE"
+                    ? "Choose maintenance issue"
+                    : linkType === "SPACE"
+                      ? "Choose room / space"
+                      : "Choose invoice"
+                }
                 name="linkedEntityId"
                 defaultValue={task?.linkedEntityType === linkType ? task.linkedEntityId ?? "" : ""}
                 required
@@ -525,13 +558,13 @@ export function TaskFormDialog({
               onChange={(event) => setRecurrence(event.target.value)}
             >
               <option value="">One-time</option>
-              <option value="DAYS">Every N days</option>
-              <option value="MONTHS">Every N months</option>
-              <option value="YEARS">Every N years</option>
+              <option value="DAYS">Repeat by days</option>
+              <option value="MONTHS">Repeat by months</option>
+              <option value="YEARS">Repeat by years</option>
             </SelectField>
             {recurrence ? (
               <Field
-                label="Every"
+                label={`Repeat every (${recurrence === "DAYS" ? "days" : recurrence === "MONTHS" ? "months" : "years"})`}
                 name="recurrenceInterval"
                 type="number"
                 min="1"
@@ -614,9 +647,13 @@ export function MaintenanceDetailDialog({
         </DialogHeader>
 
         <div className="operations-detail-meta">
-          <div><span>Reported by</span><strong>{issue.reportedBy || "Not provided"}</strong></div>
+          <div>
+            <span>Reported</span>
+            <strong>{formatDate(issue.reportedAt)}</strong>
+            {issue.reportedBy && <small>by {issue.reportedBy}</small>}
+          </div>
           <div><span>Assigned to</span><strong>{issue.assignedTo || "Unassigned"}</strong></div>
-          <div><span>Photos</span><strong>{issue.photoCount}</strong></div>
+          <div><span>Location</span><strong>{issue.locationLabel}</strong></div>
           <div><span>Related cost</span><strong>{formatVnd(issue.costVnd)}</strong></div>
         </div>
 
@@ -626,15 +663,20 @@ export function MaintenanceDetailDialog({
           {issue.notes && <div className="operations-note"><strong>Notes</strong><p>{issue.notes}</p></div>}
         </section>
 
-        {issue.photos.length > 0 && (
-          <section className="operations-detail-section">
-            <div className="operations-section-heading-inline">
-              <h3>Photos</h3>
-              <span>{issue.photos.length} image{issue.photos.length === 1 ? "" : "s"}</span>
-            </div>
+        <section className="operations-detail-section operations-attachments-section">
+          <div className="operations-section-heading-inline">
+            <h3>Photos</h3>
+            <span>{issue.photos.length ? `${issue.photos.length} attached` : "No photos attached"}</span>
+          </div>
+          {issue.photos.length > 0 ? (
             <MaintenancePhotoGallery issue={issue} />
-          </section>
-        )}
+          ) : (
+            <p className="operations-muted">No photos attached.</p>
+          )}
+          {issue.status !== "COMPLETED" && (
+            <MaintenancePhotoUpload propertyId={propertyId} issueId={issue.id} existingCount={issue.photos.length} />
+          )}
+        </section>
 
         {issue.status !== "COMPLETED" && (
           <section className="operations-detail-section operations-detail-actions-section">
@@ -688,11 +730,6 @@ export function MaintenanceDetailDialog({
           ) : (
             <p className="operations-muted">No owner costs linked to this issue yet.</p>
           )}
-        </section>
-
-        <section className="operations-detail-section">
-          <h3>Add photos</h3>
-          <MaintenancePhotoUpload propertyId={propertyId} issueId={issue.id} />
         </section>
 
         <div className="operations-detail-danger">
@@ -761,7 +798,15 @@ function CompleteMaintenanceDialog({ issue }: { issue: MaintenanceListItemView }
   );
 }
 
-function MaintenancePhotoUpload({ propertyId, issueId }: { propertyId: string; issueId: string }) {
+function MaintenancePhotoUpload({
+  propertyId,
+  issueId,
+  existingCount = 0,
+}: {
+  propertyId: string;
+  issueId: string;
+  existingCount?: number;
+}) {
   const router = useRouter();
   const [state, action] = React.useActionState(
     async (previous: ActionState, data: FormData) => {
@@ -775,8 +820,18 @@ function MaintenancePhotoUpload({ propertyId, issueId }: { propertyId: string; i
     <PreservingActionForm action={action} className="operations-photo-upload">
       <input type="hidden" name="propertyId" value={propertyId} />
       <input type="hidden" name="issueId" value={issueId} />
-      <Input type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple required />
-      <Button type="submit" size="sm" variant="outline"><Camera /> Add photos</Button>
+      <PrivateAttachmentPicker
+        title="Maintenance photos"
+        name="photos"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        required
+        existingCount={existingCount}
+        emptyText="No photos attached"
+        actionLabel="Add photos"
+        kind="image"
+      />
+      <Button type="submit" size="sm" variant="outline"><Camera /> Upload selected</Button>
       <ActionDialogState state={state} />
     </PreservingActionForm>
   );
@@ -828,11 +883,13 @@ function MaintenancePhotoGallery({ issue }: { issue: MaintenanceListItemView }) 
           </button>
         ))}
       </div>
-      <PreservingActionForm action={action} className="operations-photo-remove">
-        <input type="hidden" name="issueId" value={issue.id} />
-        <input type="hidden" name="photoId" value={photo.id} />
-        <Button type="submit" size="sm" variant="ghost"><Trash2 /> Remove current photo</Button>
-      </PreservingActionForm>
+      {issue.status !== "COMPLETED" && (
+        <PreservingActionForm action={action} className="operations-photo-remove">
+          <input type="hidden" name="issueId" value={issue.id} />
+          <input type="hidden" name="photoId" value={photo.id} />
+          <Button type="submit" size="sm" variant="ghost"><Trash2 /> Remove current photo</Button>
+        </PreservingActionForm>
+      )}
       <ActionDialogState state={state} />
     </div>
   );
@@ -866,10 +923,12 @@ export function ExpenseActions({
     },
     emptyActionState,
   );
+  const menuRef = React.useRef<HTMLDetailsElement>(null);
+  const closeMenu = () => { if (menuRef.current) menuRef.current.open = false; };
   return (
-    <details className="operations-row-menu">
+    <details ref={menuRef} className="operations-row-menu">
       <summary aria-label={`Actions for ${expense.description}`}>•••</summary>
-      <div>
+      <div onClick={(event) => { if ((event.target as HTMLElement).closest("button,a")) queueMicrotask(closeMenu); }}>
         <ExpenseFormDialog
           propertyId={propertyId}
           expense={expense}
@@ -879,7 +938,7 @@ export function ExpenseActions({
         />
         {expense.hasReceipt && (
           <>
-            <a href={`/api/operations/expenses/${expense.id}/receipt`} target="_blank" rel="noreferrer"><Eye /> View receipt</a>
+            <ExpenseReceiptViewer expense={expense} trigger={<button type="button"><Eye /> View receipt</button>} />
             <PreservingActionForm action={receiptAction}>
               <input type="hidden" name="expenseId" value={expense.id} />
               <button type="submit"><Trash2 /> Remove receipt</button>
@@ -929,6 +988,8 @@ export function TaskActions({
     },
     emptyActionState,
   );
+  const menuRef = React.useRef<HTMLDetailsElement>(null);
+  const closeMenu = () => { if (menuRef.current) menuRef.current.open = false; };
   if (task.status === "DONE") {
     return (
       <span className="operations-task-done-action">
@@ -942,9 +1003,9 @@ export function TaskActions({
         <input type="hidden" name="taskId" value={task.id} />
         <Button type="submit" size="sm"><Check /> Complete</Button>
       </PreservingActionForm>
-      <details className="operations-row-menu">
+      <details ref={menuRef} className="operations-row-menu">
         <summary aria-label={`Actions for ${task.title}`}>•••</summary>
-        <div>
+        <div onClick={(event) => { if ((event.target as HTMLElement).closest("button,a")) queueMicrotask(closeMenu); }}>
           <TaskFormDialog
             propertyId={propertyId}
             task={task}
@@ -969,15 +1030,43 @@ export function TaskActions({
 
 export function ExpenseReceiptIndicator({ expense }: { expense: ExpenseListItemView }) {
   if (!expense.hasReceipt) return <span className="operations-muted">—</span>;
+  return <ExpenseReceiptViewer expense={expense} />;
+}
+
+function ExpenseReceiptViewer({ expense, trigger }: { expense: ExpenseListItemView; trigger?: React.ReactNode }) {
+  const url = `/api/operations/expenses/${expense.id}/receipt`;
   return (
-    <a
-      className="operations-receipt-link"
-      href={`/api/operations/expenses/${expense.id}/receipt`}
-      target="_blank"
-      rel="noreferrer"
-    >
-      <ImageIcon /> View
-    </a>
+    <Dialog>
+      <DialogTrigger asChild>
+        {trigger ?? <button type="button" className="operations-receipt-link"><ImageIcon /> View</button>}
+      </DialogTrigger>
+      <DialogContent className="operations-dialog operations-receipt-dialog">
+        <DialogHeader>
+          <DialogTitle>Expense receipt</DialogTitle>
+          <DialogDescription>{expense.description} · {formatDate(expense.expenseDate)}</DialogDescription>
+        </DialogHeader>
+        {expense.receiptMediaType === "pdf" ? (
+          <iframe
+            className="operations-receipt-frame"
+            src={url}
+            title={`Receipt for ${expense.description}`}
+          />
+        ) : (
+          <div className="operations-receipt-image-wrap">
+            {/* Protected same-origin image route; using img avoids the browser's
+                generated image-document iframe and its CSP console noise. */}
+            <img
+              className="operations-receipt-image"
+              src={url}
+              alt={`Receipt for ${expense.description}`}
+            />
+          </div>
+        )}
+        <DialogFooter>
+          <Button asChild variant="outline"><a href={url} target="_blank" rel="noreferrer"><Eye /> Open original</a></Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -8,7 +8,6 @@ import {
   ArrowLeft,
   CalendarClock,
   CalendarDays,
-  Camera,
   CircleDollarSign,
   Download,
   Eye,
@@ -33,6 +32,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PrivateAttachmentPicker } from "@/components/ui/private-attachment";
 import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
@@ -289,19 +289,17 @@ function ProfileAvatar({ person }: { person: DirectoryPerson }) {
         <form action={action} className="tenant-avatar-upload">
           <input type="hidden" name="personId" value={person.id} />
           <input type="hidden" name="kind" value="avatar" />
-          <label title={person.hasAvatar ? "Replace avatar" : "Upload avatar"}>
-            <Camera aria-hidden="true" />
-            <span className="sr-only">
-              {person.hasAvatar ? "Replace avatar" : "Upload avatar"}
-            </span>
-            <input
-              name="image"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              required
-              onChange={(event) => event.currentTarget.form?.requestSubmit()}
-            />
-          </label>
+          <PrivateAttachmentPicker
+            name="image"
+            accept="image/jpeg,image/png,image/webp"
+            required
+            title="Avatar"
+            emptyText="No avatar uploaded"
+            actionLabel={person.hasAvatar ? "Replace avatar" : "Upload avatar"}
+            kind="image"
+            variant="icon"
+            autoSubmit
+          />
           {state.message && <span className="sr-only">{state.message}</span>}
         </form>
       )}
@@ -895,11 +893,16 @@ function AddDocumentDialog({ person }: { person: DirectoryPerson }) {
             <Label>Note <span className="tenant-optional-label">Optional</span></Label>
             <input className="tenant-native-input" name="note" />
           </div>
-          <div className="grid gap-2">
-            <Label>File</Label>
-            <input className="tenant-native-input" name="file" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" required />
-            <small className="tenant-form-hint">PDF, JPEG, PNG, or WebP · up to 16 MB</small>
-          </div>
+          <PrivateAttachmentPicker
+            name="file"
+            accept="application/pdf,image/jpeg,image/png,image/webp"
+            required
+            title="Document"
+            emptyText="No file selected"
+            actionLabel="Choose document"
+            kind="file"
+            helperText="PDF, JPEG, PNG, or WebP · up to 16 MB"
+          />
           {state.message && <p className={state.ok ? "form-success" : "form-error"}>{state.message}</p>}
           <DialogFooter><Button type="submit">Upload document</Button></DialogFooter>
         </PreservingActionForm>
@@ -958,10 +961,17 @@ function StoredDocumentCard({
             <form action={replaceAction}>
               <input type="hidden" name="personId" value={person.id} />
               <input type="hidden" name="documentId" value={document.id} />
-              <label className="tenant-document-upload">
-                <RotateCcw aria-hidden="true" />Replace
-                <input name="file" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" required onChange={(event) => event.currentTarget.form?.requestSubmit()} />
-              </label>
+              <PrivateAttachmentPicker
+                name="file"
+                accept="application/pdf,image/jpeg,image/png,image/webp"
+                required
+                title="Replacement document"
+                emptyText="No replacement selected"
+                actionLabel="Replace"
+                kind="file"
+                variant="inline"
+                autoSubmit
+              />
             </form>
             <form action={deleteAction}>
               <input type="hidden" name="personId" value={person.id} />
@@ -1051,11 +1061,17 @@ function MediaSlot({
             <form action={action}>
               <input type="hidden" name="personId" value={person.id} />
               <input type="hidden" name="kind" value={kind} />
-              <label className="tenant-document-upload">
-                <Plus aria-hidden="true" />
-                {present ? "Replace" : "Upload"}
-                <input name="image" type="file" accept="image/jpeg,image/png,image/webp" required onChange={(event) => event.currentTarget.form?.requestSubmit()} />
-              </label>
+              <PrivateAttachmentPicker
+                name="image"
+                accept="image/jpeg,image/png,image/webp"
+                required
+                title={label}
+                emptyText="No image selected"
+                actionLabel={present ? "Replace" : "Upload"}
+                kind="image"
+                variant="inline"
+                autoSubmit
+              />
             </form>
             {present && (
               <form action={deleteAction}>

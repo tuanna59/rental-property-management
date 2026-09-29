@@ -13,14 +13,16 @@ export async function GET(
   if (!key) return new Response("Not found", { status: 404 });
   try {
     const bytes = await localPrivateStorage.get(key);
-    return new Response(new Uint8Array(bytes), {
-      headers: {
-        "Content-Type": operationMediaContentType(key),
-        "Cache-Control": "private, no-store",
-        "Content-Security-Policy": "default-src 'none'; sandbox",
-        "X-Content-Type-Options": "nosniff",
-      },
+    const contentType = operationMediaContentType(key);
+    const headers = new Headers({
+      "Content-Type": contentType,
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
     });
+    if (contentType === "application/pdf") {
+      headers.set("Content-Security-Policy", "default-src 'none'; sandbox");
+    }
+    return new Response(new Uint8Array(bytes), { headers });
   } catch {
     return new Response("Not found", { status: 404 });
   }

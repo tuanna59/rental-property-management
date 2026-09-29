@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PrivateAttachmentPicker } from "@/components/ui/private-attachment";
 import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
@@ -167,18 +168,21 @@ export function MoveInDialog({
               Optional boundary reading. If no active meter exists, move-in
               continues normally.
             </p>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3">
               <Field
                 label="Current reading"
                 name="electricityReading"
                 type="number"
                 step="0.001"
               />
-              <Field
-                label="Meter photo"
+              <PrivateAttachmentPicker
                 name="electricityPhoto"
-                type="file"
                 accept="image/jpeg,image/png,image/webp"
+                title="Boundary photo"
+                emptyText="No boundary photo selected"
+                actionLabel="Add photo"
+                kind="image"
+                helperText="Optional evidence for the move-in meter reading."
               />
             </div>
           </fieldset>
@@ -273,16 +277,19 @@ export function MoveOutDialog({ space }: { space: DashboardSpace }) {
                 </select>
               </div>
               <Field
-                label="Meter photo"
-                name="electricityPhoto"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-              />
-              <Field
                 label="Reason if estimated"
                 name="electricityReadingReason"
               />
             </div>
+            <PrivateAttachmentPicker
+              name="electricityPhoto"
+              accept="image/jpeg,image/png,image/webp"
+              title="Boundary photo"
+              emptyText="No boundary photo selected"
+              actionLabel="Add photo"
+              kind="image"
+              helperText="Optional evidence for the final move-out meter reading."
+            />
           </fieldset>
           {state.message && (
             <p className={state.ok ? "form-success" : "form-error"}>
