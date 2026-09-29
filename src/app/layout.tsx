@@ -1,16 +1,11 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Source_Sans_3 } from "next/font/google";
+import { Geist_Mono, Source_Sans_3 } from "next/font/google";
 
 import { AppShell } from "@/components/app-shell/app-shell";
 import { getPrimaryPropertyShell } from "@/modules/property/server/property.queries";
 
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
 
 const sourceSans = Source_Sans_3({
   subsets: ["latin", "vietnamese"],
@@ -51,7 +46,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${sourceSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${sourceSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
         <script

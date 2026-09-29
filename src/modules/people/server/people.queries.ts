@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { PersonRecord } from "../domain/types";
 import { projectRentalState } from "../domain/rental-state";
 import { citizenIdLookupHash, decryptCitizenId } from "./citizen-id";
+import { listPersonDocuments } from "./documents";
 
 const personSelect = {
   id: true,
@@ -58,6 +59,18 @@ function currentBusinessDate() {
   return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 }
 
+function jsonObject(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" || typeof value === "number"
+    ? String(value)
+    : null;
+}
+
 export async function getPeopleDirectory(search = "") {
   const date = currentBusinessDate();
   const people = await prisma.person.findMany({
@@ -85,6 +98,11 @@ export async function getPeopleDirectory(search = "") {
               moveInDate: true,
               moveOutDate: true,
               monthlyRentVnd: true,
+              depositVnd: true,
+              depositTransactions: {
+                orderBy: [{ transactionDate: "asc" }, { createdAt: "asc" }],
+                select: { type: true, amount: true },
+              },
               rentRates: { orderBy: { effectiveFrom: "desc" } },
               responsibleHistory: {
                 orderBy: { effectiveFrom: "asc" },
@@ -118,7 +136,13 @@ export async function getPeopleDirectory(search = "") {
                   type: true,
                   status: true,
                   roomNameSnapshot: true,
-                  lines: { select: { finalAmount: true } },
+                  lines: {
+                    select: {
+                      type: true,
+                      finalAmount: true,
+                      metadata: true,
+                    },
+                  },
                   adjustments: { select: { amount: true } },
                   payments: {
                     orderBy: { paymentDate: "desc" },
@@ -127,6 +151,7 @@ export async function getPeopleDirectory(search = "") {
                       paymentDate: true,
                       method: true,
                       amount: true,
+                      reference: true,
                       isDepositApplication: true,
                     },
                   },
@@ -146,9 +171,10 @@ export async function getPeopleDirectory(search = "") {
     },
   });
 
-  return people.map((person) => {
+  return Promise.all(people.map(async (person) => {
     const { tenancyOccupancies, ...personFields } = person;
     const safe = toPersonRecord(personFields);
+    const documents = await listPersonDocuments(person.id);
     const history = tenancyOccupancies.map((membership) => {
       const rates = membership.tenancy.rentRates.map((rate) => ({
         id: rate.id,
@@ -171,6 +197,13 @@ export async function getPeopleDirectory(search = "") {
         currentAssignment?.occupant.id === membership.id
           ? "RESPONSIBLE"
           : "ADDITIONAL";
+      const depositHeld = membership.tenancy.depositTransactions.reduce(
+        (total, item) => {
+          const amount = Number(item.amount);
+          return item.type === "RECEIPT" ? total + amount : total - amount;
+        },
+        0,
+      );
       return {
         membershipId: membership.id,
         tenancyId: membership.tenancy.id,
@@ -182,6 +215,8 @@ export async function getPeopleDirectory(search = "") {
         spaceId: membership.tenancy.space.id,
         spaceName: membership.tenancy.space.name,
         floorName: membership.tenancy.space.floor.name,
+        depositExpected: membership.tenancy.depositVnd?.toString() ?? null,
+        depositHeld: String(Math.max(depositHeld, 0)),
         currentRent: effectiveRate ?? {
           id: "legacy",
           effectiveFrom: membership.tenancy.moveInDate,
@@ -222,11 +257,29 @@ export async function getPeopleDirectory(search = "") {
             0,
           );
           const balance = Math.max(total - paid, 0);
+          const electricityLines = invoice.lines.filter(
+            (line) => line.type === "ELECTRICITY",
+          );
+          const waterLines = invoice.lines.filter(
+            (line) => line.type === "WATER",
+          );
+          const electricityCharge = electricityLines.reduce(
+            (sum, line) => sum + Number(line.finalAmount),
+            0,
+          );
+          const waterCharge = waterLines.reduce(
+            (sum, line) => sum + Number(line.finalAmount),
+            0,
+          );
+          const electricityUsage = electricityLines
+            .map((line) => stringValue(jsonObject(line.metadata)?.tenantKwh))
+            .find(Boolean) ?? null;
           return {
             id: invoice.id,
             billingPeriod: invoice.billingPeriod,
             invoiceDate: invoice.invoiceDate,
             type: invoice.type,
+            status: invoice.status,
             roomName: invoice.roomNameSnapshot,
             amount: String(total),
             balance: String(balance),
@@ -238,11 +291,18 @@ export async function getPeopleDirectory(search = "") {
                   : invoice.status === "FINALIZED"
                     ? "Unpaid"
                     : "Draft",
+            utilities: {
+              electricityCharge: String(electricityCharge),
+              electricityUsage,
+              waterCharge: String(waterCharge),
+              total: String(electricityCharge + waterCharge),
+            },
             payments: invoice.payments.map((payment) => ({
               id: payment.id,
               paymentDate: payment.paymentDate,
               method: payment.method,
               amount: payment.amount.toString(),
+              reference: payment.reference,
               isDepositApplication: payment.isDepositApplication,
             })),
           };
@@ -259,8 +319,59 @@ export async function getPeopleDirectory(search = "") {
       upcomingTenancy: projection.upcoming ? match(projection.upcoming) : null,
       lastTenancy: history[0] ?? null,
       rentalHistory: history,
+      documents,
     };
+  }));
+}
+
+export async function getPeopleDirectoryStats() {
+  const date = currentBusinessDate();
+  const people = await prisma.person.findMany({
+    where: { archivedAt: null },
+    select: {
+      tenancyOccupancies: {
+        select: {
+          startDate: true,
+          endDate: true,
+          tenancy: {
+            select: {
+              moveInDate: true,
+              moveOutDate: true,
+              spaceId: true,
+            },
+          },
+        },
+      },
+    },
   });
+  const projections = people.map((person) =>
+    projectRentalState(
+      person.tenancyOccupancies.map((membership) => ({
+        startDate: membership.startDate,
+        endDate: membership.endDate,
+        moveInDate: membership.tenancy.moveInDate,
+        moveOutDate: membership.tenancy.moveOutDate,
+        spaceId: membership.tenancy.spaceId,
+      })),
+      date,
+    ),
+  );
+  const currentRooms = new Set(
+    projections.flatMap((projection) =>
+      projection.current ? [projection.current.spaceId] : [],
+    ),
+  );
+  const noRentalHistory = projections.filter(
+    (projection) => projection.state === "NO_RENTAL",
+  ).length;
+  return {
+    total: people.length,
+    current: projections.filter((projection) => projection.state === "CURRENT").length,
+    currentRooms: currentRooms.size,
+    upcoming: projections.filter((projection) => projection.state === "UPCOMING").length,
+    noRentalHistory,
+    withRentalHistory: people.length - noRentalHistory,
+  };
 }
 
 export async function getPersonById(

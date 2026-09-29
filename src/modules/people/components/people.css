@@ -1,594 +1,3965 @@
 .people-app {
-  min-height: 100dvh;
-  background: #eef2ef;
-  color: #172520;
+  min-height: 100%;
+  background: var(--app-page-bg);
+  color: var(--app-text-primary);
 }
 
-.tenant-tab-section {
-  padding-top: 0;
+.people-workspace {
+  width: min(1480px, 100%);
+  margin: 0 auto;
+  padding: 28px 30px 34px;
 }
+
+.people-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+.people-header h1 {
+  margin: 0;
+  font-size: calc(28px + var(--app-font-size-bump));
+  font-weight: 720;
+  letter-spacing: -0.02em;
+}
+
+.people-header p {
+  margin: 4px 0 0;
+  color: var(--app-text-secondary);
+  font-size: calc(13px + var(--app-font-size-bump));
+}
+
+.tenant-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.tenant-kpi {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px 15px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface);
+}
+
+.tenant-kpi span {
+  color: var(--app-text-secondary);
+  font-size: calc(12px + var(--app-font-size-bump));
+  font-weight: 600;
+}
+
+.tenant-kpi strong {
+  color: var(--app-brand);
+  font-size: calc(21px + var(--app-font-size-bump));
+  font-weight: 740;
+}
+
+.people-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 37%) minmax(0, 63%);
+  min-height: calc(100dvh - 170px);
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  border-radius: 12px;
+  background: var(--app-surface);
+  box-shadow: 0 14px 38px rgb(38 58 49 / 0.07);
+}
+
+.people-directory {
+  min-width: 0;
+  border-right: 1px solid var(--app-border);
+  background: var(--app-surface-subtle);
+}
+
+.people-directory-toolbar {
+  padding: 15px 15px 10px;
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.people-search {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 8px;
+  background: var(--app-input-bg);
+}
+
+.people-search:focus-within {
+  border-color: color-mix(in srgb, var(--app-brand) 52%, white);
+  box-shadow: 0 0 0 3px rgb(45 128 96 / 0.08);
+}
+
+.people-search svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--app-text-muted);
+}
+
+.people-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--app-text-primary);
+  font-size: calc(13px + var(--app-font-size-bump));
+}
+
+.people-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.people-filters {
+  display: flex;
+  gap: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.people-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.people-filters a {
+  flex: none;
+  padding: 6px 9px;
+  border-radius: 7px;
+  color: var(--app-text-secondary);
+  font-size: calc(12px + var(--app-font-size-bump));
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.people-filters a:hover,
+.people-filters a:focus-visible {
+  background: var(--app-row-hover-bg);
+}
+
+.people-filters a.is-active {
+  background: var(--app-brand-soft);
+  color: var(--app-brand);
+}
+
+.people-archive-menu,
+.tenant-overflow {
+  position: relative;
+}
+
+.people-archive-menu summary,
+.tenant-overflow summary {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  list-style: none;
+  cursor: pointer;
+  border: 1px solid var(--app-border);
+  border-radius: 7px;
+  background: var(--app-surface);
+  color: var(--app-text-secondary);
+}
+
+.people-archive-menu summary::-webkit-details-marker,
+.tenant-overflow summary::-webkit-details-marker {
+  display: none;
+}
+
+.people-archive-menu summary svg,
+.tenant-overflow summary svg {
+  width: 17px;
+}
+
+.people-archive-menu > div,
+.tenant-overflow-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 190px;
+  padding: 6px;
+  border: 1px solid var(--app-border);
+  border-radius: 9px;
+  background: var(--app-surface);
+  box-shadow: 0 12px 30px rgb(34 54 45 / 0.14);
+}
+
+.people-archive-menu a,
+.tenant-overflow-menu button {
+  width: 100%;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--app-text-secondary);
+  font: inherit;
+  font-size: calc(12px + var(--app-font-size-bump));
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.people-archive-menu a:hover,
+.tenant-overflow-menu button:hover {
+  background: var(--app-row-hover-bg);
+}
+
+.tenant-overflow-menu button svg {
+  width: 15px;
+}
+
+.tenant-overflow-menu small {
+  display: block;
+  padding: 5px 10px;
+  color: var(--app-text-muted);
+}
+
+.people-archive-banner {
+  padding: 8px 15px;
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-warning-soft);
+  color: var(--app-warning);
+  font-size: calc(11px + var(--app-font-size-bump));
+  font-weight: 650;
+}
+
+.people-list {
+  max-height: calc(100dvh - 275px);
+  overflow-y: auto;
+}
+
+.person-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  min-height: 84px;
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--app-border);
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.12s ease;
+}
+
+.person-row:hover {
+  background: var(--app-row-hover-bg);
+}
+
+.person-row.is-selected {
+  background: var(--app-row-selected-bg);
+  box-shadow: inset 3px 0 var(--app-brand);
+}
+
+.tenant-avatar {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  object-fit: cover;
+  border-radius: 50%;
+  background: var(--app-brand-soft);
+}
+
+.tenant-avatar-fallback {
+  display: grid;
+  place-items: center;
+  color: var(--app-brand);
+  font-size: calc(12px + var(--app-font-size-bump));
+  font-weight: 750;
+}
+
+.tenant-avatar.is-large {
+  width: 68px;
+  height: 68px;
+  flex-basis: 68px;
+  font-size: calc(17px + var(--app-font-size-bump));
+}
+
+
+.tenant-list-state,
+.tenant-state {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--app-status-neutral-bg);
+  color: var(--app-neutral);
+  font-size: calc(10px + var(--app-font-size-bump));
+  font-weight: 750;
+  letter-spacing: 0.01em;
+}
+
+.state-current {
+  background: var(--app-status-success-bg);
+  color: var(--app-success);
+}
+
+.state-upcoming {
+  background: var(--app-status-info-bg);
+  color: var(--app-info);
+}
+
+.state-former {
+  background: var(--app-status-neutral-bg);
+  color: var(--app-neutral);
+}
+
+.person-profile {
+  min-width: 0;
+  background: var(--app-surface);
+}
+
+.tenant-profile-workspace {
+  width: min(100%, 980px);
+  padding: 26px 28px 32px;
+}
+
+.tenant-mobile-back {
+  display: none;
+}
+
+.tenant-profile-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 15px;
+  padding-bottom: 18px;
+}
+
+.tenant-profile-avatar-wrap {
+  position: relative;
+  width: 68px;
+  height: 68px;
+}
+
+.tenant-avatar-upload {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+}
+
+.tenant-avatar-upload label {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  border: 2px solid var(--app-surface);
+  border-radius: 50%;
+  background: var(--app-brand);
+  color: var(--app-surface);
+}
+
+.tenant-avatar-upload svg {
+  width: 13px;
+}
+
+.tenant-avatar-upload input,
+.tenant-document-upload input {
+  display: none;
+}
+
+.tenant-profile-heading {
+  min-width: 0;
+}
+
+.tenant-name-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.tenant-name-line h2 {
+  min-width: 0;
+  overflow: hidden;
+  margin: 0;
+  color: var(--app-text-primary);
+  font-size: calc(24px + var(--app-font-size-bump));
+  font-weight: 740;
+  letter-spacing: -0.015em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tenant-profile-heading p,
+.tenant-profile-heading > span {
+  margin: 3px 0 0;
+  color: var(--app-text-secondary);
+  font-size: calc(13px + var(--app-font-size-bump));
+}
+
+.tenant-profile-heading > span {
+  display: block;
+  color: var(--app-text-muted);
+  font-size: calc(12px + var(--app-font-size-bump));
+}
+
+.tenant-profile-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+
+.tenant-meta-item {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  min-height: 68px;
+  padding: 11px 13px;
+  background: var(--app-surface-subtle);
+}
+
+.tenant-meta-item > span {
+  color: var(--app-text-muted);
+  font-size: calc(10px + var(--app-font-size-bump));
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tenant-meta-item strong {
+  overflow-wrap: anywhere;
+  color: var(--app-text-primary);
+  font-size: calc(13px + var(--app-font-size-bump));
+  font-weight: 650;
+}
+
+.citizen-id-fact > div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.citizen-id-fact button {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--app-text-secondary);
+}
+
+.citizen-id-fact button svg {
+  width: 13px;
+}
+
+.tenant-rental-card {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(250px, 1.4fr);
+  gap: 14px 20px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--app-border);
+  border-left: 3px solid var(--app-brand);
+  border-radius: 9px;
+  background: var(--app-brand-soft);
+}
+
+.tenant-rental-card.is-upcoming {
+  border-left-color: var(--app-info);
+  background: var(--app-info-soft);
+}
+
+.tenant-rental-card > div:first-child {
+  display: grid;
+  align-content: center;
+  gap: 2px;
+}
+
+.tenant-card-kicker {
+  color: var(--app-text-muted);
+  font-size: calc(10px + var(--app-font-size-bump));
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tenant-rental-card > div:first-child > strong {
+  font-size: calc(17px + var(--app-font-size-bump));
+  font-weight: 730;
+}
+
+.tenant-rental-card small,
+.tenant-rental-helper {
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+}
+
+
+.tenant-rental-helper {
+  margin-left: auto;
+}
+
+.tenant-notes-card {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface-subtle);
+}
+
+.tenant-notes-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tenant-notes-heading > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.tenant-notes-heading svg {
+  width: 16px;
+  color: var(--app-text-secondary);
+}
+
+.tenant-notes-heading strong {
+  font-size: calc(13px + var(--app-font-size-bump));
+}
+
+.tenant-notes-heading > button,
+.tenant-show-more {
+  border: 0;
+  background: transparent;
+  color: var(--app-brand);
+  font-size: calc(11px + var(--app-font-size-bump));
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tenant-notes-card > p {
+  margin: 9px 0 0;
+  color: var(--app-text-secondary);
+  font-size: calc(13px + var(--app-font-size-bump));
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.tenant-notes-card > p.is-clamped {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.tenant-show-more {
+  margin-top: 7px;
+  padding: 0;
+}
+
+.tenant-notes-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tenant-notes-form > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.tenant-financial-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.tenant-summary-card {
+  min-width: 0;
+  min-height: 92px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 9px;
+  background: var(--app-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+button.tenant-summary-card {
+  cursor: pointer;
+}
+
+button.tenant-summary-card:hover {
+  border-color: color-mix(in srgb, var(--app-brand) 34%, var(--app-border));
+  background: var(--app-row-hover-bg);
+}
+
+.tenant-summary-icon {
+  width: 29px;
+  height: 29px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--app-brand-soft);
+  color: var(--app-brand);
+}
+
+.tenant-summary-icon svg {
+  width: 15px;
+}
+
+.tenant-summary-card > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.tenant-summary-card small {
+  color: var(--app-text-muted);
+  font-size: calc(10px + var(--app-font-size-bump));
+  font-weight: 650;
+}
+
+.tenant-summary-card strong {
+  overflow: hidden;
+  font-size: calc(14px + var(--app-font-size-bump));
+  font-weight: 730;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tenant-summary-card em {
+  overflow: hidden;
+  color: var(--app-text-muted);
+  font-size: calc(10px + var(--app-font-size-bump));
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tenant-tabs {
   display: flex;
-  gap: 0.25rem;
+  gap: 2px;
+  margin-top: 20px;
   overflow-x: auto;
-  border-bottom: 1px solid #dbe4ea;
+  border-bottom: 1px solid var(--app-border);
+  scrollbar-width: none;
 }
+
+.tenant-tabs::-webkit-scrollbar {
+  display: none;
+}
+
 .tenant-tabs button {
   flex: 0 0 auto;
   border: 0;
   border-bottom: 2px solid transparent;
-  padding: 0.8rem 0.75rem;
+  padding: 9px 10px;
   background: transparent;
-  color: #64748b;
-  font-weight: 700;
-}
-.tenant-tabs button.is-active {
-  color: #0f766e;
-  border-bottom-color: #0f766e;
-}
-.tenant-tab-empty {
-  margin: 1rem 0 0;
-  padding: 1.4rem;
-  border: 1px dashed #dbe4ea;
-  border-radius: 0.75rem;
-  color: #64748b;
-  text-align: center;
-}
-.tenant-rental-history {
-  display: grid;
-  gap: 0.8rem;
-  margin-top: 1rem;
-}
-.tenant-tenancy-card {
-  padding: 1rem;
-  border: 1px solid #dbe4ea;
-  border-radius: 0.85rem;
-  background: #fff;
-}
-.tenant-tenancy-heading {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: start;
-  gap: 0.65rem;
-}
-.tenant-tenancy-heading svg {
-  width: 1.1rem;
-  color: #0f766e;
-}
-.tenant-tenancy-heading div {
-  display: grid;
-  gap: 0.15rem;
-}
-.tenant-tenancy-heading small,
-.tenant-tenancy-heading time {
-  color: #64748b;
-  font-size: 0.78rem;
-}
-.tenant-rent-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 0.85rem 0;
-}
-.tenant-rent-summary > span {
-  display: grid;
-  gap: 0.12rem;
-  min-width: 12rem;
-  padding: 0.7rem 0.8rem;
-  border-radius: 0.65rem;
-  background: #f8fafc;
-}
-.tenant-rent-summary small,
-.tenant-rent-summary em {
-  color: #64748b;
-  font-size: 0.75rem;
-  font-style: normal;
-}
-.scheduled-rent {
-  background: #f0fdfa !important;
-}
-.responsibility-event {
-  display: flex;
-  gap: 0.8rem;
-  padding: 0.65rem 0.8rem;
-  border-left: 3px solid #0f766e;
-  background: #f0fdfa;
-}
-.responsibility-event time {
-  color: #0f766e;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-.responsibility-event span {
-  display: grid;
-  gap: 0.1rem;
-}
-.responsibility-event small {
-  color: #64748b;
-}
-.tenant-tenancy-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.8rem;
-}
-.tenant-data-list {
-  display: grid;
-  margin-top: 1rem;
-  border: 1px solid #dbe4ea;
-  border-radius: 0.8rem;
-  overflow: hidden;
-}
-.tenant-data-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.8rem 1rem;
-  border-bottom: 1px solid #dbe4ea;
-  color: inherit;
-  text-decoration: none;
-}
-.tenant-data-row:last-child {
-  border-bottom: 0;
-}
-.tenant-data-row > span {
-  display: grid;
-  gap: 0.12rem;
-}
-.tenant-data-row small {
-  color: #64748b;
+  color: var(--app-text-secondary);
+  font: inherit;
+  font-size: calc(12px + var(--app-font-size-bump));
+  font-weight: 680;
+  cursor: pointer;
 }
 
-@media (max-width: 720px) {
-  .tenant-tenancy-heading {
-    grid-template-columns: auto 1fr;
-  }
-  .tenant-tenancy-heading time {
-    grid-column: 2;
-  }
-  .tenant-data-row {
-    align-items: flex-start;
-    flex-direction: column;
-  }
+.tenant-tabs button.is-active {
+  border-bottom-color: var(--app-tab-active);
+  color: var(--app-brand);
 }
-.people-workspace {
-  flex: 1;
-  min-width: 0;
-  padding: 26px 30px;
+
+.tenant-tab-panel {
+  padding-top: 15px;
 }
-.mobile-people-home {
-  display: none;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border: 1px solid #d8ded8;
-  background: white;
-  border-radius: 6px;
-}
-.people-header {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 20px;
-  max-width: 1380px;
-  margin: 0 auto 20px;
-}
-.people-header h1 {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: 0;
-}
-.people-header > div > p:last-child {
-  margin-top: 4px;
-  color: #65756d;
-  font-size: 14px;
-}
-.people-layout {
+
+.tenant-tab-empty {
+  min-height: 150px;
   display: grid;
-  grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
-  min-height: calc(100dvh - 126px);
-  max-width: 1380px;
-  margin: auto;
-  border: 1px solid #d8ded8;
-  background: #fff;
-  box-shadow: 0 16px 44px rgb(42 62 54 / 0.08);
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  border: 1px dashed var(--app-border);
+  border-radius: 9px;
+  color: var(--app-text-muted);
+  text-align: center;
 }
-.people-directory {
-  border-right: 1px solid #e1e6e2;
+
+.tenant-tab-empty svg {
+  width: 24px;
+}
+
+.tenant-tab-empty p {
+  margin: 0;
+  font-size: calc(12px + var(--app-font-size-bump));
+}
+
+.tenant-timeline {
+  position: relative;
+  display: grid;
+  gap: 0;
+}
+
+.tenant-timeline::before {
+  content: "";
+  position: absolute;
+  top: 11px;
+  bottom: 11px;
+  left: 6px;
+  width: 1px;
+  background: var(--app-border);
+}
+
+.tenant-timeline-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 12px;
+  padding: 0 0 18px;
+}
+
+.tenant-timeline-dot {
+  position: relative;
+  z-index: 1;
+  width: 13px;
+  height: 13px;
+  margin-top: 4px;
+  border: 3px solid var(--app-brand-soft);
+  border-radius: 50%;
+  background: var(--app-brand);
+}
+
+.tenant-timeline-main {
   min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--app-border);
 }
-.people-search {
-  height: 48px;
-  margin: 16px;
+
+.tenant-timeline-item:last-child .tenant-timeline-main {
+  border-bottom: 0;
+}
+
+.tenant-timeline-title {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 0 13px;
-  border: 1px solid #d8ded8;
-  background: #f8faf8;
-  border-radius: 6px;
+  justify-content: space-between;
+  gap: 12px;
 }
-.people-search svg {
-  width: 17px;
-  color: #708078;
+
+.tenant-timeline-title strong {
+  font-size: calc(13px + var(--app-font-size-bump));
 }
-.people-search input {
-  width: 100%;
-  outline: none;
-  background: transparent;
-  font-size: 14px;
+
+.tenant-timeline-main p {
+  margin: 0;
+  color: var(--app-text-secondary);
+  font-size: calc(12px + var(--app-font-size-bump));
 }
-.people-filters {
+
+.tenant-timeline-main > small {
+  color: var(--app-text-muted);
+  font-size: calc(11px + var(--app-font-size-bump));
+}
+
+.tenant-timeline-scheduled {
+  color: var(--app-brand) !important;
+}
+
+.tenant-timeline-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 5px;
-  padding: 0 16px 12px;
-  overflow-x: auto;
+  margin-top: 7px;
 }
-.people-filters a {
-  padding: 6px 10px;
-  border-radius: 5px;
-  color: #617169;
-  font-size: 12px;
-  font-weight: 650;
-  white-space: nowrap;
+
+.tenant-table-list {
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  border-radius: 9px;
 }
-.people-filters a.is-active {
-  background: #e4f1eb;
-  color: #176448;
-}
-.archived-toggle {
-  display: inline-flex;
-  margin: 0 16px 12px;
-  color: #55685f;
-  font-size: 12px;
-  font-weight: 650;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.people-list {
-  border-top: 1px solid #edf0ed;
-}
-.person-row {
-  display: flex;
+
+.tenant-table-head,
+.tenant-table-row {
+  display: grid;
+  grid-template-columns: 1.15fr 0.75fr 0.75fr 0.85fr 0.8fr 0.85fr;
   align-items: center;
   gap: 12px;
-  min-height: 72px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #edf0ed;
+  padding: 9px 12px;
 }
-.person-row:hover,
-.person-row.is-selected {
-  background: #f0f6f2;
+
+
+.payments-table .tenant-table-head,
+.payments-table .tenant-table-row,
+.utilities-table .tenant-table-head,
+.utilities-table .tenant-table-row {
+  grid-template-columns: 1.15fr 0.9fr 1fr 0.9fr 1fr;
 }
-.person-row.is-selected {
-  box-shadow: inset 3px 0 #2b8264;
+
+.tenant-table-head {
+  background: var(--app-table-header-bg);
+  color: var(--app-text-muted);
+  font-size: calc(10px + var(--app-font-size-bump));
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.035em;
 }
-.person-row img,
-.person-avatar-fallback,
-.profile-identity > img {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex: none;
+
+.tenant-table-row {
+  min-height: 48px;
+  border-top: 1px solid var(--app-border);
+  color: var(--app-text-primary);
+  font-size: calc(12px + var(--app-font-size-bump));
+  text-decoration: none;
 }
-.person-avatar-fallback {
-  display: grid;
-  place-items: center;
-  background: #dcebe3;
-  color: #21694f;
-  font-weight: 750;
+
+.tenant-table-row:hover {
+  background: var(--app-row-hover-bg);
 }
-.person-row > span:last-child {
-  display: grid;
+
+.tenant-table-row span {
   min-width: 0;
-}
-.person-row strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
 }
-.person-row small {
-  color: #718079;
-  margin-top: 3px;
-}
-.rental-badge {
-  justify-self: start;
-  margin-top: 6px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: #edf1ee;
-  color: #617169;
-  font-size: 10px;
-  font-weight: 750;
-  text-transform: uppercase;
-}
-.rental-badge.state-current {
-  background: #dff3e8;
-  color: #176448;
-}
-.rental-badge.state-upcoming {
-  background: #e4ecfa;
-  color: #315f9e;
-}
-.rental-badge.state-former {
-  background: #f2eee7;
-  color: #75654c;
-}
-.person-profile {
-  min-width: 0;
-  overflow-y: auto;
-  max-height: calc(100dvh - 126px);
-}
-.profile-content {
-  padding: 28px;
-  max-width: 850px;
-}
-.profile-identity {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 14px;
-  padding-bottom: 22px;
-}
-.profile-identity > img,
-.profile-identity > .person-avatar-fallback {
-  width: 58px;
-  height: 58px;
-}
-.profile-identity h2 {
-  font-size: 23px;
-  font-weight: 720;
-}
-.profile-identity p {
-  color: #65756d;
-  font-size: 14px;
-}
-.current-rental {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px 18px;
-  padding: 14px 16px;
-  border-left: 3px solid #36a474;
-  background: #eff8f3;
-}
-.current-rental span {
-  grid-row: span 2;
-  align-self: center;
-  color: #4c6258;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-.current-rental strong,
-.current-rental small {
-  text-align: right;
-}
-.upcoming-rental {
-  margin-top: 8px;
-  border-left-color: #5b82b7;
-  background: #f0f4fa;
-}
-.rental-actions {
-  grid-column: 1 / -1;
+
+.tenant-tab-link-row {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--app-border);
 }
-.current-rental small {
-  color: #65756d;
-}
-.profile-section {
-  padding: 24px 0;
-  border-bottom: 1px solid #e4e9e5;
-}
-.profile-section h3 {
-  margin-bottom: 14px;
-  font-size: 14px;
-  font-weight: 750;
-}
-.profile-facts {
+
+.tenant-documents-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 15px 28px;
+  gap: 10px;
 }
-.profile-facts div {
+
+.tenant-document-card {
   display: grid;
-  gap: 4px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 9px;
 }
-.profile-facts dt {
-  color: #718079;
-  font-size: 12px;
+
+.tenant-document-preview {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 7px;
+  background: var(--app-surface-subtle);
+  color: var(--app-text-muted);
 }
-.profile-facts dd {
-  font-size: 14px;
-  overflow-wrap: anywhere;
+
+.tenant-document-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
-.citizen-id-fact dd {
+
+.tenant-document-preview svg {
+  width: 21px;
+}
+
+.tenant-document-card > div:nth-child(2) {
+  display: grid;
+  gap: 3px;
+}
+
+.tenant-document-card strong {
+  font-size: calc(12px + var(--app-font-size-bump));
+}
+
+.tenant-document-card small {
+  color: var(--app-text-muted);
+  font-size: calc(10px + var(--app-font-size-bump));
+}
+
+.tenant-document-actions {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.citizen-id-fact button {
-  height: 28px;
-  padding: 0 7px;
-  font-size: 11px;
+
+.tenant-document-upload {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  padding: 0 9px;
+  border: 1px solid var(--app-border);
+  border-radius: 6px;
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+  font-weight: 650;
 }
-.citizen-id-fact button svg {
+
+.tenant-document-upload svg {
   width: 14px;
 }
-.media-slots {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-.media-slot {
-  position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 9px;
-  min-height: 64px;
-  padding: 10px;
-  border: 1px solid #dce3de;
-  border-radius: 6px;
-}
-.media-slot > svg {
-  width: 19px;
-  color: #65756d;
-}
-.media-thumbnail {
-  width: 38px;
-  height: 38px;
-  border-radius: 4px;
-  object-fit: cover;
-}
-.media-slot span {
-  display: grid;
-}
-.media-slot strong {
-  font-size: 12px;
-}
-.media-slot small {
-  color: #75837c;
-  font-size: 10px;
-}
-.media-slot label,
-.media-actions button {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  cursor: pointer;
-  border-radius: 5px;
-  background: #edf3ef;
-}
-.media-slot label svg,
-.media-actions button svg {
-  width: 15px;
-}
-.media-slot input {
-  display: none;
-}
-.media-actions {
-  display: flex;
-  gap: 5px;
-}
-.media-actions button {
-  border: 0;
-  color: #32463d;
-}
+
 .media-preview-dialog img {
-  max-height: 70dvh;
   width: 100%;
+  max-height: 70dvh;
   object-fit: contain;
-  border-radius: 6px;
-  background: #f1f3f1;
+  border-radius: 7px;
+  background: var(--app-surface-subtle);
 }
-.media-slot em {
-  grid-column: 1 / -1;
-  font-size: 10px;
-  font-style: normal;
-}
-.media-slot em.error,
-.form-error {
-  color: #a43d32;
-}
-.media-slot em.success,
-.form-success {
-  color: #267551;
-}
-.history-row {
+
+.tenant-simple-list {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 0;
-  border-top: 1px solid #edf0ed;
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
 }
-.history-row:first-child {
+
+.tenant-simple-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--app-border);
+}
+
+.tenant-simple-list > div:first-child {
   border-top: 0;
 }
-.history-row > svg {
-  width: 18px;
-  color: #368368;
-}
-.history-row span {
+
+.tenant-simple-list span {
   display: grid;
+  gap: 2px;
 }
-.history-row small,
-.history-row time {
-  color: #718079;
-  font-size: 12px;
+
+.tenant-simple-list small {
+  color: var(--app-text-muted);
 }
-.archive-person {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-top: 22px;
+
+.tenant-native-input {
+  height: 38px;
+  width: 100%;
+  border: 1px solid var(--app-border);
+  border-radius: 6px;
+  padding: 0 10px;
+  background: var(--app-surface);
 }
-.archive-person span {
-  font-size: 12px;
-  color: #65756d;
-}
+
 .person-form {
   display: grid;
   gap: 15px;
 }
+
+.form-error {
+  color: var(--app-danger);
+}
+
+.form-success {
+  color: var(--app-brand);
+}
+
 .people-empty,
 .profile-empty {
+  min-height: 260px;
   display: grid;
   place-items: center;
   align-content: center;
   gap: 8px;
-  min-height: 260px;
-  color: #718079;
+  color: var(--app-text-muted);
   text-align: center;
 }
+
 .profile-empty {
-  min-height: 70dvh;
+  min-height: 62dvh;
 }
-.profile-empty svg,
-.people-empty svg {
-  width: 32px;
+
+.people-empty svg,
+.profile-empty svg {
+  width: 30px;
 }
+
+.profile-empty h2,
+.profile-empty p {
+  margin: 0;
+}
+
 .profile-empty h2 {
-  color: #263a32;
+  color: var(--app-text-primary);
+  font-size: calc(17px + var(--app-font-size-bump));
   font-weight: 700;
 }
-.muted-copy {
-  color: #718079;
-  font-size: 13px;
+
+.profile-empty p {
+  font-size: calc(12px + var(--app-font-size-bump));
 }
+
+@media (max-width: 1150px) {
+  .people-workspace {
+    padding: 22px 20px 28px;
+  }
+
+  .people-layout {
+    grid-template-columns: minmax(290px, 35%) minmax(0, 65%);
+  }
+
+  .tenant-profile-workspace {
+    padding: 22px;
+  }
+
+  .tenant-financial-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  
+}
+
 @media (max-width: 900px) {
   .people-workspace {
-    padding: 18px 14px;
+    padding: 18px 14px 24px;
   }
+
   .people-layout {
+    grid-template-columns: minmax(275px, 40%) minmax(0, 60%);
+  }
+
+  .tenant-rental-card {
     grid-template-columns: 1fr;
   }
+
+  
+
+  .tenant-rental-helper {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .tenant-documents-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tenant-table-head,
+  .tenant-table-row {
+    gap: 8px;
+    padding-inline: 9px;
+  }
+}
+
+@media (max-width: 767px) {
+  .people-workspace {
+    padding: 14px 12px 24px;
+  }
+
+  .people-header {
+    margin-bottom: 12px;
+  }
+
+  .people-header h1 {
+    font-size: calc(23px + var(--app-font-size-bump));
+  }
+
+  .people-header p {
+    display: none;
+  }
+
+  .tenant-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin-bottom: 12px;
+  }
+
+  .tenant-kpi {
+    min-height: 54px;
+    padding: 9px 11px;
+  }
+
+  .tenant-kpi strong {
+    font-size: calc(18px + var(--app-font-size-bump));
+  }
+
+  .people-layout {
+    display: block;
+    min-height: auto;
+    border-radius: 10px;
+  }
+
   .people-directory {
     border-right: 0;
   }
+
   .person-profile {
-    max-height: none;
-    border-top: 1px solid #d8ded8;
+    display: none;
   }
-  .profile-facts,
-  .media-slots {
+
+  .people-app.is-mobile-detail .tenant-kpis,
+  .people-app.is-mobile-detail .people-directory,
+  .people-app.is-mobile-detail .people-header {
+    display: none;
+  }
+
+  .people-app.is-mobile-detail .person-profile {
+    display: block;
+  }
+
+  .people-app.is-mobile-detail .people-layout {
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .people-list {
+    max-height: none;
+  }
+
+  .person-row {
+    min-height: 82px;
+  }
+
+  .tenant-profile-workspace {
+    width: 100%;
+    padding: 0;
+  }
+
+  .tenant-mobile-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    color: var(--app-brand);
+    font-size: calc(12px + var(--app-font-size-bump));
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .tenant-mobile-back svg {
+    width: 15px;
+  }
+
+  .tenant-profile-header {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    padding: 15px;
+    border: 1px solid var(--app-border);
+    border-radius: 10px 10px 0 0;
+    background: var(--app-surface);
+  }
+
+  .tenant-profile-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+
+  .tenant-name-line {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .tenant-name-line h2 {
+    font-size: calc(20px + var(--app-font-size-bump));
+  }
+
+  
+
+  .tenant-rental-card,
+  .tenant-notes-card,
+  .tenant-financial-summary,
+  .tenant-tabs,
+  .tenant-tab-panel {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .tenant-rental-card,
+  .tenant-notes-card {
+    margin-top: 10px;
+  }
+
+  .tenant-financial-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin-top: 10px;
+  }
+
+  .tenant-summary-card {
+    min-height: 82px;
+    padding: 10px;
+  }
+
+  .tenant-tabs {
+    margin-top: 15px;
+  }
+
+  
+.payments-table .tenant-table-head,
+.payments-table .tenant-table-row,
+.utilities-table .tenant-table-head,
+.utilities-table .tenant-table-row {
+  grid-template-columns: 1.15fr 0.9fr 1fr 0.9fr 1fr;
+}
+
+.tenant-table-head {
+    display: none;
+  }
+
+  .tenant-table-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 5px 12px;
+    min-height: 68px;
+    padding: 10px 12px;
+  }
+
+  .tenant-table-row span:nth-child(n + 3) {
+    color: var(--app-text-secondary);
+    font-size: calc(11px + var(--app-font-size-bump));
+  }
+}
+
+@media (max-width: 430px) {
+  .people-header > button,
+  .people-header > [data-slot="dialog-trigger"] {
+    flex: none;
+  }
+
+  
+
+  .tenant-profile-header {
+    padding: 13px;
+  }
+
+  .tenant-avatar.is-large,
+  .tenant-profile-avatar-wrap {
+    width: 58px;
+    height: 58px;
+  }
+
+  .tenant-avatar.is-large {
+    flex-basis: 58px;
+  }
+
+  .tenant-financial-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Tenant workspace polish */
+.tenant-kpi {
+  justify-content: flex-start;
+  min-height: 84px;
+  padding: 13px 15px;
+}
+
+.tenant-kpi-icon {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--app-brand-soft);
+  color: var(--app-brand);
+}
+
+.tenant-kpi-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+
+.person-role-badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 19px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--app-brand-soft);
+  color: var(--app-brand);
+  font-size: calc(10px + var(--app-font-size-bump));
+  font-weight: 700;
+}
+
+
+.tenant-profile-heading > span {
+  color: var(--app-text-secondary);
+  font-size: calc(12px + var(--app-font-size-bump));
+}
+
+
+.tenant-meta-item {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  min-height: 78px;
+  padding: 13px 12px;
+  background: transparent;
+  border-right: 1px solid var(--app-border);
+}
+
+.tenant-meta-item:nth-child(4),
+.tenant-meta-item:last-child {
+  border-right: 0;
+}
+
+
+.tenant-meta-icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--app-brand-soft);
+  color: var(--app-brand);
+}
+
+.tenant-meta-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.tenant-meta-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.tenant-meta-copy > small {
+  color: var(--app-text-muted);
+  font-size: calc(11px + var(--app-font-size-bump));
+  font-weight: 650;
+}
+
+.tenant-meta-copy > strong,
+.citizen-id-value strong {
+  color: var(--app-text-primary);
+  font-size: calc(13px + var(--app-font-size-bump));
+  font-weight: 700;
+}
+
+.tenant-meta-copy > em {
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+  font-style: normal;
+}
+
+.citizen-id-value {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.citizen-id-value button {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--app-text-secondary);
+  cursor: pointer;
+}
+
+.citizen-id-value button svg {
+  width: 13px;
+}
+
+.tenant-rental-card {
+  grid-template-columns: minmax(150px, .8fr) minmax(0, 2fr);
+}
+
+
+.tenant-notes-card > p {
+  color: var(--app-text-primary);
+}
+
+.tenant-summary-card small {
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+}
+
+.tenant-summary-card strong {
+  color: var(--app-text-primary);
+  font-size: calc(15px + var(--app-font-size-bump));
+}
+
+.tenant-summary-card em {
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+}
+
+.tenant-overflow-menu {
+  min-width: 220px;
+}
+
+.tenant-overflow-menu > button,
+.tenant-overflow-menu form > button,
+.tenant-overflow-tenancy-actions button {
+  width: 100%;
+  min-height: 34px;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--app-text-primary);
+  font-size: calc(12px + var(--app-font-size-bump));
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.tenant-overflow-menu button:hover,
+.tenant-overflow-menu button:focus-visible {
+  background: var(--app-row-hover-bg);
+}
+
+.tenant-overflow-menu button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.tenant-overflow-menu button.is-danger {
+  color: var(--app-danger);
+}
+
+.tenant-overflow-tenancy-actions {
+  display: grid;
+}
+
+.tenant-overflow-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--app-border);
+}
+
+.tenant-timeline-item {
+  padding-bottom: 11px;
+}
+
+.tenant-timeline-main {
+  padding-bottom: 11px;
+}
+
+.tenant-timeline-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tenant-timeline-state > em {
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.tenant-documents {
+  display: grid;
+  gap: 12px;
+}
+
+.tenant-documents-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tenant-documents-heading > span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.tenant-documents-heading > span > svg {
+  width: 20px;
+  color: var(--app-brand);
+}
+
+.tenant-documents-heading > span > span {
+  display: grid;
+  gap: 1px;
+}
+
+.tenant-documents-heading strong {
+  color: var(--app-text-primary);
+  font-size: calc(13px + var(--app-font-size-bump));
+}
+
+.tenant-documents-heading small,
+.tenant-form-hint,
+.tenant-optional-label {
+  color: var(--app-text-muted);
+  font-size: calc(10px + var(--app-font-size-bump));
+}
+
+.tenant-documents-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tenant-document-card {
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px 12px;
+  min-height: 128px;
+  padding: 12px;
+}
+
+.tenant-document-card.is-empty {
+  border-style: dashed;
+  background: var(--app-surface-subtle);
+}
+
+.tenant-document-preview {
+  width: 52px;
+  height: 52px;
+}
+
+.tenant-document-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.tenant-document-copy strong {
+  color: var(--app-text-primary);
+  font-size: calc(13px + var(--app-font-size-bump));
+  font-weight: 700;
+}
+
+.tenant-document-copy small,
+.tenant-document-copy em {
+  color: var(--app-text-secondary);
+  font-size: calc(10px + var(--app-font-size-bump));
+  font-style: normal;
+}
+
+.tenant-document-copy p {
+  margin: 3px 0 0;
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+  line-height: 1.35;
+}
+
+.tenant-document-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.tenant-document-upload,
+.tenant-document-delete {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border: 1px solid var(--app-border);
+  border-radius: 6px;
+  background: var(--app-surface);
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.tenant-document-upload svg,
+.tenant-document-delete svg {
+  width: 13px;
+  height: 13px;
+}
+
+.tenant-document-delete {
+  border-color: transparent;
+  color: var(--app-danger);
+}
+
+@media (max-width: 1150px) {
+  
+
+  .tenant-meta-item,
+  .tenant-meta-item:nth-child(4) {
+    border-right: 1px solid var(--app-border);
+    border-top: 1px solid var(--app-border);
+  }
+
+  .tenant-meta-item:nth-child(2n) {
+    border-right: 0;
+  }
+
+  
+
+  
+}
+
+@media (max-width: 767px) {
+  .tenant-kpi {
+    min-height: 74px;
+    padding: 10px;
+  }
+
+  .tenant-kpi-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  
+
+  
+
+  
+
+  
+
+  .tenant-timeline-title {
+    align-items: flex-start;
+  }
+
+  .tenant-timeline-state {
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .tenant-documents-heading {
+    align-items: flex-start;
+  }
+
+  .tenant-documents-grid {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 430px) {
+  
+
+  .tenant-meta-item,
+.tenant-meta-item:nth-child(2n) {
+    grid-column: span 1;
+    border-right: 0;
+  }
+
+  .tenant-documents-heading {
+    flex-direction: column;
+  }
+}
+
+
+/* Shared-theme alignment: Tenants follows the same warm-neutral/green system as Utilities/Billing. */
+.people-app {
+  background: var(--app-page-bg);
+  color: var(--app-text-primary);
+}
+
+.people-layout {
+  border-color: var(--app-border);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-elevated);
+}
+
+.people-directory {
+  background: var(--app-surface-subtle);
+}
+
+.people-directory-toolbar,
+.person-profile {
+  background: var(--app-surface);
+}
+
+.people-header h1,
+.tenant-name-line h2,
+.tenant-meta-copy > strong,
+.citizen-id-value strong,
+.tenant-summary-card strong,
+.tenant-timeline-title strong,
+.tenant-document-copy strong {
+  color: var(--app-text-primary);
+}
+
+.people-header p,
+.tenant-profile-heading p,
+.tenant-profile-heading > span,
+.tenant-meta-copy > em,
+.tenant-summary-card em,
+.tenant-document-copy small,
+.tenant-document-copy em {
+  color: var(--app-text-secondary);
+}
+
+.tenant-kpi,
+.tenant-summary-card,
+.tenant-document-card {
+  background: var(--app-card-bg);
+  border-color: var(--app-border);
+  box-shadow: var(--app-shadow-card);
+}
+
+.tenant-kpi-icon,
+.tenant-summary-icon,
+.tenant-meta-icon {
+  background: var(--app-brand-soft);
+  color: var(--app-brand);
+}
+
+.person-row:hover,
+button.tenant-summary-card:hover {
+  background: var(--app-row-hover-bg);
+}
+
+.person-row.is-selected {
+  background: var(--app-row-selected-bg);
+  box-shadow: inset 3px 0 var(--app-brand);
+}
+
+.tenant-list-state,
+.tenant-state {
+  background: var(--app-status-neutral-bg);
+  color: var(--app-neutral);
+}
+
+.state-current {
+  background: var(--app-status-success-bg);
+  color: var(--app-success);
+}
+
+.state-upcoming {
+  background: var(--app-status-info-bg);
+  color: var(--app-info);
+}
+
+.state-former,
+.state-no_rental,
+.state-archived {
+  background: var(--app-status-neutral-bg);
+  color: var(--app-neutral);
+}
+
+.tenant-rental-card {
+  border-color: color-mix(in srgb, var(--app-brand) 20%, var(--app-border));
+  border-left-color: var(--app-brand);
+  background: color-mix(in srgb, var(--app-brand-soft) 68%, var(--app-surface));
+}
+
+.tenant-rental-card.is-upcoming {
+  border-left-color: var(--app-info);
+  background: color-mix(in srgb, var(--app-info-soft) 72%, var(--app-surface));
+}
+
+/* One cohesive Current Rental surface: labels/values are separated by spacing, not nested cards. */
+
+
+.tenant-notes-card {
+  border-color: var(--app-border);
+  background: var(--app-surface-subtle);
+}
+
+.tenant-notes-card > p {
+  color: var(--app-text-primary);
+}
+
+/* Financial cards are quick summaries, not mini dashboards. */
+.tenant-summary-card {
+  min-height: 72px;
+  padding: 9px 10px;
+  gap: 8px;
+}
+
+.tenant-summary-icon {
+  width: 27px;
+  height: 27px;
+}
+
+.tenant-summary-card > span:last-child {
+  gap: 1px;
+}
+
+.tenant-tabs {
+  border-bottom-color: var(--app-border);
+}
+
+.tenant-tabs button {
+  color: var(--app-text-secondary);
+}
+
+.tenant-tabs button.is-active {
+  border-bottom-color: var(--app-tab-active);
+  color: var(--app-brand);
+}
+
+.tenant-table-head {
+  background: var(--app-table-header-bg);
+  color: var(--app-text-muted);
+}
+
+.tenant-table-row {
+  color: var(--app-text-primary);
+}
+
+.tenant-table-row:hover {
+  background: var(--app-row-hover-bg);
+}
+
+@media (max-width: 1150px) {
+  
+}
+
+@media (max-width: 767px) {
+  
+
+  
+}
+
+/* Tenant workspace structural redesign — approved profile-workspace direction */
+.tenant-kpis {
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.tenant-kpi {
+  min-height: 116px;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: start;
+  gap: 7px;
+  padding: 16px 17px;
+  border-radius: 12px;
+  box-shadow: 0 5px 18px rgb(38 58 49 / 0.035);
+}
+
+.tenant-kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.tenant-kpi-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.people-layout {
+  grid-template-columns: minmax(320px, 35%) minmax(0, 65%);
+}
+
+.person-row {
+  border-left: 3px solid transparent;
+  padding-left: 13px;
+}
+
+.person-row.is-selected {
+  border-left-color: var(--app-brand);
+  background: var(--app-row-selected-bg);
+}
+
+.tenant-profile-workspace {
+  width: 100%;
+  max-width: 1080px;
+  padding: 30px 32px 34px;
+}
+
+
+.tenant-profile-header {
+  min-height: 90px;
+  gap: 18px;
+  padding: 0 0 20px;
+}
+
+.tenant-profile-avatar-wrap,
+.tenant-avatar.is-large {
+  width: 76px;
+  height: 76px;
+}
+
+.tenant-avatar.is-large {
+  flex-basis: 76px;
+  font-size: calc(20px + var(--app-font-size-bump));
+}
+
+.tenant-name-line h2 {
+  font-size: calc(24px + var(--app-font-size-bump));
+  line-height: 1.15;
+}
+
+.tenant-profile-heading p {
+  margin-top: 5px;
+  color: var(--app-text-primary);
+  font-size: calc(13px + var(--app-font-size-bump));
+  font-weight: 650;
+}
+
+.tenant-profile-contact {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px !important;
+  color: var(--app-text-secondary) !important;
+  font-size: calc(12px + var(--app-font-size-bump)) !important;
+}
+
+.tenant-profile-contact svg {
+  width: 14px;
+  height: 14px;
+  color: var(--app-brand);
+}
+
+.tenant-profile-metadata {
+  padding: 18px 0 2px;
+  border-top: 1px solid var(--app-border);
+}
+
+
+.tenant-profile-metadata .tenant-meta-item {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.tenant-profile-metadata .tenant-meta-icon {
+  width: 31px;
+  height: 31px;
+  border-radius: 8px;
+}
+
+.tenant-profile-metadata .tenant-meta-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.tenant-profile-metadata .tenant-meta-copy {
+  gap: 3px;
+}
+
+.tenant-profile-metadata .tenant-meta-copy > small {
+  color: var(--app-text-muted);
+  font-size: calc(10px + var(--app-font-size-bump));
+  font-weight: 720;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tenant-profile-metadata .tenant-meta-copy > strong,
+.tenant-profile-metadata .citizen-id-value strong {
+  color: var(--app-text-primary);
+  font-size: calc(13px + var(--app-font-size-bump));
+  font-weight: 720;
+}
+
+.tenant-profile-metadata .tenant-meta-copy > em {
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+}
+
+.tenant-rental-card {
+  display: block;
+  margin-top: 18px;
+  padding: 18px 20px 15px;
+  border: 1px solid color-mix(in srgb, var(--app-brand) 22%, var(--app-border));
+  border-left: 1px solid color-mix(in srgb, var(--app-brand) 22%, var(--app-border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--app-brand-soft) 72%, var(--app-surface));
+}
+
+.tenant-rental-card.is-upcoming {
+  border-color: color-mix(in srgb, var(--app-info) 22%, var(--app-border));
+  border-left-color: color-mix(in srgb, var(--app-info) 22%, var(--app-border));
+  background: color-mix(in srgb, var(--app-info-soft) 72%, var(--app-surface));
+}
+
+.tenant-rental-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tenant-rental-identity {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.tenant-rental-identity > strong {
+  color: var(--app-text-primary);
+  font-size: calc(19px + var(--app-font-size-bump));
+  line-height: 1.15;
+  font-weight: 760;
+}
+
+.tenant-rental-identity > small {
+  color: var(--app-text-secondary);
+  font-size: calc(12px + var(--app-font-size-bump));
+}
+
+.tenant-rental-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 16px;
+  padding-top: 15px;
+  border-top: 1px solid color-mix(in srgb, var(--app-brand) 17%, var(--app-border));
+}
+
+.tenant-rental-card.is-upcoming .tenant-rental-metrics {
+  border-top-color: color-mix(in srgb, var(--app-info) 17%, var(--app-border));
+}
+
+.tenant-rental-metric {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  padding: 0 16px;
+  border-left: 1px solid color-mix(in srgb, var(--app-brand) 16%, var(--app-border));
+}
+
+.tenant-rental-card.is-upcoming .tenant-rental-metric {
+  border-left-color: color-mix(in srgb, var(--app-info) 16%, var(--app-border));
+}
+
+.tenant-rental-metric:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.tenant-rental-metric:last-child {
+  padding-right: 0;
+}
+
+.tenant-rental-metric > small {
+  color: var(--app-text-muted);
+  font-size: calc(10px + var(--app-font-size-bump));
+  font-weight: 690;
+  text-transform: uppercase;
+  letter-spacing: 0.035em;
+}
+
+.tenant-rental-metric > strong {
+  overflow-wrap: anywhere;
+  color: var(--app-text-primary);
+  font-size: calc(13px + var(--app-font-size-bump));
+  font-weight: 720;
+}
+
+.tenant-rental-metric > em {
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+  font-style: normal;
+}
+
+.tenant-rental-helper {
+  margin: 12px 0 0;
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+}
+
+.tenant-notes-card {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 11px;
+}
+
+.tenant-financial-summary {
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.tenant-summary-card {
+  min-height: 78px;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding: 10px 11px;
+}
+
+.tenant-summary-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.tenant-summary-heading > small {
+  overflow: hidden;
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tenant-summary-icon {
+  width: 25px;
+  height: 25px;
+  border-radius: 7px;
+}
+
+.tenant-summary-icon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.tenant-summary-card > strong {
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--app-text-primary);
+  font-size: calc(15px + var(--app-font-size-bump));
+  line-height: 1.15;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tenant-summary-card > em {
+  overflow: hidden;
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+  line-height: 1.25;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tenant-tabs {
+  margin-top: 19px;
+}
+
+.tenant-tab-panel {
+  padding-top: 15px;
+}
+
+.tenant-timeline-item {
+  min-height: 0;
+  padding-bottom: 14px;
+}
+
+.tenant-timeline-main {
+  gap: 3px;
+  padding-bottom: 14px;
+}
+
+.tenant-timeline-title strong,
+.tenant-timeline-main p,
+.tenant-timeline-main > small,
+.tenant-timeline-scheduled {
+  color: var(--app-text-primary);
+}
+
+.tenant-timeline-main > small {
+  font-weight: 600;
+}
+
+@media (max-width: 1150px) {
+  .people-layout {
+    grid-template-columns: minmax(290px, 36%) minmax(0, 64%);
+  }
+
+  .tenant-profile-workspace {
+    padding: 26px 24px 30px;
+  }
+
+  
+
+  
+}
+
+@media (max-width: 900px) {
+  .people-layout {
+    grid-template-columns: minmax(275px, 40%) minmax(0, 60%);
+  }
+
+  .tenant-rental-metrics {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .tenant-rental-metric {
+    padding: 10px 0;
+    border-left: 0;
+    border-top: 1px solid color-mix(in srgb, var(--app-brand) 14%, var(--app-border));
+  }
+
+  .tenant-rental-metric:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .tenant-kpi {
+    min-height: 104px;
+    padding: 13px 14px;
+  }
+
+  .tenant-kpi-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .tenant-profile-workspace {
+    padding: 0;
+  }
+
+  
+
+  .tenant-profile-header {
+    min-height: 0;
+    padding: 0 0 16px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .tenant-profile-avatar-wrap,
+  .tenant-avatar.is-large {
+    width: 64px;
+    height: 64px;
+  }
+
+  .tenant-avatar.is-large {
+    flex-basis: 64px;
+  }
+
+  .tenant-profile-metadata {
+    padding-top: 15px;
+  }
+
+  
+
+  .tenant-rental-card,
+  .tenant-notes-card,
+  .tenant-financial-summary,
+  .tenant-tabs,
+  .tenant-tab-panel {
+    margin-left: 12px;
+    margin-right: 12px;
+  }
+
+  .tenant-rental-topline {
+    align-items: flex-start;
+  }
+
+  .tenant-financial-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tenant-summary-card {
+    min-height: 76px;
+  }
+}
+
+@media (max-width: 430px) {
+  
+
+  
+
+  .tenant-rental-topline {
+    flex-direction: column;
+  }
+
+  .tenant-financial-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Tenant profile reference-layout pass v13 */
+.people-layout {
+  grid-template-columns: minmax(320px, 35%) minmax(0, 65%);
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  box-shadow: 0 14px 38px rgb(38 58 49 / 0.08);
+}
+
+.people-directory,
+.people-directory-toolbar,
+.people-list,
+.person-profile {
+  background: var(--app-surface);
+}
+
+.people-directory {
+  border-right: 1px solid var(--app-border-strong);
+}
+
+.person-row {
+  position: relative;
+  background: var(--app-surface);
+  border-left: 4px solid transparent;
+  padding-left: 12px;
+}
+
+.person-row:hover {
+  background: var(--app-row-hover-bg);
+}
+
+.person-row.is-selected,
+.person-row[aria-current="page"] {
+  border-left-color: var(--app-brand);
+  background: color-mix(in srgb, var(--app-brand-soft) 88%, var(--app-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-brand) 18%, transparent);
+}
+
+
+.tenant-profile-workspace {
+  width: 100%;
+  max-width: 1120px;
+  padding: 28px 30px 34px;
+}
+
+/* One integrated profile card: avatar left, identity + metadata right. */
+.tenant-profile-header {
+  display: grid;
+  position: relative;
+  grid-template-columns: 200px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0 26px;
+  min-height: 240px;
+  padding: 20px;
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+  background: var(--app-surface);
+  box-shadow: 0 4px 16px rgb(38 58 49 / 0.05);
+}
+
+.tenant-profile-avatar-wrap,
+.tenant-avatar.is-large {
+  width: 200px;
+  height: 200px;
+}
+
+.tenant-profile-avatar-wrap {
+  position: relative;
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+}
+
+.tenant-avatar.is-large {
+  flex-basis: 200px;
+  border: 1px solid var(--app-border);
+  font-size: calc(42px + var(--app-font-size-bump));
+  box-shadow: 0 1px 3px rgb(38 58 49 / 0.08);
+}
+
+.tenant-avatar-upload label {
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--app-surface);
+}
+
+.tenant-avatar-upload svg {
+  width: 14px;
+  height: 14px;
+}
+
+.tenant-profile-main {
+  min-width: 0;
+  min-height: 200px;
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  align-content: stretch;
+  padding: 6px 0 4px;
+}
+
+.tenant-profile-heading {
+  min-width: 0;
+  padding-top: 0;
+  padding-right: 108px;
+}
+
+.tenant-name-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tenant-name-line h2 {
+  margin: 0;
+  color: var(--app-text-primary);
+  font-size: calc(27px + var(--app-font-size-bump));
+  line-height: 1.12;
+  font-weight: 760;
+  letter-spacing: -0.018em;
+}
+
+.tenant-name-line .tenant-state {
+  min-height: 24px;
+  padding: 3px 9px;
+  font-size: calc(11px + var(--app-font-size-bump));
+  font-weight: 720;
+}
+
+.tenant-profile-context-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin-top: 12px;
+}
+
+.tenant-profile-context-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--app-text-secondary);
+  font-size: calc(13px + var(--app-font-size-bump));
+  line-height: 1.35;
+}
+
+.tenant-profile-context-item svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: var(--app-text-muted);
+}
+
+.tenant-profile-context-item > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tenant-profile-contact {
+  margin: 0 !important;
+  color: var(--app-text-secondary) !important;
+  font-size: calc(13px + var(--app-font-size-bump)) !important;
+}
+
+.tenant-profile-actions {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Reference-style metadata row. Labels sit above icon + value. */
+.tenant-profile-metadata {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-self: end;
+  gap: 0;
+  margin-top: 22px;
+}
+
+.tenant-profile-metadata .tenant-meta-item {
+  min-width: 0;
+  min-height: 70px;
+  display: block;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+}
+
+.tenant-profile-metadata .tenant-meta-item:first-child {
+  padding-left: 0;
+}
+
+.tenant-profile-metadata .tenant-meta-item + .tenant-meta-item {
+  border-left: 1px solid var(--app-border);
+}
+
+.tenant-profile-metadata .tenant-meta-label {
+  display: block;
+  margin: 0 0 9px;
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+  line-height: 1.2;
+  font-weight: 560;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.tenant-profile-metadata .tenant-meta-value-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+}
+
+.tenant-profile-metadata .tenant-meta-icon {
+  width: 18px;
+  height: 20px;
+  flex: 0 0 18px;
+  display: grid;
+  place-items: center;
+  margin-top: 1px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--app-text-muted);
+}
+
+.tenant-profile-metadata .tenant-meta-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.8;
+}
+
+.tenant-profile-metadata .tenant-meta-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.tenant-profile-metadata .tenant-meta-copy > strong,
+.tenant-profile-metadata .citizen-id-value strong {
+  color: var(--app-text-primary);
+  font-size: calc(13.5px + var(--app-font-size-bump));
+  line-height: 1.25;
+  font-weight: 720;
+  white-space: nowrap;
+}
+
+.tenant-profile-metadata .tenant-meta-copy > em {
+  color: var(--app-text-secondary);
+  font-size: calc(11.5px + var(--app-font-size-bump));
+  line-height: 1.25;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.tenant-profile-metadata .citizen-id-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.tenant-profile-metadata .citizen-id-value button {
+  width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--app-text-muted);
+}
+
+.tenant-profile-metadata .citizen-id-value button svg {
+  width: 13px;
+  height: 13px;
+}
+
+.tenant-profile-metadata .tenant-meta-role .tenant-meta-copy > strong {
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--app-status-neutral-bg);
+  color: var(--app-neutral);
+  font-size: calc(10.5px + var(--app-font-size-bump));
+  font-weight: 650;
+}
+
+.tenant-rental-card {
+  margin-top: 18px;
+}
+
+.tenant-notes-card {
+  min-height: 0;
+  padding: 13px 16px;
+}
+
+.tenant-notes-card > p {
+  min-height: 0;
+  margin-bottom: 0;
+}
+
+.tenant-rental-identity > strong > span {
+  color: var(--app-text-secondary);
+  font-size: calc(13px + var(--app-font-size-bump));
+  font-weight: 620;
+}
+
+@media (max-width: 1280px) {
+  .tenant-profile-header {
+    grid-template-columns: 168px minmax(0, 1fr);
+    gap: 0 22px;
+    min-height: 208px;
+  }
+
+  .tenant-profile-avatar-wrap,
+  .tenant-avatar.is-large {
+    width: 168px;
+    height: 168px;
+  }
+
+  .tenant-avatar.is-large {
+    flex-basis: 168px;
+    font-size: calc(34px + var(--app-font-size-bump));
+  }
+
+  .tenant-profile-main {
+    min-height: 168px;
+  }
+
+  .tenant-profile-metadata {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 16px;
+  }
+
+  .tenant-profile-metadata .tenant-meta-item:nth-child(3) {
+    border-left: 0;
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 1150px) {
+  .tenant-profile-header {
+    grid-template-columns: 144px minmax(0, 1fr);
+    gap: 0 18px;
+    min-height: 184px;
+  }
+
+  .tenant-profile-avatar-wrap,
+  .tenant-avatar.is-large {
+    width: 144px;
+    height: 144px;
+  }
+
+  .tenant-avatar.is-large {
+    flex-basis: 144px;
+    font-size: calc(30px + var(--app-font-size-bump));
+  }
+
+  .tenant-profile-main {
+    min-height: 144px;
+  }
+
+  .tenant-profile-metadata {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 14px;
+    margin-top: 16px;
+  }
+}
+
+@media (max-width: 900px) {
+  .people-layout {
+    grid-template-columns: minmax(275px, 39%) minmax(0, 61%);
+  }
+
+  .tenant-profile-workspace {
+    padding: 24px 22px 30px;
+  }
+
+  .tenant-profile-header {
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 0 16px;
+    min-height: 148px;
+  }
+
+  .tenant-profile-avatar-wrap,
+  .tenant-avatar.is-large {
+    width: 112px;
+    height: 112px;
+  }
+
+  .tenant-avatar.is-large {
+    flex-basis: 112px;
+    font-size: calc(24px + var(--app-font-size-bump));
+  }
+
+  .tenant-profile-main {
+    min-height: 112px;
+  }
+
+  .tenant-profile-heading {
+    padding-right: 0;
+  }
+
+  .tenant-profile-actions {
+    position: static;
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    margin-top: 12px;
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .people-layout {
+    background: var(--app-surface);
+  }
+
+  .tenant-profile-workspace {
+    padding: 0;
+  }
+
+  .tenant-profile-header {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 0 14px;
+    min-height: 0;
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .tenant-profile-avatar-wrap,
+  .tenant-avatar.is-large {
+    width: 88px;
+    height: 88px;
+  }
+
+  .tenant-avatar.is-large {
+    flex-basis: 88px;
+    font-size: calc(21px + var(--app-font-size-bump));
+  }
+
+  .tenant-profile-main {
+    min-height: 0;
+    grid-column: 2;
+    display: block;
+    padding: 0;
+  }
+
+  .tenant-profile-actions {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .tenant-profile-context-row {
+    gap: 7px 12px;
+  }
+
+  .tenant-profile-metadata {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 15px;
+    row-gap: 14px;
+  }
+
+  .tenant-profile-metadata .tenant-meta-item {
+    min-height: 54px;
+    padding: 0 12px;
+  }
+
+  .tenant-profile-metadata .tenant-meta-item:nth-child(3) {
+    padding-left: 0;
+  }
+
+  .tenant-profile-metadata .tenant-meta-copy > strong,
+  .tenant-profile-metadata .citizen-id-value strong,
+  .tenant-profile-metadata .tenant-meta-copy > em {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 430px) {
+  .tenant-profile-header {
+    grid-template-columns: 78px minmax(0, 1fr);
+  }
+
+  .tenant-profile-avatar-wrap,
+  .tenant-avatar.is-large {
+    width: 78px;
+    height: 78px;
+  }
+
+  .tenant-avatar.is-large {
+    flex-basis: 78px;
+  }
+
+  .tenant-name-line h2 {
+    font-size: calc(20px + var(--app-font-size-bump));
+  }
+
+  .tenant-profile-metadata {
+    grid-template-columns: 1fr;
+  }
+
+  .tenant-profile-metadata .tenant-meta-item,
+  .tenant-profile-metadata .tenant-meta-item:nth-child(3) {
+    padding: 0;
+    border-left: 0;
+  }
+
+  .tenant-profile-metadata .tenant-meta-item + .tenant-meta-item {
+    padding-top: 10px;
+    border-top: 1px solid var(--app-border);
+  }
+}
+
+/* Tenant directory row reference layout v15 */
+.people-directory {
+  container-type: inline-size;
+}
+
+.people-list {
+  padding: 4px 8px 8px;
+}
+
+.person-row {
+  align-items: center;
+  gap: 10px;
+  min-height: 74px;
+  margin: 0;
+  padding: 9px 8px;
+  border: 1px solid transparent;
+  border-bottom-color: var(--app-border);
+  border-left-width: 1px;
+  border-radius: 0;
+  background: var(--app-surface);
+  box-shadow: none;
+}
+
+.person-row:hover {
+  background: var(--app-row-hover-bg);
+}
+
+.person-row.is-selected,
+.person-row[aria-current="page"] {
+  margin: 3px 0;
+  border-color: var(--app-brand);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--app-brand-soft) 72%, var(--app-surface));
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--app-brand) 12%, transparent);
+}
+
+.person-row .tenant-avatar:not(.is-large) {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border: 1px solid color-mix(in srgb, var(--app-border-strong) 70%, transparent);
+}
+
+.person-row-body {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(78px, auto);
+  align-items: center;
+  column-gap: 9px;
+}
+
+.person-row-identity {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.person-row-identity > strong {
+  overflow: hidden;
+  color: var(--app-text-primary);
+  font-size: calc(13px + var(--app-font-size-bump));
+  line-height: 1.2;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-row-room {
+  overflow: hidden;
+  color: var(--app-text-secondary);
+  font-size: calc(11.5px + var(--app-font-size-bump));
+  line-height: 1.25;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-row-room.is-muted {
+  color: var(--app-text-muted);
+  font-weight: 550;
+}
+
+.person-row-phone {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  color: var(--app-text-secondary);
+  font-size: calc(10.5px + var(--app-font-size-bump));
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-row-phone svg {
+  width: 11px;
+  height: 11px;
+  flex: none;
+  color: var(--app-text-muted);
+}
+
+.person-role-badge {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 23px;
+  padding: 3px 7px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: calc(10px + var(--app-font-size-bump));
+  line-height: 1;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.person-role-badge svg {
+  width: 11px;
+  height: 11px;
+}
+
+.person-role-badge.role-responsible {
+  border-color: color-mix(in srgb, var(--app-border-strong) 65%, transparent);
+  background: var(--app-status-neutral-bg);
+  color: var(--app-neutral);
+}
+
+.person-role-badge.role-additional {
+  border-color: color-mix(in srgb, var(--app-info) 12%, transparent);
+  background: var(--app-status-info-bg);
+  color: var(--app-info);
+}
+
+.person-row-role-spacer {
+  width: 1px;
+}
+
+.person-row-state {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  text-align: right;
+}
+
+.person-row-state .tenant-list-state {
+  min-height: 24px;
+  padding: 4px 9px;
+  font-size: calc(10px + var(--app-font-size-bump));
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.person-row-state small {
+  max-width: 112px;
+  color: var(--app-text-secondary);
+  font-size: calc(10px + var(--app-font-size-bump));
+  line-height: 1.2;
+  font-weight: 500;
+  white-space: normal;
+}
+
+.person-row-state .state-former {
+  background: var(--app-status-danger-bg);
+  color: var(--app-danger);
+}
+
+@container (max-width: 390px) {
+  .person-row-body {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 5px;
+  }
+
+  .person-row-state {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+  }
+
+  .person-role-badge,
+  .person-row-role-spacer {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
+}
+
+/* Tenant viewport + header summary polish v17 */
+.tenant-kpis {
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.tenant-kpi {
+  min-height: 86px;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  align-items: center;
+  align-content: center;
+  gap: 12px;
+  padding: 12px 15px;
+  border: 1px solid var(--app-border);
+  border-radius: 12px;
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-card);
+}
+
+.tenant-kpi-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--app-brand-soft) 82%, var(--app-surface));
+  color: var(--app-brand);
+}
+
+.tenant-kpi-icon svg {
+  width: 21px;
+  height: 21px;
+  stroke-width: 1.9;
+}
+
+.tenant-kpi-content {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+}
+
+.tenant-kpi-content > small {
+  overflow: hidden;
+  color: var(--app-text-secondary);
+  font-size: calc(11.5px + var(--app-font-size-bump));
+  line-height: 1.2;
+  font-weight: 560;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tenant-kpi-content > strong {
+  color: var(--app-text-primary);
+  font-size: calc(21px + var(--app-font-size-bump));
+  line-height: 1.05;
+  font-weight: 780;
+  letter-spacing: -0.02em;
+}
+
+.tenant-kpi-content > em {
+  overflow: hidden;
+  color: var(--app-text-secondary);
+  font-size: calc(10.5px + var(--app-font-size-bump));
+  line-height: 1.2;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .people-app {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .people-workspace {
+    width: min(1480px, 100%);
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    padding: 18px 24px 20px;
+  }
+
   .people-header {
-    align-items: center;
+    flex: 0 0 auto;
+    margin-bottom: 12px;
   }
-  .mobile-people-home {
+
+  .tenant-kpis {
+    flex: 0 0 auto;
+  }
+
+  .people-layout {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .people-directory {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .people-directory-toolbar,
+  .people-archive-banner {
+    flex: 0 0 auto;
+  }
+
+  .people-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .person-profile {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .tenant-profile-workspace {
+    width: 100%;
+    max-width: 1120px;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 20px 24px 0;
+  }
+
+  .tenant-profile-header,
+  .tenant-rental-card,
+  .tenant-notes-card,
+  .tenant-financial-summary,
+  .tenant-tabs {
+    flex: 0 0 auto;
+  }
+
+  .tenant-tab-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding: 14px 4px 20px 0;
+  }
+
+  .people-list,
+  .tenant-tab-panel {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--app-border-strong) 82%, transparent) transparent;
+  }
+}
+
+@media (max-width: 1000px) and (min-width: 768px) {
+  .tenant-kpi {
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 9px;
+    padding-inline: 11px;
+  }
+
+  .tenant-kpi-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .tenant-kpi-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .tenant-kpi-content > strong {
+    font-size: calc(19px + var(--app-font-size-bump));
+  }
+}
+
+@media (max-width: 767px) {
+  .people-app {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+  }
+
+  .people-workspace {
+    height: auto;
+    min-height: calc(100dvh - 52px);
+    display: block;
+  }
+
+  .people-layout,
+  .people-directory,
+  .person-profile,
+  .tenant-profile-workspace {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .people-list,
+  .tenant-tab-panel {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .tenant-kpi {
+    min-height: 82px;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 10px;
+    padding: 11px 12px;
+  }
+
+  .tenant-kpi-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .tenant-kpi-icon svg {
+    width: 19px;
+    height: 19px;
+  }
+}
+
+/* Tenant header density + low-height profile scrolling v18 */
+.tenant-kpis {
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.tenant-kpi {
+  min-height: 72px;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  padding: 9px 14px;
+}
+
+.tenant-kpi-icon {
+  width: 40px;
+  height: 40px;
+}
+
+.tenant-kpi-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.tenant-kpi-content {
+  gap: 5px;
+}
+
+.tenant-kpi-content > small {
+  line-height: 1.15;
+}
+
+.tenant-kpi-content > strong {
+  font-size: calc(20px + var(--app-font-size-bump));
+  line-height: 1;
+}
+
+.tenant-kpi-content > em {
+  line-height: 1.15;
+}
+
+@media (min-width: 768px) {
+  .people-workspace {
+    padding-top: 14px;
+    padding-bottom: 16px;
+  }
+
+  .people-header {
+    margin-bottom: 10px;
+  }
+
+  .person-profile {
+    min-height: 0;
+  }
+}
+
+/*
+ * A 200px profile avatar makes the fixed profile summary intentionally tall.
+ * On shorter desktop/laptop viewports there may not be enough remaining room
+ * for a dedicated tab-panel scroller. Fall back to scrolling the detail pane
+ * itself so no profile content is clipped, while the page shell stays fixed.
+ */
+@media (min-width: 768px) and (max-height: 960px) {
+  .person-profile {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--app-border-strong) 82%, transparent) transparent;
+  }
+
+  .tenant-profile-workspace {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+    padding-bottom: 24px;
+  }
+
+  .tenant-tab-panel {
+    flex: 0 0 auto;
+    overflow: visible;
+    padding-bottom: 8px;
+  }
+}
+
+@media (max-width: 1000px) and (min-width: 768px) {
+  .tenant-kpi {
+    min-height: 68px;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 9px;
+    padding: 8px 11px;
+  }
+
+  .tenant-kpi-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .tenant-kpi-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 767px) {
+  .tenant-kpi {
+    min-height: 70px;
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 10px;
+    padding: 9px 11px;
+  }
+
+  .tenant-kpi-icon {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+/* Current rental header + mobile tenant profile responsive correction v19 */
+.tenant-rental-topline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+}
+
+.tenant-rental-topline > .button,
+.tenant-rental-topline > a,
+.tenant-rental-topline > button {
+  justify-self: end;
+}
+
+.tenant-rental-identity .tenant-rental-helper {
+  display: block;
+  margin: 5px 0 0;
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+  line-height: 1.35;
+  font-weight: 450;
+}
+
+/*
+ * Mobile uses a different composition from desktop: the avatar and identity
+ * share the first row, while metadata gets the full card width below them.
+ * display: contents lets the heading and metadata escape the narrow second
+ * desktop column without duplicating JSX or business state.
+ */
+@media (max-width: 767px) {
+  .tenant-profile-header {
     display: grid;
+    grid-template-columns: 82px minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    column-gap: 14px;
+    row-gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--app-border);
+    border-radius: 12px;
+    background: var(--app-surface);
   }
-  .people-header .eyebrow,
-  .people-header > div > p:last-child {
-    display: none;
+
+  .tenant-profile-avatar-wrap,
+  .tenant-avatar.is-large {
+    width: 82px;
+    height: 82px;
+  }
+
+  .tenant-avatar.is-large {
+    flex-basis: 82px;
+    font-size: calc(21px + var(--app-font-size-bump));
+  }
+
+  .tenant-profile-avatar-wrap {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+  }
+
+  .tenant-profile-main {
+    display: contents;
+  }
+
+  .tenant-profile-heading {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    align-self: center;
+    padding: 0;
+  }
+
+  .tenant-name-line {
+    align-items: flex-start;
+    gap: 6px 8px;
+  }
+
+  .tenant-name-line h2 {
+    font-size: calc(22px + var(--app-font-size-bump));
+    line-height: 1.1;
+  }
+
+  .tenant-name-line .tenant-state {
+    min-height: 22px;
+    padding: 3px 8px;
+    font-size: calc(10.5px + var(--app-font-size-bump));
+  }
+
+  .tenant-profile-context-row {
+    display: grid;
+    gap: 5px;
+    margin-top: 9px;
+  }
+
+  .tenant-profile-context-item {
+    width: 100%;
+    font-size: calc(12px + var(--app-font-size-bump));
+  }
+
+  .tenant-profile-context-item > span {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .tenant-profile-metadata {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    width: 100%;
+    margin: 0;
+    padding: 14px 0 0;
+    border-top: 1px solid var(--app-border);
+  }
+
+  .tenant-profile-metadata .tenant-meta-item,
+  .tenant-profile-metadata .tenant-meta-item:nth-child(3) {
+    min-width: 0;
+    min-height: 68px;
+    padding: 0 12px 12px;
+    border: 0;
+  }
+
+  .tenant-profile-metadata .tenant-meta-item:nth-child(odd) {
+    padding-left: 0;
+  }
+
+  .tenant-profile-metadata .tenant-meta-item:nth-child(even) {
+    padding-right: 0;
+    border-left: 1px solid var(--app-border);
+  }
+
+  .tenant-profile-metadata .tenant-meta-item:nth-child(n + 3) {
+    padding-top: 12px;
+    padding-bottom: 0;
+    border-top: 1px solid var(--app-border);
+  }
+
+  .tenant-profile-metadata .tenant-meta-label {
+    margin-bottom: 7px;
+  }
+
+  .tenant-profile-metadata .tenant-meta-copy > strong,
+  .tenant-profile-metadata .citizen-id-value strong,
+  .tenant-profile-metadata .tenant-meta-copy > em {
+    white-space: normal;
+  }
+
+  .tenant-profile-actions {
+    position: static;
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-self: end;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tenant-rental-topline {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 10px;
+  }
+
+  .tenant-rental-topline > .button,
+  .tenant-rental-topline > a,
+  .tenant-rental-topline > button {
+    justify-self: end;
+    align-self: start;
+  }
+
+  .tenant-rental-identity > strong {
+    font-size: calc(17px + var(--app-font-size-bump));
+  }
+}
+
+@media (max-width: 430px) {
+  .tenant-profile-header {
+    grid-template-columns: 72px minmax(0, 1fr);
+    column-gap: 12px;
+    padding: 14px;
+  }
+
+  .tenant-profile-avatar-wrap,
+  .tenant-avatar.is-large {
+    width: 72px;
+    height: 72px;
+  }
+
+  .tenant-avatar.is-large {
+    flex-basis: 72px;
+  }
+
+  .tenant-name-line h2 {
+    font-size: calc(20px + var(--app-font-size-bump));
+  }
+
+  .tenant-profile-metadata {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tenant-profile-metadata .tenant-meta-item,
+  .tenant-profile-metadata .tenant-meta-item:nth-child(3) {
+    padding-left: 8px;
+    padding-right: 8px;
+    border-left: 0;
+  }
+
+  .tenant-profile-metadata .tenant-meta-item:nth-child(odd) {
+    padding-left: 0;
+  }
+
+  .tenant-profile-metadata .tenant-meta-item:nth-child(even) {
+    padding-right: 0;
+    border-left: 1px solid var(--app-border);
+  }
+
+  .tenant-rental-card {
+    padding: 15px 14px 13px;
+  }
+
+  .tenant-rental-topline {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .tenant-rental-topline .tenant-rental-helper {
+    max-width: 205px;
+  }
+}
+
+.tenant-rental-topline a,
+.tenant-rental-topline button {
+  white-space: nowrap;
+}
+
+/* Shared application page-scale alignment v20.
+ * Tenants now uses the same outer content width, gutters, header typography,
+ * and vertical rhythm as Utilities/Billing while retaining its split workspace.
+ */
+.people-workspace {
+  width: min(100%, var(--app-page-shell-max));
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding-inline: var(--app-page-gutter-x);
+}
+
+.people-header {
+  align-items: flex-start;
+  margin-bottom: var(--app-page-section-gap);
+  padding-bottom: var(--app-page-header-padding-bottom);
+  border-bottom: 1px solid var(--app-border);
+}
+
+.people-header-copy {
+  min-width: 0;
+  max-width: 650px;
+}
+
+.people-eyebrow {
+  margin: 0 0 7px !important;
+  color: var(--app-page-eyebrow-color) !important;
+  font-size: var(--app-page-eyebrow-size) !important;
+  line-height: 1.2;
+  font-weight: 700 !important;
+  letter-spacing: var(--app-page-eyebrow-letter-spacing);
+}
+
+.people-header h1 {
+  margin: 0;
+  color: var(--app-text-primary);
+  font-size: var(--app-page-title-size);
+  line-height: 1.08;
+  font-weight: var(--app-page-title-weight);
+  letter-spacing: -0.035em;
+}
+
+.people-header .people-description {
+  margin: 8px 0 0;
+  color: var(--app-text-secondary);
+  font-size: var(--app-page-description-size);
+  line-height: 1.55;
+}
+
+.people-header > button {
+  min-height: 40px;
+  padding-inline: 16px;
+}
+
+.tenant-kpis {
+  margin-bottom: var(--app-page-section-gap);
+}
+
+@media (min-width: 768px) {
+  .people-workspace {
+    padding-top: var(--app-page-padding-top);
+    padding-bottom: 24px;
+  }
+
+  .people-header {
+    margin-bottom: var(--app-page-section-gap);
+  }
+
+  .tenant-kpis {
+    margin-bottom: var(--app-page-section-gap);
+  }
+}
+
+@media (max-width: 767px) {
+  .people-workspace {
+    padding: 22px 14px 34px;
+  }
+
+  .people-header {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+  }
+
+  .people-eyebrow {
+    margin-bottom: 5px !important;
+  }
+
+  .people-header h1 {
+    font-size: calc(28px + var(--app-font-size-bump));
+  }
+
+  .people-header .people-description {
+    font-size: calc(13px + var(--app-font-size-bump));
+  }
+
+  .tenant-kpis {
+    margin-bottom: 16px;
+  }
+}
+
+/* Tenant summary cards keep their compact reference composition, but use the
+ * same visual scale as the application header rather than reading as tiny strips. */
+.tenant-kpi {
+  min-height: 82px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 13px;
+  padding: 11px 16px;
+}
+
+.tenant-kpi-icon {
+  width: 42px;
+  height: 42px;
+}
+
+.tenant-kpi-content > small {
+  font-size: calc(12px + var(--app-font-size-bump));
+}
+
+.tenant-kpi-content > strong {
+  font-size: calc(22px + var(--app-font-size-bump));
+}
+
+.tenant-kpi-content > em {
+  font-size: calc(11px + var(--app-font-size-bump));
+}
+
+@media (max-width: 1000px) and (min-width: 768px) {
+  .tenant-kpi {
+    min-height: 76px;
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 10px;
+    padding: 9px 12px;
+  }
+
+  .tenant-kpi-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .tenant-kpi-content > strong {
+    font-size: calc(20px + var(--app-font-size-bump));
+  }
+}
+
+/* Tenant identity alignment + archived-layout consistency v21 */
+.tenant-profile-context-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.tenant-profile-context-item {
+  width: 100%;
+  min-width: 0;
+}
+
+.tenant-profile-citizen-id .citizen-id-value {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+}
+
+.tenant-profile-citizen-id .citizen-id-value strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--app-text-secondary);
+  font-size: calc(13px + var(--app-font-size-bump));
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tenant-profile-citizen-id .citizen-id-value button {
+  width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--app-text-muted);
+  cursor: pointer;
+}
+
+.tenant-profile-citizen-id .citizen-id-value button svg {
+  width: 13px;
+  height: 13px;
+}
+
+.tenant-profile-citizen-id .citizen-id-value .form-error {
+  display: none;
+}
+
+.tenant-profile-metadata {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tenant-profile-metadata .tenant-meta-item {
+  padding-inline: 18px;
+}
+
+.tenant-profile-metadata .tenant-meta-item:first-child {
+  padding-left: 0;
+}
+
+.tenant-profile-metadata .tenant-meta-item:last-child {
+  padding-right: 0;
+}
+
+/* Let the three KPI text rows breathe without growing the card itself. */
+.tenant-kpi-content {
+  gap: 4px;
+}
+
+.tenant-kpi-content > small,
+.tenant-kpi-content > em {
+  line-height: 1.25;
+}
+
+.tenant-kpi-content > strong {
+  line-height: 1;
+}
+
+@media (min-width: 768px) {
+  .people-header h1 {
+    font-size: var(--app-page-title-size);
+  }
+}
+
+@media (max-width: 1100px) and (min-width: 768px) {
+  .tenant-profile-context-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 16px;
+  }
+}
+
+@media (max-width: 767px) {
+  .tenant-profile-context-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px 12px;
+  }
+
+  .tenant-profile-context-item {
+    font-size: calc(11.5px + var(--app-font-size-bump));
+  }
+
+  .tenant-profile-citizen-id .citizen-id-value strong {
+    font-size: calc(11.5px + var(--app-font-size-bump));
+  }
+
+  .tenant-profile-metadata {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tenant-profile-metadata .tenant-meta-item,
+  .tenant-profile-metadata .tenant-meta-item:nth-child(3) {
+    min-height: 68px;
+  }
+
+  .tenant-profile-metadata .tenant-meta-item:nth-child(3) {
+    grid-column: 1 / -1;
+    padding: 12px 0 0;
+    border-top: 1px solid var(--app-border);
+    border-left: 0;
+  }
+}
+
+
+/* Final shared page-scale guard: Tenants uses the same heading token at every breakpoint. */
+.people-header h1 {
+  font-size: var(--app-page-title-size);
+}
+
+/* Tenant profile identity readability v23
+ * Keep the room/location as its own context line, then place contact facts
+ * underneath with enough width to remain readable instead of truncating. */
+.tenant-profile-context {
+  margin-top: 12px;
+}
+
+.tenant-profile-room-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.tenant-profile-room {
+  width: auto;
+  color: var(--app-text-primary);
+  font-weight: 560;
+}
+
+.tenant-profile-contact-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 10px 22px;
+  margin-top: 9px;
+}
+
+.tenant-profile-contact-row .tenant-profile-context-item {
+  width: 100%;
+  min-width: 0;
+}
+
+.tenant-profile-contact-row .tenant-profile-context-item > span {
+  min-width: 0;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.tenant-profile-contact-row .tenant-profile-citizen-id .citizen-id-value {
+  min-width: 0;
+  overflow: visible;
+}
+
+.tenant-profile-contact-row .tenant-profile-citizen-id .citizen-id-value strong {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.tenant-profile-birthday {
+  justify-self: start;
+}
+
+@media (max-width: 1100px) and (min-width: 768px) {
+  .tenant-profile-contact-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px 18px;
+  }
+
+  .tenant-profile-birthday {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 767px) {
+  .tenant-profile-context {
+    margin-top: 8px;
+  }
+
+  .tenant-profile-contact-row {
+    grid-template-columns: 1fr;
+    gap: 5px;
+    margin-top: 7px;
+  }
+
+  .tenant-profile-birthday {
+    grid-column: auto;
+  }
+
+  .tenant-profile-contact-row .tenant-profile-context-item,
+  .tenant-profile-room {
+    font-size: calc(11.5px + var(--app-font-size-bump));
   }
 }

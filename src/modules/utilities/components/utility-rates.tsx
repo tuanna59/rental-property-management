@@ -136,7 +136,7 @@ function RateCard({
   return (
     <section className="rate-card">
       <header className="rate-card-header">
-        <div className="flex items-center gap-2 text-[#26715e]">
+        <div className="flex items-center gap-2 text-[var(--app-brand)]">
           {icon}
           <h2>{title}</h2>
         </div>

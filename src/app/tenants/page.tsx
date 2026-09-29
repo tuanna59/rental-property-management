@@ -1,5 +1,8 @@
 import { PeopleDirectory } from "@/modules/people/components/people-directory";
-import { getPeopleDirectory } from "@/modules/people/server/people.queries";
+import {
+  getPeopleDirectory,
+  getPeopleDirectoryStats,
+} from "@/modules/people/server/people.queries";
 import { getPrimaryPropertyDashboard } from "@/modules/property/server/property.queries";
 
 export const dynamic = "force-dynamic";
@@ -21,13 +24,15 @@ export default async function TenantsPage({
   )
     ? params.scope!
     : "all";
-  const [property, directory] = await Promise.all([
+  const renderedAt = new Date().toISOString();
+  const [property, directory, stats] = await Promise.all([
     getPrimaryPropertyDashboard(),
     getPeopleDirectory(query),
+    getPeopleDirectoryStats(),
   ]);
   if (!property) return <main className="p-8">No property found.</main>;
+  const showArchived = params.archived === "1";
   const people = directory.filter((person) => {
-    const showArchived = params.archived === "1";
     if (Boolean(person.archivedAt) !== showArchived) return false;
     if (scope === "current") return person.rentalState === "CURRENT";
     if (scope === "upcoming") return person.rentalState === "UPCOMING";
@@ -41,9 +46,12 @@ export default async function TenantsPage({
       property={property}
       people={people}
       selected={selected}
+      stats={stats}
       query={query}
       scope={scope}
-      showArchived={params.archived === "1"}
+      showArchived={showArchived}
+      mobileDetail={Boolean(params.person && selected)}
+      renderedAt={renderedAt}
     />
   );
 }

@@ -67,3 +67,32 @@ export async function getPersonMedia(personId: string, kind: PersonMediaKind) {
   if (!key) return null;
   return { key, bytes: await localPrivateStorage.get(key) };
 }
+
+
+export async function deletePersonMedia(
+  personId: string,
+  kind: PersonMediaKind,
+) {
+  const field = fieldByKind[kind];
+  const person = await prisma.person.findFirst({
+    where: { id: personId, archivedAt: null },
+    select: {
+      id: true,
+      avatarStorageKey: true,
+      citizenIdFrontKey: true,
+      citizenIdBackKey: true,
+    },
+  });
+  if (!person) throw new Error("The selected person was not found.");
+  const previousKey = person[field];
+  if (!previousKey) return;
+  await prisma.person.update({
+    where: { id: person.id },
+    data: { [field]: null },
+  });
+  try {
+    await localPrivateStorage.delete(previousKey);
+  } catch {
+    console.error("Could not remove deleted private media object.");
+  }
+}

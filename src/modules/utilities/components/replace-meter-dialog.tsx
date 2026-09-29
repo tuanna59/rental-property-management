@@ -88,7 +88,7 @@ export function ReplaceMeterDialog({ spaceId }: { spaceId: string }) {
             </div>
           </div>
           {source === "ESTIMATED" && (
-            <p className="text-xs text-[#8a5b1e]">
+            <p className="text-xs text-[var(--app-warning)]">
               The replacement reason below also explains the estimated final
               reading.
             </p>

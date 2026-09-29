@@ -332,7 +332,7 @@ export function SpaceFormDialog({
               </SelectContent>
             </Select>
             {state.fieldErrors?.type?.[0] ? (
-              <p className="text-sm text-[#9f2d20]">
+              <p className="text-sm text-[var(--app-danger)]">
                 {state.fieldErrors.type[0]}
               </p>
             ) : null}
@@ -513,7 +513,7 @@ function Field({
     <div className="grid gap-2">
       <Label htmlFor={id}>{label}</Label>
       <Input id={id} aria-invalid={Boolean(error)} {...props} />
-      {error ? <p className="text-sm text-[#9f2d20]">{error}</p> : null}
+      {error ? <p className="text-sm text-[var(--app-danger)]">{error}</p> : null}
     </div>
   );
 }
@@ -532,7 +532,7 @@ function TextAreaField({
     <div className="grid gap-2">
       <Label htmlFor={id}>{label}</Label>
       <Textarea id={id} aria-invalid={Boolean(error)} {...props} />
-      {error ? <p className="text-sm text-[#9f2d20]">{error}</p> : null}
+      {error ? <p className="text-sm text-[var(--app-danger)]">{error}</p> : null}
     </div>
   );
 }
@@ -544,7 +544,7 @@ function FormStatus({ state }: { state: ActionState }) {
 
   return (
     <p
-      className={cn("text-sm", state.ok ? "text-[#1f6f5b]" : "text-[#9f2d20]")}
+      className={cn("text-sm", state.ok ? "text-[var(--app-brand)]" : "text-[var(--app-danger)]")}
       role={state.ok ? "status" : "alert"}
     >
       {state.message}

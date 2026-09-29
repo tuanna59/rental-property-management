@@ -1,21 +1,111 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f4ef;
-  --foreground: #172520;
+  /* Shared application theme: warm-neutral surfaces + restrained green accent. */
+  --app-page-bg: #f7f4ef;
+  --app-surface: #ffffff;
+  --app-surface-subtle: #faf9f6;
+  --app-surface-elevated: #fffdf9;
+
+  --app-text-primary: #1d2d29;
+  --app-text-secondary: #5f6f68;
+  --app-text-muted: #7a8781;
+
+  --app-border: #dce3de;
+  --app-border-strong: #cbd6cf;
+
+  --app-brand: #1f6f5b;
+  --app-brand-hover: #195c4c;
+  --app-brand-soft: #e7f1eb;
+  --app-brand-foreground: #ffffff;
+
+  --app-success: #216448;
+  --app-success-soft: #e5f3eb;
+  --app-warning: #95651d;
+  --app-warning-soft: #fff2dc;
+  --app-danger: #9c3c2f;
+  --app-danger-soft: #fbe7e3;
+  --app-info: #496f9d;
+  --app-info-soft: #e7eef9;
+  --app-neutral: #6f6658;
+  --app-neutral-soft: #f1ede7;
+
+  --app-card-bg: var(--app-surface);
+  --app-table-header-bg: #fafbf9;
+  --app-row-selected-bg: #edf5f0;
+  --app-row-hover-bg: #f7faf8;
+  --app-tab-active: var(--app-brand);
+  --app-input-bg: var(--app-surface);
+  --app-sidebar-active-bg: #e5efe9;
+  --app-status-success-bg: var(--app-success-soft);
+  --app-status-warning-bg: var(--app-warning-soft);
+  --app-status-danger-bg: var(--app-danger-soft);
+  --app-status-info-bg: var(--app-info-soft);
+  --app-status-neutral-bg: var(--app-neutral-soft);
+
+  --app-radius-card: 12px;
+  --app-radius-control: 8px;
+  --app-shadow-card: 0 1px 2px rgb(25 45 36 / 3%);
+  --app-shadow-elevated: 0 14px 38px rgb(38 58 49 / 8%);
+
+  /* Shared application page scale. Feature pages keep their own content, but
+     use the same outer width, gutters, heading rhythm, and typography. */
+  --app-page-content-max: 1240px;
+  --app-page-shell-max: 1356px;
+  --app-page-gutter-x: clamp(20px, 4vw, 58px);
+  --app-page-padding-top: 34px;
+  --app-page-padding-bottom: 52px;
+  --app-page-title-size: clamp(32px, 2.6vw, 39px);
+  --app-page-title-weight: 650;
+  --app-page-description-size: calc(14px + var(--app-font-size-bump));
+  --app-page-header-padding-bottom: 23px;
+  --app-page-section-gap: 24px;
+  --app-page-eyebrow-size: calc(11px + var(--app-font-size-bump));
+  --app-page-eyebrow-color: #7a6451;
+  --app-page-eyebrow-letter-spacing: 0.13em;
+
+  /* Shared typography scale. Increase app text consistently without changing each feature. */
+  --app-root-font-size: 16.5px;
+  --app-font-size-bump: 1px;
+
+  /* Shared component scale used by every feature shell. */
+  --app-focus-ring: #2869a0;
+  --app-sidebar-width: 228px;
+  --app-sidebar-collapsed-width: 68px;
+  --app-sidebar-row-height: 42px;
+  --app-mobile-bar-height: 52px;
+  --app-overlay-bg: rgb(18 35 29 / 50%);
+
+  /* Backward-compatible aliases used by Tailwind theme utilities. */
+  --background: var(--app-page-bg);
+  --foreground: var(--app-text-primary);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-app-page: var(--app-page-bg);
+  --color-app-surface: var(--app-surface);
+  --color-app-subtle: var(--app-surface-subtle);
+  --color-app-primary: var(--app-brand);
+  --color-app-primary-soft: var(--app-brand-soft);
+  --color-app-border: var(--app-border);
+  --font-sans: var(--font-source-sans);
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  font-size: var(--app-root-font-size);
+}
+
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background: var(--app-page-bg);
+  color: var(--app-text-primary);
+}
+
+body {
+  font-family: var(--font-source-sans), "Segoe UI", Arial, Helvetica, sans-serif;
 }
 
 button,
@@ -23,7 +113,34 @@ a,
 input,
 textarea,
 select {
+  font-family: inherit;
   letter-spacing: 0;
+}
+
+/* Shared semantic badge primitives; feature-specific components may compose these tokens. */
+.app-status-success {
+  background: var(--app-status-success-bg);
+  color: var(--app-success);
+}
+
+.app-status-warning {
+  background: var(--app-status-warning-bg);
+  color: var(--app-warning);
+}
+
+.app-status-danger {
+  background: var(--app-status-danger-bg);
+  color: var(--app-danger);
+}
+
+.app-status-info {
+  background: var(--app-status-info-bg);
+  color: var(--app-info);
+}
+
+.app-status-neutral {
+  background: var(--app-status-neutral-bg);
+  color: var(--app-neutral);
 }
 
 .building-cutaway {

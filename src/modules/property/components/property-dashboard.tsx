@@ -97,6 +97,7 @@ export function PropertyDashboard({
       <main className="property-workspace">
           <header className="property-header">
             <div className="property-heading">
+              <p className="property-eyebrow">BUILDING</p>
               <h1>{property.name}</h1>
               <p>
                 {[property.addressLine1, property.city, property.country]

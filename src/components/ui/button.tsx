@@ -5,16 +5,16 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f6f5b] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-brand)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-[#17483d] text-white shadow-sm hover:bg-[#123a32]",
-        secondary: "bg-[#eef3ef] text-[#163f36] hover:bg-[#dce8df]",
+        default: "bg-[var(--app-brand)] text-[var(--app-brand-foreground)] shadow-sm hover:bg-[var(--app-brand-hover)]",
+        secondary: "bg-[var(--app-brand-soft)] text-[var(--app-brand)] hover:bg-[var(--app-row-selected-bg)]",
         outline:
-          "border border-[#cfd9d1] bg-white text-[#24342f] shadow-sm hover:bg-[#f4f7f3]",
-        ghost: "text-[#24342f] hover:bg-[#eef3ef]",
-        danger: "bg-[#9f2d20] text-white shadow-sm hover:bg-[#84251b]",
+          "border border-[var(--app-border-strong)] bg-[var(--app-surface)] text-[var(--app-text-primary)] shadow-sm hover:bg-[var(--app-row-hover-bg)]",
+        ghost: "text-[var(--app-text-primary)] hover:bg-[var(--app-brand-soft)]",
+        danger: "bg-[var(--app-danger)] text-white shadow-sm hover:brightness-90",
       },
       size: {
         default: "h-10 px-4 py-2",

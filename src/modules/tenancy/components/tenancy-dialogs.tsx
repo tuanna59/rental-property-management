@@ -158,11 +158,11 @@ export function MoveInDialog({
             <Label htmlFor={`move-in-notes-${space.id}`}>Notes</Label>
             <Textarea id={`move-in-notes-${space.id}`} name="moveInNotes" />
           </div>
-          <fieldset className="rounded-md border border-[#e0e7e1] p-3">
+          <fieldset className="rounded-md border border-[var(--app-border)] p-3">
             <legend className="px-1 text-sm font-medium">
               Electricity meter
             </legend>
-            <p className="mb-3 text-xs text-[#65756d]">
+            <p className="mb-3 text-xs text-[var(--app-text-secondary)]">
               Optional boundary reading. If no active meter exists, move-in
               continues normally.
             </p>
@@ -246,11 +246,11 @@ export function MoveOutDialog({ space }: { space: DashboardSpace }) {
             <Label htmlFor={`move-out-notes-${space.id}`}>Notes</Label>
             <Textarea id={`move-out-notes-${space.id}`} name="moveOutNotes" />
           </div>
-          <fieldset className="rounded-md border border-[#e0e7e1] p-3">
+          <fieldset className="rounded-md border border-[var(--app-border)] p-3">
             <legend className="px-1 text-sm font-medium">
               Electricity meter
             </legend>
-            <p className="mb-3 text-xs text-[#65756d]">
+            <p className="mb-3 text-xs text-[var(--app-text-secondary)]">
               Optional final boundary reading. If the meter cannot be read,
               leave this blank.
             </p>
