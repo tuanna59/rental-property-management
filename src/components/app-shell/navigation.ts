@@ -23,7 +23,7 @@ export type AppNavigationItem = {
 export const appNavigation: readonly AppNavigationItem[] = [
   {
     label: "Building",
-    href: "/",
+    href: "/building",
     icon: Building2,
   },
   {
@@ -69,7 +69,7 @@ export const appNavigation: readonly AppNavigationItem[] = [
 ] as const;
 
 export function isNavigationHrefActive(pathname: string, href: string) {
-  if (href === "/" || href === "/utilities") return pathname === href;
+  if (href === "/building" || href === "/utilities") return pathname === href;
   if (href === "/assets") {
     return pathname === href || (pathname.startsWith("/assets/") && !pathname.startsWith("/assets/devices"));
   }

@@ -10,20 +10,23 @@ import {
   X,
   ArrowLeft,
   ArrowRight,
-  Search,
   CalendarDays,
   LogOut,
   Wrench,
   Boxes,
+  Gauge,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatVnd } from "@/lib/presentation";
 import { archiveSpaceAction, deleteSpaceAction } from "../actions";
 import {
   SPACE_TYPE_LABELS,
-  type DashboardProperty,
+  type BuildingVisualMode,
+  type BuildingVisualProjection,
+  type BuildingVisualFloorProjection,
+  type BuildingVisualSpaceProjection,
   type DashboardFloor,
-  type DashboardSpace,
   type DashboardPersonOption,
 } from "../domain/types";
 import {
@@ -34,15 +37,14 @@ import {
   MoveInDialog,
   MoveOutDialog,
 } from "@/modules/tenancy/components/tenancy-dialogs";
-import { BuildingCanvas } from "./building-canvas";
+import { BuildingVisual } from "./visual/building-visual";
+import { BuildingToolbar } from "./visual/building-toolbar";
 import {
   FloorFormDialog,
   SpaceFormDialog,
   SpaceReorderButton,
   ArchiveOrDeleteDialog,
 } from "./property-forms";
-import type { SpaceMaintenanceSignal } from "@/modules/operations/domain/types";
-import type { SpaceAssetSummaryView } from "@/modules/assets/domain/types";
 import "./building.css";
 
 function subscribeDesktop(callback: () => void) {
@@ -55,206 +57,185 @@ const desktopSnapshot = () => window.matchMedia("(min-width: 1100px)").matches;
 export function PropertyDashboard({
   property,
   people,
-  maintenanceSignals = [],
-  assetSignals = [],
   initialSpaceId = null,
 }: {
-  property: DashboardProperty;
+  property: BuildingVisualProjection;
   people: DashboardPersonOption[];
-  maintenanceSignals?: SpaceMaintenanceSignal[];
-  assetSignals?: SpaceAssetSummaryView[];
   initialSpaceId?: string | null;
 }) {
   const [selectedId, setSelectedId] = React.useState<string | null>(initialSpaceId);
+  const [mode, setMode] = React.useState<BuildingVisualMode>("OCCUPANCY");
+  const [focusedFloorId, setFocusedFloorId] = React.useState<string | null>(null);
   const [editing, setEditing] = React.useState(false);
-  const [search, setSearch] = React.useState("");
   const desktop = React.useSyncExternalStore(
     subscribeDesktop,
     desktopSnapshot,
     () => false,
   );
   const lastSelected = React.useRef<HTMLButtonElement | null>(null);
-  const floors = [...property.floors].sort((a, b) => {
-    const aRooftop =
-      a.spaces.length > 0 &&
-      a.spaces.every((space) => space.type === "ROOFTOP");
-    const bRooftop =
-      b.spaces.length > 0 &&
-      b.spaces.every((space) => space.type === "ROOFTOP");
-    return aRooftop === bRooftop
-      ? b.sortOrder - a.sortOrder
-      : aRooftop
-        ? -1
-        : 1;
-  });
+  const floors = React.useMemo(() => orderVisualFloors(property.floors), [property.floors]);
   const spaces = floors.flatMap((floor) => floor.spaces);
   const floor = floors.find((item) =>
     item.spaces.some((space) => space.id === selectedId),
   );
   const space = floor?.spaces.find((item) => item.id === selectedId);
   const selected = floor && space ? { floor, space } : null;
+
+  React.useEffect(() => {
+    if (initialSpaceId) {
+      const initialFloor = floors.find((item) => item.spaces.some((space) => space.id === initialSpaceId));
+      if (initialFloor) setFocusedFloorId(initialFloor.id);
+    }
+  }, [floors, initialSpaceId]);
+
+  React.useEffect(() => {
+    const onPopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      setSelectedId(params.get("space"));
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  const syncSpaceQuery = React.useCallback((spaceId: string | null) => {
+    const url = new URL(window.location.href);
+    if (spaceId) url.searchParams.set("space", spaceId);
+    else url.searchParams.delete("space");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
+
   const close = () => {
     setSelectedId(null);
+    syncSpaceQuery(null);
     requestAnimationFrame(() => lastSelected.current?.focus());
   };
   const select = (id: string, target: HTMLButtonElement) => {
     lastSelected.current = target;
     setSelectedId(id);
+    syncSpaceQuery(id);
+    const selectedFloor = floors.find((item) => item.spaces.some((item) => item.id === id));
+    if (!desktop && selectedFloor) setFocusedFloorId(selectedFloor.id);
   };
 
   return (
     <MotionConfig reducedMotion="user">
-      <main className="property-workspace">
-          <header className="property-header">
-            <div className="property-heading">
-              <p className="property-eyebrow">BUILDING</p>
-              <h1>{property.name}</h1>
-              <p>
-                {[property.addressLine1, property.city, property.country]
-                  .filter(Boolean)
-                  .join(", ") || property.description}
-              </p>
-            </div>
-            <div className="property-controls">
-              <Button
-                variant={editing ? "secondary" : "outline"}
-                aria-pressed={editing}
-                onClick={() => setEditing(!editing)}
-              >
-                <Pencil />
-                {editing ? "Done editing" : "Edit building"}
-              </Button>
-              <AddMenu propertyId={property.id} floors={floors} />
-            </div>
-          </header>
-          <div className="canvas-toolbar">
-            <div className="building-caption">
-              <Building2 size={17} />
-              <span>Building</span>
-              <span className="caption-divider" />
-              <span>{floors.length} floors</span>
-              <span>
-                {spaces.filter((s) => s.type === "ROOM").length} rooms
-              </span>
-              <span className="other-count">
-                {spaces.filter((s) => s.type !== "ROOM").length} other spaces
-              </span>
-            </div>
-            <label className="space-search">
-              <Search size={16} />
-              <span className="sr-only">Find a space</span>
-              <input
-                type="search"
-                placeholder="Find a space"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
+      <main className="property-workspace building-v2-page">
+        <header className="property-header">
+          <div className="property-heading">
+            <p className="property-eyebrow">BUILDING DIGITAL TWIN</p>
+            <h1>{property.name}</h1>
+            <p>
+              {[property.addressLine1, property.city, property.country]
+                .filter(Boolean)
+                .join(", ") || property.description}
+            </p>
           </div>
-          <div className="property-scene">
-            <section
-              id="building"
-              aria-label="Interactive building cutaway"
-              className="canvas-region"
+          <div className="property-controls">
+            <Button
+              variant={editing ? "secondary" : "outline"}
+              aria-pressed={editing}
+              onClick={() => setEditing(!editing)}
             >
-              <BuildingCanvas
-                floors={floors}
-                propertyId={property.id}
-                selectedId={selectedId}
-                onSelect={select}
-                editing={editing}
-                search={search}
-              />
-              <footer className="canvas-legend">
-                <span>
-                  <i />
-                  Active space
-                </span>
-                <span>{spaces.length} spaces in this property</span>
-              </footer>
-              {search &&
-                !spaces.some((s) =>
-                  s.name.toLowerCase().includes(search.toLowerCase()),
-                ) && (
-                  <p className="search-empty" role="status">
-                    No spaces match &quot;{search}&quot;.
-                  </p>
-                )}
-            </section>
-            {desktop && (
-              <aside className="context-panel" aria-label="Space details">
-                {selected ? (
-                  <>
-                    <button
-                      className="panel-close"
-                      onClick={close}
-                      aria-label="Close detail panel"
-                      title="Close detail panel"
-                    >
-                      <X size={18} />
-                    </button>
-                    <SpaceDetails
-                      key={selected.space.id}
-                      {...selected}
-                      people={people}
-                      maintenanceSignal={maintenanceSignals.find(
-                        (signal) => signal.spaceId === selected.space.id,
-                      )}
-                      assetSignal={assetSignals.find(
-                        (signal) => signal.spaceId === selected.space.id,
-                      )}
-                    />
-                  </>
-                ) : (
-                  <div className="panel-empty">
-                    <Building2 size={30} />
-                    <h2>Space details</h2>
-                    <p>No space selected</p>
-                    <div className="property-note">{property.description}</div>
-                  </div>
-                )}
-              </aside>
-            )}
+              <Pencil />
+              {editing ? "Done editing" : "Edit building"}
+            </Button>
+            <AddMenu propertyId={property.id} floors={floors} />
           </div>
+        </header>
+
+        <div className="building-v2-control-row">
+          <div className="building-v2-caption">
+            <Building2 aria-hidden="true" />
+            <span>{floors.length} floors</span>
+            <i />
+            <span>{spaces.length} spaces</span>
+            <i />
+            <span>{spaces.filter((item) => item.type === "ROOM").length} rental rooms</span>
+          </div>
+          <BuildingToolbar
+            floors={floors}
+            mode={mode}
+            focusedFloorId={focusedFloorId}
+            onModeChange={setMode}
+            onFloorChange={(floorId) => {
+              setFocusedFloorId(floorId);
+              if (floorId && selected && selected.floor.id !== floorId) {
+                setSelectedId(null);
+                syncSpaceQuery(null);
+              }
+            }}
+          />
+        </div>
+
+        <div className={`property-scene building-v2-workspace${selected ? " has-selection" : ""}`}>
+          <section aria-label="Interactive architectural building cutaway" className="canvas-region building-v2-canvas-region">
+            <BuildingVisual
+              projection={property}
+              mode={mode}
+              focusedFloorId={focusedFloorId}
+              selectedSpaceId={selectedId}
+              editing={editing}
+              onSelectSpace={select}
+            />
+            <VisualLegend mode={mode} />
+          </section>
+          {desktop && (
+            <aside className="context-panel building-v2-context-panel" aria-label="Space details">
+              {selected ? (
+                <>
+                  <button className="panel-close" onClick={close} aria-label="Close detail panel" title="Close detail panel">
+                    <X size={18} />
+                  </button>
+                  <SpaceDetails key={selected.space.id} {...selected} people={people} />
+                </>
+              ) : (
+                <div className="panel-empty building-v2-panel-empty">
+                  <Building2 size={34} />
+                  <h2>Explore the building</h2>
+                  <p>Select a space to open its operational overview.</p>
+                  <div className="building-v2-panel-tips">
+                    <span><Users /> Occupancy</span>
+                    <span><Wrench /> Maintenance</span>
+                    <span><Gauge /> Utilities</span>
+                    <span><Boxes /> Assets</span>
+                  </div>
+                </div>
+              )}
+            </aside>
+          )}
+        </div>
+
         {!desktop && selected && (
           <div className="mobile-space-layer">
-            <button
-              type="button"
-              className="mobile-space-backdrop"
-              aria-label="Close space details"
-              onClick={close}
-            />
-            <section
-              className="space-sheet"
-              role="dialog"
-              aria-modal="true"
-              aria-label={`${selected.space.name} details`}
-            >
-              <button
-                type="button"
-                className="panel-close"
-                onClick={close}
-                aria-label="Close space details"
-              >
-                <X />
-              </button>
-              <SpaceDetails
-                key={selected.space.id}
-                {...selected}
-                people={people}
-                maintenanceSignal={maintenanceSignals.find(
-                  (signal) => signal.spaceId === selected.space.id,
-                )}
-                assetSignal={assetSignals.find(
-                  (signal) => signal.spaceId === selected.space.id,
-                )}
-              />
+            <button type="button" className="mobile-space-backdrop" aria-label="Close space details" onClick={close} />
+            <section className="space-sheet" role="dialog" aria-modal="true" aria-label={`${selected.space.name} details`}>
+              <button type="button" className="panel-close" onClick={close} aria-label="Close space details"><X /></button>
+              <SpaceDetails key={selected.space.id} {...selected} people={people} />
             </section>
           </div>
         )}
       </main>
     </MotionConfig>
   );
+}
+
+function VisualLegend({ mode }: { mode: BuildingVisualMode }) {
+  const copy = {
+    OCCUPANCY: "Room accents show occupied, upcoming, and vacant rental spaces.",
+    MAINTENANCE: "Markers show active issues only; urgent issues receive warning emphasis.",
+    UTILITIES: "Meter readiness, missing boundaries, and closing attention are highlighted.",
+    ASSETS: "Asset counts and offline-device warnings are summarized by space.",
+  }[mode];
+  return <footer className="building-v2-legend"><span>{copy}</span><small>Click any space for full details</small></footer>;
+}
+
+function orderVisualFloors(floors: BuildingVisualFloorProjection[]) {
+  return [...floors].sort((a, b) => {
+    const aRoof = a.spaces.length > 0 && a.spaces.every((space) => space.type === "ROOFTOP");
+    const bRoof = b.spaces.length > 0 && b.spaces.every((space) => space.type === "ROOFTOP");
+    if (aRoof !== bRoof) return aRoof ? -1 : 1;
+    return (b.level ?? b.sortOrder) - (a.level ?? a.sortOrder);
+  });
 }
 
 function AddMenu({
@@ -311,14 +292,10 @@ function SpaceDetails({
   floor,
   space,
   people,
-  maintenanceSignal,
-  assetSignal,
 }: {
   floor: DashboardFloor;
-  space: DashboardSpace;
+  space: BuildingVisualSpaceProjection;
   people: DashboardPersonOption[];
-  maintenanceSignal?: SpaceMaintenanceSignal;
-  assetSignal?: SpaceAssetSummaryView;
 }) {
   const isRoom = space.type === "ROOM";
   const occupied = Boolean(space.occupancy);
@@ -346,16 +323,32 @@ function SpaceDetails({
       ) : (
         <div className="active-status non-rental-status">Active space</div>
       )}
-      {maintenanceSignal && maintenanceSignal.openCount > 0 && (
+      {(space.utilities.hasElectricityMeter || space.utilities.attentionCount > 0) && (
+        <section className="space-utility-signal">
+          <div>
+            <span className="space-maintenance-icon"><Gauge aria-hidden="true" /></span>
+            <div>
+              <strong>Utilities</strong>
+              <p>
+                {space.utilities.hasElectricityMeter ? `${space.utilities.meterCount || 1} electricity meter${(space.utilities.meterCount || 1) === 1 ? "" : "s"}` : "No electricity meter"}
+                {space.utilities.needsClosing ? " · closing required" : ""}
+                {space.utilities.missingBoundary ? " · boundary attention" : ""}
+              </p>
+            </div>
+          </div>
+          <a href={`/utilities/meters?space=${space.id}`}>View meters</a>
+        </section>
+      )}
+      {space.maintenance.openCount + space.maintenance.inProgressCount > 0 && (
         <section className="space-maintenance-signal">
           <div>
             <span className="space-maintenance-icon"><Wrench aria-hidden="true" /></span>
             <div>
               <strong>Maintenance</strong>
               <p>
-                {maintenanceSignal.openCount} open issue{maintenanceSignal.openCount === 1 ? "" : "s"}
-                {maintenanceSignal.urgentCount > 0
-                  ? ` · ${maintenanceSignal.urgentCount} urgent`
+                {space.maintenance.openCount + space.maintenance.inProgressCount} active issue{space.maintenance.openCount + space.maintenance.inProgressCount === 1 ? "" : "s"}
+                {space.maintenance.urgentCount > 0
+                  ? ` · ${space.maintenance.urgentCount} urgent`
                   : ""}
               </p>
             </div>
@@ -363,17 +356,17 @@ function SpaceDetails({
           <a href={`/operations/maintenance?space=${space.id}`}>View maintenance</a>
         </section>
       )}
-      {assetSignal && (assetSignal.assetCount > 0 || assetSignal.deviceCount > 0) && (
+      {(space.assets.activeCount > 0 || space.devices.totalCount > 0) && (
         <section className="space-asset-signal">
           <div>
             <span className="space-maintenance-icon"><Boxes aria-hidden="true" /></span>
             <div>
               <strong>Assets & Devices</strong>
               <p>
-                {assetSignal.assetCount} asset{assetSignal.assetCount === 1 ? "" : "s"}
-                {assetSignal.maintenanceAssetCount > 0 ? ` · ${assetSignal.maintenanceAssetCount} under maintenance` : ""}
-                {assetSignal.deviceCount > 0 ? ` · ${assetSignal.deviceCount} device${assetSignal.deviceCount === 1 ? "" : "s"}` : ""}
-                {assetSignal.offlineDeviceCount > 0 ? ` · ${assetSignal.offlineDeviceCount} offline` : ""}
+                {space.assets.activeCount} active asset{space.assets.activeCount === 1 ? "" : "s"}
+                {space.assets.underMaintenanceCount > 0 ? ` · ${space.assets.underMaintenanceCount} under maintenance` : ""}
+                {space.devices.totalCount > 0 ? ` · ${space.devices.totalCount} device${space.devices.totalCount === 1 ? "" : "s"}` : ""}
+                {space.devices.offlineCount > 0 ? ` · ${space.devices.offlineCount} offline` : ""}
               </p>
             </div>
           </div>

@@ -77,5 +77,50 @@ export type PropertyShellProjection = Pick<
   "id" | "name" | "description" | "addressLine1" | "city" | "country"
 >;
 
+export type BuildingVisualMode = "OCCUPANCY" | "MAINTENANCE" | "UTILITIES" | "ASSETS";
+
+export type BuildingUtilityProjection = {
+  meterCount: number;
+  hasElectricityMeter: boolean;
+  needsClosing: boolean;
+  missingBoundary: boolean;
+  attentionCount: number;
+};
+
+export type BuildingMaintenanceProjection = {
+  openCount: number;
+  inProgressCount: number;
+  urgentCount: number;
+};
+
+export type BuildingAssetProjection = {
+  activeCount: number;
+  underMaintenanceCount: number;
+};
+
+export type BuildingDeviceProjection = {
+  totalCount: number;
+  offlineCount: number;
+};
+
+export type BuildingVisualSpaceProjection = DashboardSpace & {
+  occupancyState: "OCCUPIED" | "UPCOMING" | "VACANT" | "NON_RENTAL";
+  currentResponsiblePerson: string | null;
+  utilities: BuildingUtilityProjection;
+  maintenance: BuildingMaintenanceProjection;
+  assets: BuildingAssetProjection;
+  devices: BuildingDeviceProjection;
+};
+
+export type BuildingVisualFloorProjection = Omit<DashboardFloor, "spaces"> & {
+  spaces: BuildingVisualSpaceProjection[];
+};
+
+/** Phase 8 server-composed projection consumed by the pure visual renderer. */
+export type BuildingVisualProjection = Omit<DashboardProperty, "floors"> & {
+  floors: BuildingVisualFloorProjection[];
+};
+
+
 /** Screen-oriented building data. Prisma payloads never cross into the UI. */
-export type BuildingProjection = DashboardProperty;
+export type BuildingProjection = BuildingVisualProjection;

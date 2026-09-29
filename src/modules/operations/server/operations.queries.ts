@@ -485,6 +485,45 @@ async function getInvoiceOptions(
   }));
 }
 
+export type BuildingMaintenanceSignal = {
+  spaceId: string;
+  openCount: number;
+  inProgressCount: number;
+  urgentCount: number;
+};
+
+/** Compact active-maintenance projection for the Phase 8 building renderer. */
+export async function getBuildingMaintenanceSignals(
+  propertyId: string,
+): Promise<BuildingMaintenanceSignal[]> {
+  if (!operationsSchemaReady()) return [];
+  const db = operationsDb();
+  const issues = await db.maintenanceIssue!.findMany({
+    where: {
+      propertyId,
+      archivedAt: null,
+      spaceId: { not: null },
+      status: { in: ["OPEN", "IN_PROGRESS"] },
+    },
+    select: { spaceId: true, status: true, priority: true },
+  });
+  const map = new Map<string, BuildingMaintenanceSignal>();
+  for (const issue of issues) {
+    if (!issue.spaceId) continue;
+    const current = map.get(issue.spaceId) ?? {
+      spaceId: issue.spaceId,
+      openCount: 0,
+      inProgressCount: 0,
+      urgentCount: 0,
+    };
+    if (issue.status === "OPEN") current.openCount += 1;
+    if (issue.status === "IN_PROGRESS") current.inProgressCount += 1;
+    if (issue.priority === "URGENT") current.urgentCount += 1;
+    map.set(issue.spaceId, current);
+  }
+  return [...map.values()];
+}
+
 export async function getSpaceMaintenanceSignals(
   propertyId: string,
 ): Promise<SpaceMaintenanceSignal[]> {

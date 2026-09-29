@@ -220,11 +220,11 @@ function TaskContextLink({ task }: { task: import("../domain/types").TaskListIte
   if (!task.linkedLabel || !task.linkedEntityType || !task.linkedEntityId) return null;
   const href =
     task.linkedEntityType === "SPACE"
-      ? `/?space=${encodeURIComponent(task.linkedEntityId)}`
+      ? `/building?space=${encodeURIComponent(task.linkedEntityId)}`
       : task.linkedEntityType === "MAINTENANCE"
         ? `/operations/maintenance?search=${encodeURIComponent(task.linkedLabel.split(" · ")[0])}`
         : task.linkedEntityType === "INVOICE"
           ? `/billing/invoices/${task.linkedEntityId}`
-          : "/";
+          : "/building";
   return <Link className="operations-context-link" href={href}>{task.linkedLabel}</Link>;
 }

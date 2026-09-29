@@ -499,7 +499,7 @@ function CurrentRentalCard({ tenancy }: { tenancy: HistoryItem }) {
           )}
         </div>
         <Button variant="outline" size="sm" asChild>
-          <Link href="/">Open building</Link>
+          <Link href="/building">Open building</Link>
         </Button>
       </div>
       <div className="tenant-rental-metrics">

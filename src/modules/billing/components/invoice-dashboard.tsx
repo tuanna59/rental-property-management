@@ -124,7 +124,7 @@ export function InvoiceDashboard({
                 {candidates.map((candidate) => (
                   <tr key={candidate.candidateKey}>
                     <td>
-                      <Link className="billing-table-link" href="/">
+                      <Link className="billing-table-link" href="/building">
                         <strong>{candidate.room}</strong>
                       </Link>
                     </td>
@@ -267,7 +267,7 @@ export function InvoiceDashboard({
                       </Link>
                     </td>
                     <td>
-                      <Link className="billing-table-link" href="/">
+                      <Link className="billing-table-link" href="/building">
                         {invoice.room}
                       </Link>
                     </td>
