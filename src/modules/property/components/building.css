@@ -1421,3 +1421,1340 @@
   box-shadow: 0 4px 12px rgba(35,50,40,.16);
   backdrop-filter: blur(4px);
 }
+
+/* ========================================================================== */
+/* Phase 8 final refinement                                                   */
+/* ========================================================================== */
+.building-v2-workspace.property-scene {
+  display: block;
+  grid-template-columns: none;
+}
+.building-v2-stage {
+  position: relative;
+  min-width: 0;
+}
+.building-v2-canvas-region {
+  width: 100%;
+}
+
+.building-v2-toolbar {
+  flex-wrap: wrap;
+}
+.building-v2-time-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--app-border);
+  border-radius: 9px;
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-card);
+}
+.building-v2-time-toggle button {
+  min-height: 34px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 6px;
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+  font-weight: 650;
+  white-space: nowrap;
+  transition: background .18s ease, color .18s ease, box-shadow .18s ease;
+}
+.building-v2-time-toggle button:hover {
+  background: var(--app-row-hover-bg);
+  color: var(--app-text-primary);
+}
+.building-v2-time-toggle button.is-active {
+  background: var(--app-brand-soft);
+  color: var(--app-brand);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-brand) 22%, transparent);
+}
+.building-v2-time-toggle svg { width: 15px; height: 15px; }
+
+.building-v2-scene {
+  --building-sky-top: #c9e1ea;
+  --building-sky-mid: #e9f2ef;
+  --building-sky-low: #eef1e7;
+  --building-ground-a: #cad8c4;
+  --building-ground-b: #a9c09f;
+  --building-ground-c: #8fac87;
+  --building-wall-light: #fffaf0;
+  --building-wall-mid: #efdcc4;
+  --building-wall-deep: #c7a984;
+  --building-side-light: #bdb5a6;
+  --building-side-dark: #7d766b;
+  --building-floor-light: #c2a687;
+  --building-floor-dark: #8d745b;
+  --building-glass-dark: #82b6c0;
+  --building-glass-light: #edf9f7;
+  --building-glass-mid: #709aa2;
+  --building-lamp-core: #fff5d8;
+  --building-lamp-glow: #f4ca72;
+  --building-room-frame: #706a60;
+  --building-ceiling: #f4f2eb;
+  --building-rooftop-surface: #c3c3b2;
+  --building-tree-light: #7f9d73;
+  --building-tree-mid: #6d8c68;
+  --building-tree-dark: #5b7a5d;
+  --building-plant: #739366;
+  --building-service-light: #f4d27f;
+  --building-shadow-color: #27372f;
+  background:
+    radial-gradient(circle at 77% 12%, rgba(255, 248, 215, .9), transparent 18%),
+    linear-gradient(180deg, var(--building-sky-top) 0%, var(--building-sky-mid) 46%, var(--building-sky-low) 72%, #d8e4d4 100%);
+  transition: background .3s ease, color .3s ease;
+}
+.building-v2-scene[data-time="night"] {
+  --building-sky-top: #203143;
+  --building-sky-mid: #35495a;
+  --building-sky-low: #58645e;
+  --building-ground-a: #61725f;
+  --building-ground-b: #485e4d;
+  --building-ground-c: #354b3d;
+  --building-wall-light: #e8d7bd;
+  --building-wall-mid: #c7ab87;
+  --building-wall-deep: #92765b;
+  --building-side-light: #817d73;
+  --building-side-dark: #514f4b;
+  --building-floor-light: #8f765e;
+  --building-floor-dark: #655141;
+  --building-glass-dark: #345668;
+  --building-glass-light: #8ea7ad;
+  --building-glass-mid: #2d4c5d;
+  --building-lamp-core: #ffe6a7;
+  --building-lamp-glow: #e8a844;
+  --building-room-frame: #4d4b48;
+  --building-ceiling: #c4b8a8;
+  --building-rooftop-surface: #72766d;
+  --building-tree-light: #506a52;
+  --building-tree-mid: #425c46;
+  --building-tree-dark: #354d3b;
+  --building-plant: #536c4c;
+  --building-service-light: #f0bc61;
+  --building-shadow-color: #14221e;
+  background:
+    radial-gradient(circle at 78% 11%, rgba(199, 214, 225, .12), transparent 20%),
+    linear-gradient(180deg, var(--building-sky-top) 0%, var(--building-sky-mid) 45%, var(--building-sky-low) 73%, #4b5d52 100%);
+}
+.building-v2-interior,
+.building-v2-ground,
+.building-v2-neighborhood,
+.building-v2-landscape,
+.building-v2-space-label,
+.building-v2-room-ceiling,
+.building-v2-room-side {
+  transition: filter .3s ease, opacity .3s ease, background .3s ease, color .3s ease, border-color .3s ease;
+}
+.building-v2-ground {
+  background: radial-gradient(ellipse at 50% 0, var(--building-ground-a) 0, var(--building-ground-b) 50%, var(--building-ground-c) 100%);
+}
+.building-v2-scene[data-time="night"] .building-v2-sun {
+  opacity: 0;
+  transform: scale(.7);
+}
+.building-v2-moon {
+  position: absolute;
+  width: 62px;
+  height: 62px;
+  right: 13%;
+  top: 10%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #f4efe0 0 52%, #cbd3d8 72%, rgba(224,234,238,.15) 73%);
+  box-shadow: 0 0 34px rgba(220,230,235,.2);
+  opacity: 0;
+  transform: scale(.75);
+  transition: opacity .3s ease, transform .3s ease;
+}
+.building-v2-scene[data-time="night"] .building-v2-moon {
+  opacity: .88;
+  transform: scale(1);
+}
+.building-v2-sun { transition: opacity .3s ease, transform .3s ease; }
+.building-v2-scene[data-time="night"] .building-v2-cloud { opacity: .12; }
+.building-v2-scene[data-time="night"] .building-v2-neighborhood { opacity: .28; filter: brightness(.58) saturate(.7); }
+.building-v2-scene[data-time="night"] .building-v2-landscape { opacity: .72; filter: brightness(.7) saturate(.78); }
+.building-v2-scene[data-time="night"] .building-v2-space.type-room.is-occupied .building-v2-interior {
+  filter: brightness(1.06) saturate(1.04) sepia(.07);
+}
+.building-v2-scene[data-time="night"] .building-v2-space.type-room.is-upcoming .building-v2-interior {
+  filter: brightness(.91) saturate(.91);
+}
+.building-v2-scene[data-time="night"] .building-v2-space.type-room.is-vacant .building-v2-interior {
+  filter: brightness(.79) saturate(.74);
+}
+.building-v2-scene[data-time="night"] .building-v2-space.type-owner-home .building-v2-interior {
+  filter: brightness(1.1) saturate(1.05) sepia(.1);
+}
+.building-v2-scene[data-time="night"] .building-v2-space.type-garage .building-v2-interior {
+  filter: brightness(.83) saturate(.78);
+}
+.building-v2-scene[data-time="night"] .building-v2-space.type-rooftop .building-v2-interior {
+  filter: brightness(.86) saturate(.78);
+}
+.building-v2-scene[data-time="night"] .building-v2-space-label {
+  background: rgba(238, 242, 237, .92);
+  border-color: rgba(255,255,255,.58);
+  color: #263d33;
+}
+.building-v2-scene[data-time="night"] .building-v2-space-label small { color: #53685c; }
+.building-v2-scene[data-time="night"] .building-v2-marker {
+  box-shadow: 0 4px 13px rgba(9,18,13,.34);
+}
+
+.building-v2-floor {
+  transform-origin: center center;
+}
+.building-v2-floor.is-focused {
+  z-index: 18;
+}
+.building-v2-floor.is-muted {
+  filter: grayscale(.28) saturate(.58) blur(.15px);
+}
+.building-v2-floor.is-rooftop-floor .building-v2-floor-grid {
+  min-height: 150px;
+}
+.building-v2-floor.is-rooftop-floor .building-v2-space {
+  height: 150px;
+}
+.building-v2-space.is-selected {
+  box-shadow:
+    inset 0 0 0 3px color-mix(in srgb, var(--app-brand) 88%, #0b7259),
+    inset 0 -8px 0 color-mix(in srgb, var(--app-brand) 18%, transparent),
+    0 0 21px color-mix(in srgb, var(--app-brand) 30%, transparent);
+  filter: brightness(1.08) saturate(1.04);
+}
+.building-v2-space.is-selected::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  z-index: 6;
+  pointer-events: none;
+  border-radius: 2px;
+  box-shadow: inset 0 0 18px color-mix(in srgb, var(--app-brand) 18%, transparent);
+}
+.building-v2-space.is-selected .building-v2-space-label strong { font-weight: 800; }
+.building-v2-space:focus-visible {
+  outline: 3px solid var(--app-focus-ring);
+  outline-offset: -4px;
+  box-shadow: none;
+  z-index: 22;
+}
+
+/* Floating Space Overview inspector. It overlays the stage and never resizes it. */
+.space-inspector {
+  position: absolute;
+  z-index: 40;
+  top: 18px;
+  bottom: 62px;
+  width: clamp(380px, 31vw, 420px);
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--app-border) 88%, var(--app-brand));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--app-surface) 96%, transparent);
+  box-shadow: 0 20px 50px rgba(31, 48, 39, .24);
+  backdrop-filter: blur(13px);
+}
+.space-inspector.is-right { right: 18px; }
+.space-inspector.is-left { left: 18px; }
+.space-inspector-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 15px 12px;
+  border-bottom: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-surface) 97%, transparent);
+}
+.space-inspector-heading { min-width: 0; display: grid; gap: 5px; }
+.space-inspector-heading > p {
+  margin: 0;
+  color: var(--app-page-eyebrow-color);
+  font-size: calc(9px + var(--app-font-size-bump));
+  font-weight: 800;
+  letter-spacing: .13em;
+}
+.space-inspector-heading > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.space-inspector-heading h2 { margin: 0; font-size: calc(20px + var(--app-font-size-bump)); line-height: 1.1; font-weight: 760; }
+.space-inspector-heading > div span { color: var(--app-text-muted); font-size: calc(11px + var(--app-font-size-bump)); }
+.space-inspector-heading > strong {
+  width: max-content;
+  max-width: 100%;
+  color: var(--app-text-secondary);
+  font-size: calc(11px + var(--app-font-size-bump));
+  font-weight: 650;
+}
+.space-inspector-heading > strong::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--app-warning);
+}
+.space-inspector-heading > strong.is-occupied::before { background: var(--app-success); }
+.space-inspector-header-actions { display: flex; align-items: center; gap: 4px; }
+.space-inspector-close,
+.space-inspector-expand {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: var(--app-text-secondary);
+}
+.space-inspector-close:hover,
+.space-inspector-expand:hover { background: var(--app-row-hover-bg); color: var(--app-text-primary); }
+.space-inspector-close svg,
+.space-inspector-expand svg { width: 17px; height: 17px; }
+.space-inspector-expand { display: none; }
+.space-inspector-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-surface) 97%, transparent);
+  scrollbar-width: none;
+}
+.space-inspector-tabs::-webkit-scrollbar { display: none; }
+.space-inspector-tabs button {
+  min-width: max-content;
+  min-height: 31px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: var(--app-text-secondary);
+  font-size: calc(10px + var(--app-font-size-bump));
+  font-weight: 650;
+}
+.space-inspector-tabs button:hover { background: var(--app-row-hover-bg); color: var(--app-text-primary); }
+.space-inspector-tabs button.is-active {
+  background: var(--app-brand-soft);
+  color: var(--app-brand);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--app-brand) 72%, transparent);
+}
+.space-inspector-body {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+}
+.space-inspector-sections { display: grid; gap: 10px; }
+.space-inspector-section,
+.space-inspector-basic {
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface);
+  padding: 11px 12px;
+  box-shadow: 0 2px 7px rgba(38, 54, 44, .04);
+}
+.space-inspector-section-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.space-inspector-section-title > span {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  background: var(--app-brand-soft);
+  color: var(--app-brand);
+}
+.space-inspector-section-title svg { width: 14px; height: 14px; }
+.space-inspector-section-title h3 { margin: 0; flex: 1; font-size: calc(12px + var(--app-font-size-bump)); font-weight: 750; }
+.space-inspector-section-content { display: grid; gap: 5px; padding: 9px 0 0 33px; }
+.space-inspector-section-content > strong { font-size: calc(12px + var(--app-font-size-bump)); font-weight: 700; }
+.space-inspector-section-content > p { margin: 0; color: var(--app-text-secondary); font-size: calc(11px + var(--app-font-size-bump)); line-height: 1.45; }
+.space-inspector-muted { color: var(--app-text-muted) !important; }
+.space-inspector-section-link {
+  width: max-content;
+  margin-top: 3px;
+  color: var(--app-brand);
+  font-size: calc(10px + var(--app-font-size-bump));
+  font-weight: 700;
+}
+.space-inspector-section-link:hover { text-decoration: underline; }
+.space-inspector-basic { display: grid; gap: 9px; }
+.space-inspector-basic > .space-inspector-section-title > span { display: none; }
+.space-inspector-basic dl,
+.space-inspector-inline-dl { margin: 0; display: grid; gap: 5px; }
+.space-inspector-detail-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 3px 0;
+  font-size: calc(10px + var(--app-font-size-bump));
+}
+.space-inspector-detail-line dt { color: var(--app-text-muted); }
+.space-inspector-detail-line dd { margin: 0; color: var(--app-text-primary); font-weight: 650; text-align: right; overflow-wrap: anywhere; }
+.space-inspector-notes { display: grid; gap: 3px; padding-top: 7px; border-top: 1px solid var(--app-border); }
+.space-inspector-notes span { color: var(--app-text-muted); font-size: calc(9px + var(--app-font-size-bump)); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.space-inspector-notes p { margin: 0; color: var(--app-text-secondary); font-size: calc(10px + var(--app-font-size-bump)); line-height: 1.45; }
+.space-inspector-list { display: grid; gap: 5px; margin: 3px 0; }
+.space-inspector-list-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  background: var(--app-surface-subtle);
+}
+.space-inspector-list-row.is-link:hover { background: var(--app-row-hover-bg); }
+.space-inspector-list-row > div { min-width: 0; display: grid; gap: 1px; }
+.space-inspector-list-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(10px + var(--app-font-size-bump)); }
+.space-inspector-list-row span { color: var(--app-text-muted); font-size: calc(9px + var(--app-font-size-bump)); }
+.space-inspector-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+.space-inspector-actions button,
+.space-inspector-section-content > button { font-size: calc(10px + var(--app-font-size-bump)); }
+.space-inspector-empty {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 22px;
+  text-align: center;
+  color: var(--app-text-secondary);
+}
+.space-inspector-empty > span {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--app-brand-soft);
+  color: var(--app-brand);
+}
+.space-inspector-empty svg { width: 20px; height: 20px; }
+.space-inspector-empty p { max-width: 280px; margin: 0; color: var(--app-text-muted); font-size: calc(11px + var(--app-font-size-bump)); }
+.space-inspector-manage { margin-top: 11px; border-top: 1px solid var(--app-border); padding-top: 9px; }
+.space-inspector-manage summary { cursor: pointer; color: var(--app-text-muted); font-size: calc(10px + var(--app-font-size-bump)); font-weight: 650; }
+.space-inspector-manage > div { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 8px; }
+
+@media (max-width: 1280px) {
+  .building-v2-floor.is-rooftop-floor .building-v2-floor-grid { min-height: 138px; }
+  .building-v2-floor.is-rooftop-floor .building-v2-space { height: 138px; }
+  .space-inspector { width: 380px; }
+}
+
+@media (max-width: 1099px) and (min-width: 761px) {
+  .building-v2-workspace.property-scene { padding-right: var(--app-page-gutter-x); }
+  .space-inspector,
+  .space-inspector.is-left,
+  .space-inspector.is-right {
+    left: auto;
+    right: 12px;
+    top: 12px;
+    bottom: 58px;
+    width: clamp(340px, 42vw, 380px);
+  }
+}
+
+@media (max-width: 760px) {
+  .building-v2-toolbar { flex-direction: row; align-items: stretch; }
+  .building-v2-mode-tabs { flex: 1 1 100%; }
+  .building-v2-time-toggle { flex: 1 1 auto; }
+  .building-v2-time-toggle button { flex: 1; justify-content: center; }
+  .building-v2-floor-select { flex: 1 1 150px; width: auto; }
+  .building-v2-floor.is-rooftop-floor .building-v2-floor-grid { min-height: 126px; }
+  .building-v2-floor.is-rooftop-floor .building-v2-space { height: 126px; }
+  .building-v2-scene.has-focus .building-v2-floor.is-rooftop-floor.is-focused .building-v2-floor-grid { min-height: 180px; }
+  .building-v2-scene.has-focus .building-v2-floor.is-rooftop-floor.is-focused .building-v2-space { height: 180px; }
+  .space-inspector,
+  .space-inspector.is-left,
+  .space-inspector.is-right {
+    position: fixed;
+    z-index: 80;
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: auto;
+    max-width: none;
+    height: 34dvh;
+    min-height: 250px;
+    border-radius: 16px;
+    transition: height .24s ease;
+  }
+  .space-inspector.is-expanded { height: 86dvh; }
+  .space-inspector-expand { display: inline-flex; }
+  .space-inspector-header { padding: 11px 12px 9px; }
+  .space-inspector-heading h2 { font-size: calc(18px + var(--app-font-size-bump)); }
+  .space-inspector-tabs { padding: 5px 7px; }
+  .space-inspector-tabs button { min-height: 30px; }
+  .space-inspector-body { padding: 9px; }
+}
+
+@media (max-width: 480px) {
+  .building-v2-time-toggle { width: 100%; }
+  .building-v2-floor-select { width: 100%; flex-basis: 100%; }
+  .space-inspector-section-content { padding-left: 0; }
+  .space-inspector-section-title { margin-bottom: 2px; }
+}
+
+/* ========================================================================== */
+/* Phase 8 lock pass: tall-building stability + focused night/interior polish  */
+/* ========================================================================== */
+
+/* Rooftop is an open exterior platform, not another enclosed residential bay. */
+.building-v2-stack.has-open-rooftop .building-v2-roof-cap {
+  height: 6px;
+  margin-bottom: -2px;
+  opacity: .7;
+  box-shadow: none;
+}
+.building-v2-floor.is-rooftop-floor .building-v2-floor-grid {
+  min-height: 134px;
+  background: transparent;
+  border-left-color: color-mix(in srgb, #8f998b 72%, transparent);
+  border-right-color: color-mix(in srgb, #7c887e 72%, transparent);
+  box-shadow: none;
+}
+.building-v2-floor.is-rooftop-floor .building-v2-space {
+  height: 134px;
+  background: transparent;
+}
+.building-v2-floor.is-rooftop-floor .building-v2-floor-side {
+  opacity: .5;
+}
+
+/* Empty floors remain real Floor records without becoming giant fake rooms. */
+.building-v2-floor.is-empty-floor .building-v2-floor-grid {
+  min-height: 68px;
+  background: linear-gradient(180deg, rgba(226, 231, 222, .92), rgba(199, 208, 198, .92));
+  border-left-color: #aeb8ad;
+  border-right-color: #909c92;
+}
+.building-v2-empty-floor {
+  min-height: 68px;
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 18px;
+  color: #607267;
+  text-align: center;
+}
+.building-v2-empty-floor strong {
+  font-size: calc(11px + var(--app-font-size-bump));
+  font-weight: 700;
+}
+.building-v2-empty-floor span {
+  color: #74837a;
+  font-size: calc(9px + var(--app-font-size-bump));
+}
+.building-v2-scene.has-focus .building-v2-floor.is-empty-floor.is-focused .building-v2-floor-grid {
+  min-height: 84px;
+}
+
+/* Narrow rooms retain the primary identity without labels covering the studio. */
+.building-v2-space.room-size-small .building-v2-space-label {
+  min-width: 0;
+  padding-inline: 7px;
+}
+.building-v2-space.room-size-small .building-v2-space-label small {
+  display: none;
+}
+
+/* Night is calm by default. Strong warm room light belongs only to selection. */
+.building-v2-scene[data-time="night"] .building-v2-space.type-room:not(.is-selected) .building-v2-interior {
+  filter: brightness(.66) saturate(.72) contrast(.96);
+}
+.building-v2-scene[data-time="night"] .building-v2-space.type-room.is-selected .building-v2-interior {
+  filter: brightness(1.13) saturate(1.08) sepia(.11) drop-shadow(0 0 12px rgba(242, 184, 89, .18));
+}
+.building-v2-scene[data-time="night"] .building-v2-space.type-owner-home .building-v2-interior {
+  filter: brightness(.86) saturate(.86) sepia(.04);
+}
+.building-v2-scene[data-time="night"] .building-v2-space.type-garage .building-v2-interior {
+  filter: brightness(.72) saturate(.7);
+}
+.building-v2-scene[data-time="night"] .building-v2-space.type-rooftop .building-v2-interior {
+  filter: brightness(.8) saturate(.72);
+}
+.building-v2-scene[data-time="night"] .building-v2-space.type-room:not(.is-selected) .building-v2-room-ceiling {
+  filter: brightness(.68);
+}
+.building-v2-scene[data-time="night"] .building-v2-space.type-room.is-selected {
+  box-shadow:
+    inset 0 0 0 3px color-mix(in srgb, var(--app-brand) 90%, #0b7259),
+    inset 0 -8px 0 color-mix(in srgb, var(--app-brand) 18%, transparent),
+    0 0 24px color-mix(in srgb, var(--app-brand) 30%, transparent),
+    0 0 30px rgba(232, 169, 70, .12);
+}
+
+/* Tall scenes grow naturally; individual floors retain useful proportions. */
+.building-v2-scene.is-tall-building {
+  min-height: 0;
+  padding-top: 78px;
+  padding-bottom: 82px;
+  align-items: flex-start;
+}
+.building-v2-scene.is-tall-building .building-v2-stack {
+  margin-block: 0;
+}
+
+/*
+ * Viewport-bound inspector rail. The rail follows total stage height while the
+ * inspector itself sticks to the viewport, so a 10+ floor stage never stretches
+ * the white panel or moves its header/tabs out of reach.
+ */
+.space-inspector-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  pointer-events: none;
+}
+.space-inspector-layer.is-right { justify-content: flex-end; }
+.space-inspector-layer.is-left { justify-content: flex-start; }
+.space-inspector {
+  position: sticky;
+  top: 18px;
+  bottom: auto;
+  left: auto;
+  right: auto;
+  width: clamp(380px, 31vw, 420px);
+  max-width: 440px;
+  max-height: min(720px, calc(100dvh - 36px));
+  margin: 18px;
+  pointer-events: auto;
+}
+.space-inspector-tabs {
+  top: 0;
+}
+
+@media (max-width: 1280px) {
+  .building-v2-floor.is-rooftop-floor .building-v2-floor-grid,
+  .building-v2-floor.is-rooftop-floor .building-v2-space {
+    min-height: 122px;
+    height: 122px;
+  }
+}
+
+@media (max-width: 1099px) and (min-width: 761px) {
+  .space-inspector-layer {
+    justify-content: flex-end !important;
+  }
+  .space-inspector {
+    position: sticky;
+    top: 12px;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    width: clamp(340px, 42vw, 380px);
+    max-height: min(700px, calc(100dvh - 24px));
+    margin: 12px;
+  }
+}
+
+@media (max-width: 760px) {
+  .building-v2-floor.is-rooftop-floor .building-v2-floor-grid,
+  .building-v2-floor.is-rooftop-floor .building-v2-space {
+    min-height: 110px;
+    height: 110px;
+  }
+  .building-v2-scene.has-focus .building-v2-floor.is-rooftop-floor.is-focused .building-v2-floor-grid,
+  .building-v2-scene.has-focus .building-v2-floor.is-rooftop-floor.is-focused .building-v2-space {
+    min-height: 142px;
+    height: 142px;
+  }
+  .building-v2-floor.is-empty-floor .building-v2-floor-grid,
+  .building-v2-scene.has-focus .building-v2-floor.is-empty-floor.is-focused .building-v2-floor-grid {
+    min-height: 62px;
+  }
+  .building-v2-empty-floor {
+    min-height: 62px;
+  }
+  .building-v2-empty-floor span {
+    display: none;
+  }
+  .space-inspector-layer {
+    position: absolute;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+  }
+  .space-inspector {
+    position: fixed;
+    z-index: 80;
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: auto;
+    max-width: none;
+    max-height: none;
+    height: 34dvh;
+    min-height: 250px;
+    margin: 0;
+    pointer-events: auto;
+  }
+  .space-inspector.is-expanded {
+    height: 86dvh;
+  }
+}
+
+/* Keep sticky inspector anchored to the viewport instead of an overflow wrapper. */
+.building-v2-page {
+  overflow-x: clip;
+}
+
+@media (max-width: 760px) {
+  .building-v2-scene.has-focus .building-v2-floor.is-muted {
+    display: block;
+  }
+}
+
+/* ========================================================================== */
+/* Phase 8 final visual polish: compact chrome, richer rooftop, room/inspector */
+/* ========================================================================== */
+
+/* Compact page header inspired by the approved visual direction. */
+.building-v2-page-header.property-header {
+  max-width: var(--app-page-shell-max);
+  margin-inline: auto;
+  align-items: center;
+  padding: 13px var(--app-page-gutter-x) 10px;
+  gap: 14px;
+  border-bottom-color: color-mix(in srgb, var(--app-border) 72%, transparent);
+}
+.building-v2-heading {
+  display: grid;
+  gap: 4px;
+}
+.building-v2-heading-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.building-v2-heading-title h1 {
+  font-size: clamp(22px, 2vw, 27px);
+  line-height: 1.02;
+  letter-spacing: -.035em;
+}
+.building-v2-heading-title > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 7px;
+  border: 1px solid color-mix(in srgb, var(--app-brand) 20%, var(--app-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-brand-soft) 62%, var(--app-surface));
+  color: var(--app-brand);
+  font-size: calc(9px + var(--app-font-size-bump));
+  font-weight: 750;
+  letter-spacing: .02em;
+}
+.building-v2-header-meta {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--app-text-muted);
+  font-size: calc(10px + var(--app-font-size-bump));
+  line-height: 1.25;
+}
+.building-v2-header-meta svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  color: var(--app-text-secondary);
+}
+.building-v2-header-meta > span:first-of-type {
+  max-width: min(48vw, 560px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--app-text-secondary);
+}
+.building-v2-header-meta > i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--app-border-strong);
+}
+.building-v2-header-actions {
+  align-items: center;
+  gap: 7px;
+}
+.building-v2-header-actions > button {
+  min-height: 36px;
+}
+.building-v2-header-actions .add-menu summary {
+  height: 36px;
+  padding-inline: 11px;
+}
+.building-v2-control-row {
+  justify-content: flex-end;
+  padding-top: 8px;
+  padding-bottom: 10px;
+}
+.building-v2-toolbar {
+  width: auto;
+  gap: 8px;
+}
+.building-v2-mode-tabs button,
+.building-v2-time-toggle button {
+  min-height: 32px;
+}
+.building-v2-floor-select {
+  height: 38px;
+  min-width: 158px;
+}
+
+/* More photographic depth without changing the projection-driven renderer. */
+.building-v2-scene {
+  background:
+    radial-gradient(circle at 74% 11%, rgba(255, 236, 191, .78), transparent 17%),
+    radial-gradient(ellipse at 18% 43%, rgba(255, 247, 228, .64), transparent 24%),
+    linear-gradient(180deg, #c8d9e8 0%, #e8e3d9 43%, #e8ece2 69%, #d4dfd1 100%);
+}
+.building-v2-scene::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  right: 0;
+  bottom: 8%;
+  height: 33%;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(242, 238, 224, .38) 45%, rgba(205, 218, 207, .5));
+}
+.building-v2-scene[data-time="night"]::before {
+  background: linear-gradient(180deg, transparent, rgba(41, 57, 61, .16) 48%, rgba(43, 61, 51, .42));
+}
+.building-v2-neighborhood {
+  opacity: .23;
+  filter: blur(.2px) saturate(.74);
+}
+.building-v2-stack {
+  filter: drop-shadow(17px 25px 17px rgba(35, 47, 40, .25));
+}
+.building-v2-floor-grid {
+  background: #71695e;
+  border-left-color: #c2c0b4;
+  border-right-color: #8e9287;
+}
+.building-v2-floor-slab {
+  background: linear-gradient(180deg, #eee9df 0 24%, #c7c6ba 25% 58%, #8e968a 59% 100%);
+  box-shadow: 0 6px 11px rgba(47, 53, 48, .25), inset 0 1px rgba(255,255,255,.62);
+}
+.building-v2-space:not(.type-rooftop) .building-v2-interior {
+  filter: saturate(1.035) contrast(1.015);
+}
+.building-v2-room-ceiling {
+  background: linear-gradient(#f7f2e8, #c6c1b6);
+}
+
+/* Wide rooms keep readable furniture; width buys more visual zones, not zoom-out. */
+.building-v2-space.room-size-large .building-v2-interior,
+.building-v2-space.room-size-xl .building-v2-interior {
+  transform: translateZ(0);
+  transform-origin: center;
+}
+.building-v2-space.room-size-xl .building-v2-space-label {
+  min-width: 104px;
+}
+
+/* Rooftop: open service terrace distributed across the full building width. */
+.building-v2-floor.is-rooftop-floor .building-v2-floor-grid {
+  grid-template-columns: 1fr !important;
+  min-height: 116px;
+  background: transparent;
+  border-left-color: rgba(132, 142, 132, .62);
+  border-right-color: rgba(116, 129, 119, .62);
+}
+.building-v2-floor.is-rooftop-floor .building-v2-space {
+  height: 116px;
+  background: transparent;
+  overflow: visible;
+}
+.building-v2-floor.is-rooftop-floor .building-v2-floor-side {
+  opacity: .42;
+}
+.building-v2-rooftop-interior {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, transparent 0 44%, rgba(226, 222, 205, .17) 45%, rgba(183, 184, 169, .5) 100%);
+}
+.building-v2-rooftop-backdrop {
+  position: absolute;
+  left: 1.5%;
+  right: 1.5%;
+  bottom: 17px;
+  height: 24px;
+  border-top: 1px solid rgba(105, 116, 108, .48);
+  background: linear-gradient(180deg, rgba(218, 216, 201, .42), rgba(163, 167, 154, .55));
+  box-shadow: inset 0 1px rgba(255,255,255,.42);
+}
+.building-v2-rooftop-zone {
+  position: absolute;
+  z-index: 3;
+  bottom: 20px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.building-v2-rooftop-zone svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 5px 4px rgba(41, 49, 43, .17));
+}
+.rooftop-service-zone {
+  left: 3%;
+  width: 24%;
+  height: 90px;
+}
+.rooftop-domestic-zone {
+  left: 29%;
+  width: 38%;
+  height: 88px;
+}
+.rooftop-solar-zone {
+  right: 3%;
+  width: 29%;
+  height: 94px;
+}
+.building-v2-rooftop-pergola {
+  position: absolute;
+  z-index: 2;
+  left: 31%;
+  bottom: 33px;
+  width: 29%;
+  height: 72px;
+  opacity: .92;
+}
+.building-v2-rooftop-pergola .post {
+  position: absolute;
+  bottom: 0;
+  width: 4px;
+  height: 63px;
+  background: linear-gradient(90deg, #72543a, #9c744d, #694a32);
+  box-shadow: 2px 2px 3px rgba(54, 44, 35, .18);
+}
+.building-v2-rooftop-pergola .post-a { left: 4%; }
+.building-v2-rooftop-pergola .post-b { right: 4%; }
+.building-v2-rooftop-pergola .beam {
+  position: absolute;
+  left: 1%;
+  right: 1%;
+  height: 5px;
+  background: linear-gradient(#a67c52, #684a31);
+}
+.building-v2-rooftop-pergola .beam-a { top: 7px; }
+.building-v2-rooftop-pergola .beam-b { top: 18px; opacity: .85; }
+.building-v2-rooftop-pergola .slats {
+  position: absolute;
+  left: 2%;
+  right: 2%;
+  top: 0;
+  height: 27px;
+  background: repeating-linear-gradient(100deg, #8d6543 0 4px, transparent 4px 15px);
+  transform: skewX(-9deg);
+  transform-origin: left top;
+}
+.rooftop-service-pipe {
+  position: absolute;
+  right: 6%;
+  bottom: 4px;
+  width: 22%;
+  height: 39%;
+  border-right: 3px solid #70857e;
+  border-bottom: 3px solid #70857e;
+  border-radius: 0 0 7px 0;
+}
+.rooftop-pot {
+  position: absolute;
+  bottom: 0;
+  width: 18px;
+  height: 17px;
+  border-radius: 2px 2px 7px 7px;
+  background: #9a876b;
+  box-shadow: inset 0 2px rgba(255,255,255,.18);
+}
+.rooftop-pot::before,
+.rooftop-pot::after {
+  content: "";
+  position: absolute;
+  bottom: 12px;
+  width: 18px;
+  height: 30px;
+  border-radius: 80% 10% 80% 10%;
+  background: var(--building-plant, #739366);
+  transform-origin: bottom center;
+}
+.rooftop-pot::before { left: 2px; transform: rotate(-25deg); }
+.rooftop-pot::after { right: 1px; transform: scaleX(-1) rotate(-22deg); }
+.rooftop-domestic-zone .pot-a { left: 3%; }
+.rooftop-domestic-zone .pot-b { right: 4%; transform: scale(.86); }
+.rooftop-solar-zone .pot-c { right: 2%; transform: scale(.8); }
+.building-v2-rooftop-parapet {
+  position: absolute;
+  z-index: 5;
+  left: 1%;
+  right: 1%;
+  bottom: 10px;
+  height: 18px;
+  display: flex;
+  justify-content: space-between;
+  border-top: 3px solid #66766f;
+  border-bottom: 2px solid #77857d;
+}
+.building-v2-rooftop-parapet i {
+  width: 2px;
+  height: 18px;
+  background: #718078;
+  opacity: .8;
+}
+.building-v2-rooftop-slab {
+  position: absolute;
+  z-index: 6;
+  left: -1%;
+  right: -1%;
+  bottom: 0;
+  height: 12px;
+  background: linear-gradient(180deg, #d6d4c7, #9fa69b 58%, #768278);
+  box-shadow: 0 -2px 6px rgba(58, 67, 60, .15), 0 4px 7px rgba(48, 59, 51, .22);
+}
+.building-v2-scene[data-time="night"] .building-v2-rooftop-interior {
+  background: linear-gradient(180deg, transparent 0 47%, rgba(64, 72, 67, .12) 48%, rgba(72, 78, 71, .5) 100%);
+}
+.building-v2-scene[data-time="night"] .building-v2-rooftop-zone svg,
+.building-v2-scene[data-time="night"] .building-v2-rooftop-pergola,
+.building-v2-scene[data-time="night"] .rooftop-pot {
+  filter: brightness(.72) saturate(.7) drop-shadow(0 4px 4px rgba(5, 11, 8, .28));
+}
+.building-v2-scene[data-time="night"] .rooftop-solar-zone svg {
+  filter: brightness(.77) saturate(.68) drop-shadow(0 0 5px rgba(236, 189, 100, .11));
+}
+
+/* Stable Space Overview: compact identity first, no duplicate View links. */
+.space-inspector {
+  height: min(736px, calc(100dvh - 36px));
+  max-height: min(736px, calc(100dvh - 36px));
+}
+.space-inspector-body {
+  overflow: hidden;
+}
+.space-inspector-body.is-scrollable {
+  overflow-y: auto;
+}
+.space-inspector-body.is-overview {
+  overflow-y: clip;
+}
+.space-inspector-overview-sections {
+  gap: 8px;
+}
+.space-inspector-overview-sections .space-inspector-section,
+.space-inspector-overview-sections .space-inspector-basic {
+  padding: 9px 10px;
+}
+.space-inspector-overview-sections .space-inspector-section-content {
+  gap: 3px;
+  padding-top: 6px;
+}
+.space-inspector-basic.is-primary-context {
+  border-color: color-mix(in srgb, var(--app-brand) 18%, var(--app-border));
+  background: color-mix(in srgb, var(--app-brand-soft) 35%, var(--app-surface));
+}
+.space-inspector-basic-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px !important;
+}
+.space-inspector-basic-grid .space-inspector-detail-line {
+  min-width: 0;
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  padding: 6px 7px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--app-surface) 82%, transparent);
+}
+.space-inspector-basic-grid .space-inspector-detail-line dt {
+  font-size: calc(8px + var(--app-font-size-bump));
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.space-inspector-basic-grid .space-inspector-detail-line dd {
+  width: 100%;
+  text-align: left;
+  font-size: calc(10px + var(--app-font-size-bump));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.space-inspector-notes.is-standalone {
+  min-height: 0;
+  padding: 7px 9px;
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  background: var(--app-surface-subtle);
+}
+.space-inspector-manage {
+  margin-top: 8px;
+  padding-top: 7px;
+}
+.space-inspector-manage > div {
+  align-items: center;
+}
+.space-inspector-management-meta {
+  margin-right: auto;
+  color: var(--app-text-muted);
+  font-size: calc(9px + var(--app-font-size-bump));
+}
+
+@media (max-height: 780px) and (min-width: 761px) {
+  .space-inspector {
+    height: calc(100dvh - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+  .space-inspector-body.is-overview {
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 1099px) and (min-width: 761px) {
+  .space-inspector {
+    height: min(710px, calc(100dvh - 24px));
+    max-height: min(710px, calc(100dvh - 24px));
+  }
+}
+
+@media (max-width: 760px) {
+  .building-v2-page-header.property-header {
+    padding: 11px 14px 9px;
+    gap: 9px;
+  }
+  .building-v2-heading-title h1 {
+    font-size: calc(21px + var(--app-font-size-bump));
+  }
+  .building-v2-heading-title > span,
+  .building-v2-header-meta > i,
+  .building-v2-header-meta > span:not(:first-of-type) {
+    display: none;
+  }
+  .building-v2-header-meta > span:first-of-type {
+    max-width: 74vw;
+  }
+  .building-v2-control-row {
+    padding-top: 7px;
+  }
+  .building-v2-floor.is-rooftop-floor .building-v2-floor-grid,
+  .building-v2-floor.is-rooftop-floor .building-v2-space {
+    min-height: 104px;
+    height: 104px;
+  }
+  .building-v2-scene.has-focus .building-v2-floor.is-rooftop-floor.is-focused .building-v2-floor-grid,
+  .building-v2-scene.has-focus .building-v2-floor.is-rooftop-floor.is-focused .building-v2-space {
+    min-height: 118px;
+    height: 118px;
+  }
+  .building-v2-rooftop-pergola {
+    left: 29%;
+    width: 32%;
+  }
+  .rooftop-service-zone { left: 1%; width: 28%; }
+  .rooftop-domestic-zone { left: 27%; width: 40%; }
+  .rooftop-solar-zone { right: 0; width: 34%; }
+  .space-inspector {
+    height: 34dvh;
+    max-height: none;
+  }
+  .space-inspector.is-expanded {
+    height: 86dvh;
+  }
+  .space-inspector-body,
+  .space-inspector-body.is-overview,
+  .space-inspector-body.is-scrollable {
+    overflow-y: auto;
+  }
+  .space-inspector-basic-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Inspector chrome stays dense so Overview fits comfortably on desktop. */
+.space-inspector-header {
+  padding: 12px 13px 10px;
+}
+.space-inspector-heading {
+  gap: 3px;
+}
+.space-inspector-heading h2 {
+  font-size: calc(18px + var(--app-font-size-bump));
+}
+.space-inspector-heading > p {
+  font-size: calc(8px + var(--app-font-size-bump));
+}
+.space-inspector-heading > strong,
+.space-inspector-heading > div span {
+  font-size: calc(10px + var(--app-font-size-bump));
+}
+.space-inspector-tabs {
+  padding: 5px 7px;
+}
+.space-inspector-tabs button {
+  min-height: 29px;
+}
+
+/* Restrained rooftop greenery similar to the approved terrace reference. */
+.building-v2-rooftop-backdrop::before,
+.building-v2-rooftop-backdrop::after {
+  content: "";
+  position: absolute;
+  bottom: 20px;
+  width: 16%;
+  height: 28px;
+  opacity: .72;
+  background:
+    radial-gradient(ellipse at 12% 92%, #6f865f 0 22%, transparent 23%),
+    radial-gradient(ellipse at 31% 68%, #7d956a 0 23%, transparent 24%),
+    radial-gradient(ellipse at 50% 88%, #5f7958 0 25%, transparent 26%),
+    radial-gradient(ellipse at 69% 63%, #839b6f 0 22%, transparent 23%),
+    radial-gradient(ellipse at 88% 90%, #637e5b 0 24%, transparent 25%);
+  filter: drop-shadow(0 3px 2px rgba(43, 56, 43, .15));
+}
+.building-v2-rooftop-backdrop::before { left: 2%; }
+.building-v2-rooftop-backdrop::after { right: 2%; transform: scaleX(-1); }
+.building-v2-scene[data-time="night"] .building-v2-rooftop-backdrop::before,
+.building-v2-scene[data-time="night"] .building-v2-rooftop-backdrop::after {
+  filter: brightness(.66) saturate(.72);
+  opacity: .58;
+}
+
+/* ========================================================================== */
+/* Phase 8 micro-polish: clearer Basic Info + selection-aware inspector anchor */
+/* ========================================================================== */
+
+/* Basic Information is one grouped metadata surface, not white cards in a card. */
+.space-inspector-basic.is-primary-context {
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--app-brand-soft) 62%, var(--app-surface)) 0%,
+      color-mix(in srgb, var(--app-surface-subtle) 86%, var(--app-brand-soft)) 100%);
+  border-color: color-mix(in srgb, var(--app-brand) 24%, var(--app-border));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
+}
+.space-inspector-basic-grid {
+  gap: 0 !important;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--app-brand) 12%, var(--app-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--app-brand-soft) 34%, var(--app-surface-subtle));
+}
+.space-inspector-basic-grid .space-inspector-detail-line {
+  min-height: 48px;
+  align-content: center;
+  padding: 7px 10px;
+  border-radius: 0;
+  border-right: 1px solid color-mix(in srgb, var(--app-brand) 13%, var(--app-border));
+  background: transparent;
+}
+.space-inspector-basic-grid .space-inspector-detail-line:last-child {
+  border-right: 0;
+}
+.space-inspector-basic-grid .space-inspector-detail-line dt {
+  color: color-mix(in srgb, var(--app-text-muted) 88%, var(--app-brand));
+}
+.space-inspector-basic-grid .space-inspector-detail-line dd {
+  color: var(--app-text-primary);
+  font-weight: 720;
+}
+
+/*
+ * Desktop/tablet inspector follows the selected Space vertically. The JS hook
+ * writes a stage-relative top value that is clamped to the visible viewport.
+ * This keeps Floor 1 / Garage / lower rooms close to the active work area while
+ * preserving the floating overlay and full-width Building.
+ */
+.space-inspector-layer {
+  display: block;
+}
+.space-inspector-layer .space-inspector {
+  position: absolute;
+  top: var(--space-inspector-top, 18px);
+  bottom: auto;
+  margin: 0;
+  transition: top .2s ease, opacity .24s ease, transform .24s ease;
+}
+.space-inspector-layer.is-right .space-inspector {
+  right: 18px;
+  left: auto;
+}
+.space-inspector-layer.is-left .space-inspector {
+  left: 18px;
+  right: auto;
+}
+
+@media (max-width: 1099px) and (min-width: 761px) {
+  .space-inspector-layer .space-inspector {
+    top: var(--space-inspector-top, 12px);
+  }
+  .space-inspector-layer.is-right .space-inspector,
+  .space-inspector-layer.is-left .space-inspector {
+    left: auto;
+    right: 12px;
+  }
+}
+
+@media (max-width: 760px) {
+  .space-inspector-layer .space-inspector,
+  .space-inspector-layer.is-right .space-inspector,
+  .space-inspector-layer.is-left .space-inspector {
+    position: fixed;
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    margin: 0;
+    transition: height .24s ease, opacity .24s ease, transform .24s ease;
+  }
+  .space-inspector-basic-grid {
+    gap: 0 !important;
+  }
+  .space-inspector-basic-grid .space-inspector-detail-line:nth-child(2n) {
+    border-right: 0;
+  }
+  .space-inspector-basic-grid .space-inspector-detail-line:nth-child(n + 3) {
+    border-top: 1px solid color-mix(in srgb, var(--app-brand) 13%, var(--app-border));
+  }
+}

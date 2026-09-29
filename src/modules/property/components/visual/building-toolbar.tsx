@@ -3,10 +3,13 @@
 import {
   Box,
   Gauge,
+  Moon,
+  Sun,
   Users,
   Wrench,
 } from "lucide-react";
 import type {
+  BuildingTimeOfDay,
   BuildingVisualFloorProjection,
   BuildingVisualMode,
 } from "../../domain/types";
@@ -21,14 +24,18 @@ const modes: Array<{ value: BuildingVisualMode; label: string; icon: typeof User
 export function BuildingToolbar({
   floors,
   mode,
+  timeOfDay,
   focusedFloorId,
   onModeChange,
+  onTimeOfDayChange,
   onFloorChange,
 }: {
   floors: BuildingVisualFloorProjection[];
   mode: BuildingVisualMode;
+  timeOfDay: BuildingTimeOfDay;
   focusedFloorId: string | null;
   onModeChange: (mode: BuildingVisualMode) => void;
+  onTimeOfDayChange: (time: BuildingTimeOfDay) => void;
   onFloorChange: (floorId: string | null) => void;
 }) {
   const ordered = [...floors].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
@@ -48,6 +55,28 @@ export function BuildingToolbar({
           </button>
         ))}
       </div>
+
+      <div className="building-v2-time-toggle" role="group" aria-label="Building time of day">
+        <button
+          type="button"
+          className={timeOfDay === "DAY" ? "is-active" : ""}
+          aria-pressed={timeOfDay === "DAY"}
+          onClick={() => onTimeOfDayChange("DAY")}
+        >
+          <Sun aria-hidden="true" />
+          <span>Day</span>
+        </button>
+        <button
+          type="button"
+          className={timeOfDay === "NIGHT" ? "is-active" : ""}
+          aria-pressed={timeOfDay === "NIGHT"}
+          onClick={() => onTimeOfDayChange("NIGHT")}
+        >
+          <Moon aria-hidden="true" />
+          <span>Night</span>
+        </button>
+      </div>
+
       <label className="building-v2-floor-select">
         <span>Floor</span>
         <select

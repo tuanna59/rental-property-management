@@ -494,6 +494,8 @@ export function TaskFormDialog({
   invoiceOptions,
   task,
   trigger,
+  defaultLinkedEntityType,
+  defaultLinkedEntityId,
 }: {
   propertyId: string;
   locations: OperationsLocationOption[];
@@ -501,9 +503,11 @@ export function TaskFormDialog({
   invoiceOptions: OperationsInvoiceOption[];
   task?: TaskListItemView;
   trigger?: React.ReactNode;
+  defaultLinkedEntityType?: "PROPERTY" | "SPACE" | "MAINTENANCE" | "INVOICE" | null;
+  defaultLinkedEntityId?: string | null;
 }) {
   const [open, setOpen] = React.useState(false);
-  const [linkType, setLinkType] = React.useState<string>(task?.linkedEntityType ?? "");
+  const [linkType, setLinkType] = React.useState<string>(task?.linkedEntityType ?? defaultLinkedEntityType ?? "");
   const [recurrence, setRecurrence] = React.useState<string>(task?.recurrenceUnit ?? "");
   const serverAction = task ? updateTaskAction : createTaskAction;
   const [state, action] = useDialogAction(serverAction, () => setOpen(false));
@@ -579,7 +583,13 @@ export function TaskFormDialog({
                       : "Choose invoice"
                 }
                 name="linkedEntityId"
-                defaultValue={task?.linkedEntityType === linkType ? task.linkedEntityId ?? "" : ""}
+                defaultValue={
+                  task?.linkedEntityType === linkType
+                    ? task.linkedEntityId ?? ""
+                    : defaultLinkedEntityType === linkType
+                      ? defaultLinkedEntityId ?? ""
+                      : ""
+                }
                 required
               >
                 <option value="">Choose record</option>

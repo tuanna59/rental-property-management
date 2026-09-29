@@ -2,6 +2,7 @@
 
 import { Building2 } from "lucide-react";
 import type {
+  BuildingTimeOfDay,
   BuildingVisualFloorProjection,
   BuildingVisualMode,
   BuildingVisualProjection,
@@ -11,6 +12,7 @@ import { BuildingFloor } from "./building-floor";
 export function BuildingVisual({
   projection,
   mode,
+  timeOfDay,
   focusedFloorId,
   selectedSpaceId,
   editing,
@@ -18,12 +20,17 @@ export function BuildingVisual({
 }: {
   projection: BuildingVisualProjection;
   mode: BuildingVisualMode;
+  timeOfDay: BuildingTimeOfDay;
   focusedFloorId: string | null;
   selectedSpaceId: string | null;
   editing: boolean;
   onSelectSpace: (spaceId: string, target: HTMLButtonElement) => void;
 }) {
   const floors = orderFloors(projection.floors);
+  const hasOpenRooftop = Boolean(
+    floors[0]?.spaces.length && floors[0].spaces.every((space) => space.type === "ROOFTOP"),
+  );
+  const tallBuilding = floors.length >= 7;
   if (!floors.length) {
     return (
       <div className="building-v2-empty">
@@ -33,20 +40,24 @@ export function BuildingVisual({
       </div>
     );
   }
+
   return (
     <div
-      className={`building-v2-scene${focusedFloorId ? " has-focus" : ""}`}
+      className={`building-v2-scene${focusedFloorId ? " has-focus" : ""}${tallBuilding ? " is-tall-building" : ""}`}
       data-mode={mode.toLowerCase()}
+      data-time={timeOfDay.toLowerCase()}
+      data-floor-count={floors.length}
     >
       <div className="building-v2-sky" aria-hidden="true">
         <span className="building-v2-sun" />
+        <span className="building-v2-moon" />
         <span className="building-v2-cloud cloud-a" />
         <span className="building-v2-cloud cloud-b" />
       </div>
       <div className="building-v2-neighborhood" aria-hidden="true">
         <i /><i /><i /><i /><i />
       </div>
-      <div className="building-v2-stack">
+      <div className={`building-v2-stack${hasOpenRooftop ? " has-open-rooftop" : ""}`}>
         <div className="building-v2-roof-cap" aria-hidden="true" />
         {floors.map((floor) => {
           const focused = floor.id === focusedFloorId;
@@ -56,6 +67,7 @@ export function BuildingVisual({
               floor={floor}
               propertyId={projection.id}
               mode={mode}
+              timeOfDay={timeOfDay}
               selectedSpaceId={selectedSpaceId}
               focused={focused}
               muted={Boolean(focusedFloorId && !focused)}
@@ -90,18 +102,19 @@ function Tree() {
   return (
     <svg viewBox="0 0 80 130">
       <path d="M39 124V59" stroke="#705f47" strokeWidth="9" />
-      <circle cx="40" cy="42" r="31" fill="#688267" />
-      <circle cx="22" cy="51" r="21" fill="#789472" />
-      <circle cx="57" cy="55" r="22" fill="#5d795f" />
+      <circle cx="40" cy="42" r="31" fill="var(--building-tree-dark, #688267)" />
+      <circle cx="22" cy="51" r="21" fill="var(--building-tree-light, #789472)" />
+      <circle cx="57" cy="55" r="22" fill="var(--building-tree-mid, #5d795f)" />
     </svg>
   );
 }
+
 function Shrub() {
   return (
     <svg viewBox="0 0 90 60">
-      <circle cx="22" cy="38" r="19" fill="#718a69" />
-      <circle cx="45" cy="29" r="24" fill="#7f9874" />
-      <circle cx="69" cy="39" r="18" fill="#667e63" />
+      <circle cx="22" cy="38" r="19" fill="var(--building-tree-mid, #718a69)" />
+      <circle cx="45" cy="29" r="24" fill="var(--building-tree-light, #7f9874)" />
+      <circle cx="69" cy="39" r="18" fill="var(--building-tree-dark, #667e63)" />
     </svg>
   );
 }

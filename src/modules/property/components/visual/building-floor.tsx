@@ -3,16 +3,19 @@
 import { motion } from "motion/react";
 import type { CSSProperties } from "react";
 import type {
+  BuildingTimeOfDay,
   BuildingVisualFloorProjection,
   BuildingVisualMode,
 } from "../../domain/types";
-import { BuildingSpace } from "./building-space";
 import { FloorActions } from "../property-forms";
+import { BuildingSpace } from "./building-space";
+import { getRoomSizeClass, getSpaceVisualWeight } from "./layout";
 
 export function BuildingFloor({
   floor,
   propertyId,
   mode,
+  timeOfDay,
   selectedSpaceId,
   focused,
   muted,
@@ -22,6 +25,7 @@ export function BuildingFloor({
   floor: BuildingVisualFloorProjection;
   propertyId: string;
   mode: BuildingVisualMode;
+  timeOfDay: BuildingTimeOfDay;
   selectedSpaceId: string | null;
   focused: boolean;
   muted: boolean;
@@ -31,16 +35,23 @@ export function BuildingFloor({
   const spaces = [...floor.spaces].sort((a, b) => a.sortOrder - b.sortOrder);
   const units = Math.max(
     1,
-    spaces.reduce((sum, space) => sum + spaceWeight(space.type), 0),
+    spaces.reduce((sum, space) => sum + getSpaceVisualWeight(space.type), 0),
   );
+  const rooftopFloor =
+    spaces.length > 0 && spaces.every((space) => space.type === "ROOFTOP");
+  const emptyFloor = spaces.length === 0;
+
   return (
     <motion.section
-      layout
-      className={`building-v2-floor${focused ? " is-focused" : ""}${muted ? " is-muted" : ""}`}
+      className={`building-v2-floor${focused ? " is-focused" : ""}${muted ? " is-muted" : ""}${rooftopFloor ? " is-rooftop-floor" : ""}${emptyFloor ? " is-empty-floor" : ""}`}
       data-floor-id={floor.id}
       aria-label={floor.name}
-      animate={{ opacity: muted ? 0.32 : 1, scale: focused ? 1.018 : 1 }}
-      transition={{ duration: 0.24 }}
+      animate={{
+        opacity: muted ? 0.2 : 1,
+        scale: focused ? 1.16 : 1,
+        y: focused ? -6 : 0,
+      }}
+      transition={{ duration: 0.26, ease: "easeOut" }}
     >
       <div className="building-v2-floor-label">
         <strong>{floor.name}</strong>
@@ -51,7 +62,9 @@ export function BuildingFloor({
         className="building-v2-floor-grid"
         style={{
           gridTemplateColumns: spaces.length
-            ? spaces.map((space) => `${spaceWeight(space.type)}fr`).join(" ")
+            ? spaces
+                .map((space) => `${getSpaceVisualWeight(space.type)}fr`)
+                .join(" ")
             : undefined,
           "--floor-units": units,
         } as CSSProperties}
@@ -62,29 +75,24 @@ export function BuildingFloor({
               key={space.id}
               space={space}
               mode={mode}
+              timeOfDay={timeOfDay}
               selected={space.id === selectedSpaceId}
-              dimmed={Boolean(selectedSpaceId && space.id !== selectedSpaceId && focused)}
+              dimmed={Boolean(
+                selectedSpaceId && space.id !== selectedSpaceId && focused,
+              )}
+              roomSize={getRoomSizeClass({ space, floor })}
               onSelect={onSelectSpace}
             />
           ))
         ) : (
-          <div className="building-v2-empty-floor">No spaces on this floor</div>
+          <div className="building-v2-empty-floor">
+            <strong>No spaces</strong>
+            <span>This floor is configured but currently empty.</span>
+          </div>
         )}
       </div>
       <div className="building-v2-floor-slab" aria-hidden="true" />
       <div className="building-v2-floor-side" aria-hidden="true" />
     </motion.section>
   );
-}
-
-function spaceWeight(type: BuildingVisualFloorProjection["spaces"][number]["type"]) {
-  return {
-    ROOM: 1,
-    OWNER_HOME: 1.65,
-    GARAGE: 1.45,
-    ROOFTOP: 1.2,
-    COMMON_AREA: 1.35,
-    STORAGE: 0.85,
-    OTHER: 1,
-  }[type];
 }

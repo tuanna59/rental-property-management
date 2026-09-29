@@ -182,12 +182,16 @@ export function AssetFormDialog({
   locations,
   asset,
   trigger,
+  defaultFloorId,
+  defaultSpaceId,
 }: {
   propertyId: string;
   categories: AssetCategoryView[];
   locations: AssetLocationOption[];
   asset?: AssetDetailView;
   trigger?: React.ReactNode;
+  defaultFloorId?: string | null;
+  defaultSpaceId?: string | null;
 }) {
   const [open, setOpen] = React.useState(false);
   const [state, action] = useDialogAction(asset ? updateAssetAction : createAssetAction, () => setOpen(false));
@@ -214,7 +218,7 @@ export function AssetFormDialog({
             </SelectField>
           </div>
           {!selectable.length && <p className="asset-inline-warning">Create an asset category before adding inventory.</p>}
-          <LocationFields locations={locations} defaultFloorId={asset?.floorId} defaultSpaceId={asset?.spaceId} />
+          <LocationFields locations={locations} defaultFloorId={asset?.floorId ?? defaultFloorId} defaultSpaceId={asset?.spaceId ?? defaultSpaceId} />
           <div className="asset-form-grid asset-form-grid-3">
             <Field label="Brand" name="brand" defaultValue={asset?.brand ?? ""} />
             <Field label="Model" name="model" defaultValue={asset?.model ?? ""} />

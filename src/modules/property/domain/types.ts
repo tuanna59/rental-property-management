@@ -78,6 +78,7 @@ export type PropertyShellProjection = Pick<
 >;
 
 export type BuildingVisualMode = "OCCUPANCY" | "MAINTENANCE" | "UTILITIES" | "ASSETS";
+export type BuildingTimeOfDay = "DAY" | "NIGHT";
 
 export type BuildingUtilityProjection = {
   meterCount: number;
@@ -85,6 +86,11 @@ export type BuildingUtilityProjection = {
   needsClosing: boolean;
   missingBoundary: boolean;
   attentionCount: number;
+  activeMeterId: string | null;
+  meterNumber: string | null;
+  latestReadingValue: string | null;
+  monthlyClosingValue: string | null;
+  knownUsageKwh: string | null;
 };
 
 export type BuildingMaintenanceProjection = {

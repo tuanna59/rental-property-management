@@ -171,6 +171,11 @@ export async function getBuildingVisualProjection(): Promise<BuildingVisualProje
             needsClosing: utility?.closingStatus === "NEEDS_CLOSING",
             missingBoundary: Boolean(utility?.missingBoundary?.length),
             attentionCount: utility?.warnings?.length ?? 0,
+            activeMeterId: utility?.activeMeter?.id ?? null,
+            meterNumber: utility?.activeMeter?.meterNumber ?? null,
+            latestReadingValue: utility?.latestReading?.readingValue ?? null,
+            monthlyClosingValue: utility?.monthlyReading?.readingValue ?? null,
+            knownUsageKwh: utility?.knownPhysicalUsage ?? null,
           },
           maintenance: {
             openCount: issue?.openCount ?? 0,

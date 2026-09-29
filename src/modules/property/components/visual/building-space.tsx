@@ -6,33 +6,40 @@ import {
   Box,
   Gauge,
   Users,
-  Wrench,
   WifiOff,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCompactDate } from "@/lib/presentation";
 import type {
+  BuildingTimeOfDay,
   BuildingVisualMode,
   BuildingVisualSpaceProjection,
 } from "../../domain/types";
 import { SpaceInterior } from "./interiors/space-interior";
 import { StatusMarker } from "./indicators/status-marker";
+import { getRoomVisualVariant, type RoomSizeClass } from "./layout";
 
 export function BuildingSpace({
   space,
   mode,
+  timeOfDay,
   selected,
   dimmed,
+  roomSize,
   onSelect,
 }: {
   space: BuildingVisualSpaceProjection;
   mode: BuildingVisualMode;
+  timeOfDay: BuildingTimeOfDay;
   selected: boolean;
   dimmed?: boolean;
+  roomSize: RoomSizeClass;
   onSelect: (spaceId: string, target: HTMLButtonElement) => void;
 }) {
-  const variant = stableVariant(space.id);
+  const variant = getRoomVisualVariant(space);
   const room = space.type === "ROOM";
+  const rooftop = space.type === "ROOFTOP";
   const occupancyLabel =
     space.occupancyState === "OCCUPIED"
       ? `${space.occupancy?.occupantCount ?? 0} resident${space.occupancy?.occupantCount === 1 ? "" : "s"}`
@@ -45,14 +52,16 @@ export function BuildingSpace({
   return (
     <motion.button
       type="button"
-      layout="position"
       className={cn(
         "building-v2-space",
         selected && "is-selected",
         dimmed && "is-dimmed",
         `is-${space.occupancyState.toLowerCase()}`,
         `type-${space.type.toLowerCase().replaceAll("_", "-")}`,
+        room && `room-size-${roomSize}`,
       )}
+      data-time={timeOfDay.toLowerCase()}
+      data-room-size={room ? roomSize : undefined}
       whileHover={{ y: -3 }}
       transition={{ duration: 0.18 }}
       aria-label={`${space.name}, ${overlayAccessibleLabel(space, mode)}`}
@@ -60,12 +69,14 @@ export function BuildingSpace({
       onClick={(event) => onSelect(space.id, event.currentTarget)}
       data-space-id={space.id}
     >
-      <span className="building-v2-room-shell" aria-hidden="true">
-        <span className="building-v2-room-ceiling" />
-        <span className="building-v2-room-side" />
-        <span className="building-v2-room-depth" />
-      </span>
-      <SpaceInterior space={space} variant={variant} />
+      {!rooftop && (
+        <span className="building-v2-room-shell" aria-hidden="true">
+          <span className="building-v2-room-ceiling" />
+          <span className="building-v2-room-side" />
+          <span className="building-v2-room-depth" />
+        </span>
+      )}
+      <SpaceInterior space={space} variant={variant} roomSize={roomSize} />
       <span className="building-v2-space-label">
         <strong>{space.name}</strong>
         <small>{room ? occupancyLabel : shortType(space.type)}</small>
@@ -126,11 +137,7 @@ function ModeOverlay({
         <StatusMarker
           icon={AlertTriangle}
           count={space.utilities.attentionCount || undefined}
-          label={
-            space.utilities.missingBoundary
-              ? "Utility boundary attention required"
-              : "Monthly closing required"
-          }
+          label={space.utilities.missingBoundary ? "Utility boundary attention required" : "Monthly closing required"}
           tone="warning"
         />
       );
@@ -163,10 +170,7 @@ function ModeOverlay({
   );
 }
 
-function overlayAccessibleLabel(
-  space: BuildingVisualSpaceProjection,
-  mode: BuildingVisualMode,
-) {
+function overlayAccessibleLabel(space: BuildingVisualSpaceProjection, mode: BuildingVisualMode) {
   if (mode === "MAINTENANCE") {
     const total = space.maintenance.openCount + space.maintenance.inProgressCount;
     return total ? `${total} active maintenance issues` : "no active maintenance";
@@ -184,15 +188,6 @@ function overlayAccessibleLabel(
     return `${space.occupancy?.occupantCount ?? 0} residents`;
   }
   return space.occupancyState.toLowerCase().replaceAll("_", " ");
-}
-
-function stableVariant(id: string) {
-  return (
-    Array.from(id).reduce(
-      (hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0,
-      0,
-    ) % 3
-  );
 }
 
 function shortType(type: BuildingVisualSpaceProjection["type"]) {

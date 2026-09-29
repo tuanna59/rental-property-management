@@ -1,6 +1,10 @@
 import { Building2, DatabaseZap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import "@/modules/assets/components/assets.css";
+import { getAssetInventoryPage, getDevicePage } from "@/modules/assets/server/assets.queries";
+import "@/modules/operations/components/operations.css";
+import { getMaintenancePage, getTaskPage } from "@/modules/operations/server/operations.queries";
 import { PropertyDashboard } from "@/modules/property/components/property-dashboard";
 import {
   getActivePersonOptions,
@@ -24,13 +28,9 @@ export default async function Home({
     ]);
   } catch (error) {
     if (isDatabaseUnavailable(error)) {
-      console.error(
-        "Database is unavailable for the property dashboard.",
-        error,
-      );
+      console.error("Database is unavailable for the property dashboard.", error);
       return <DatabaseUnavailable />;
     }
-
     throw error;
   }
 
@@ -41,38 +41,39 @@ export default async function Home({
           <Building2 className="size-12 text-[var(--app-brand)]" />
           <h1 className="mt-4 text-2xl font-semibold">No property found</h1>
           <p className="mt-2 text-sm text-[var(--app-text-secondary)]">
-            Run the development seed to create the initial configurable rental
-            property.
+            Run the development seed to create the initial configurable rental property.
           </p>
           <Button className="mt-5" asChild>
-            <a href="https://www.prisma.io/docs/orm/prisma-migrate/workflows/seeding">
-              Seed workflow
-            </a>
+            <a href="https://www.prisma.io/docs/orm/prisma-migrate/workflows/seeding">Seed workflow</a>
           </Button>
         </section>
       </main>
     );
   }
 
+  const [maintenance, tasks, assets, devices] = await Promise.all([
+    getMaintenancePage(property.id),
+    getTaskPage(property.id),
+    getAssetInventoryPage(property.id),
+    getDevicePage(property.id),
+  ]);
+
   return (
     <PropertyDashboard
       property={property}
       people={people}
+      inspectorData={{ maintenance, tasks, assets, devices }}
       initialSpaceId={(await searchParams).space ?? null}
     />
   );
 }
 
 function isDatabaseUnavailable(error: unknown) {
-  if (!error || typeof error !== "object") {
-    return false;
-  }
-
+  if (!error || typeof error !== "object") return false;
   const record = error as { code?: unknown; message?: unknown };
   return (
     record.code === "ECONNREFUSED" ||
-    (typeof record.message === "string" &&
-      record.message.toLowerCase().includes("connect"))
+    (typeof record.message === "string" && record.message.toLowerCase().includes("connect"))
   );
 }
 
@@ -85,32 +86,18 @@ function DatabaseUnavailable() {
             <DatabaseZap className="size-6" />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--app-danger)]">
-              Setup needed
-            </p>
-            <h1 className="mt-1 text-2xl font-semibold">
-              Database is not running
-            </h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--app-danger)]">Setup needed</p>
+            <h1 className="mt-1 text-2xl font-semibold">Database is not running</h1>
             <p className="mt-2 text-sm leading-6 text-[var(--app-text-secondary)]">
-              The web server is reachable, but the dashboard needs PostgreSQL on
-              port 5432 before it can load property data.
+              The web server is reachable, but the dashboard needs PostgreSQL on port 5432 before it can load property data.
             </p>
           </div>
         </div>
-
         <div className="mt-6 grid gap-3 rounded-md bg-[var(--app-surface-subtle)] p-4 text-sm">
-          <p className="font-medium text-[var(--app-text-primary)]">
-            Start the local database:
-          </p>
-          <code className="overflow-x-auto rounded-md bg-[var(--app-text-primary)] px-3 py-2 text-white">
-            docker compose up -d postgres
-          </code>
-          <p className="font-medium text-[var(--app-text-primary)]">
-            Then apply schema and seed data:
-          </p>
-          <code className="overflow-x-auto rounded-md bg-[var(--app-text-primary)] px-3 py-2 text-white">
-            pnpm db:migrate && pnpm db:seed
-          </code>
+          <p className="font-medium text-[var(--app-text-primary)]">Start the local database:</p>
+          <code className="overflow-x-auto rounded-md bg-[var(--app-text-primary)] px-3 py-2 text-white">docker compose up -d postgres</code>
+          <p className="font-medium text-[var(--app-text-primary)]">Then apply schema and seed data:</p>
+          <code className="overflow-x-auto rounded-md bg-[var(--app-text-primary)] px-3 py-2 text-white">pnpm db:migrate && pnpm db:seed</code>
         </div>
       </section>
     </main>
