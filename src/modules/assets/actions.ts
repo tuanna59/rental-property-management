@@ -148,6 +148,7 @@ function deviceInput(data: FormData) {
     propertyId: text(data, "propertyId"),
     floorId: optional(data, "floorId"),
     spaceId: optional(data, "spaceId"),
+    linkType: text(data, "linkType") as "NO_LINK" | "SPACE" | "ASSET" | "METER",
     assetId: optional(data, "assetId"),
     meterId: optional(data, "meterId"),
     name: text(data, "name"),

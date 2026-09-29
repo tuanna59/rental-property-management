@@ -372,3 +372,23 @@
 .device-detail-list dt { color: var(--app-text-secondary); font-size: 12px; }
 .device-detail-list dd { margin: 0; color: var(--app-text-primary); font-weight: 600; }
 @media (max-width: 560px) { .device-detail-list { grid-template-columns: 1fr; } }
+
+.asset-detail-icon.has-cover { overflow: hidden; background: var(--app-surface-subtle); }
+.asset-detail-icon.has-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.device-derived-location { display: grid; gap: 4px; padding: 11px 12px; border: 1px solid var(--app-border); border-radius: var(--app-radius-control); background: var(--app-surface-subtle); }
+.device-derived-location span, .device-derived-location small { color: var(--app-text-secondary); font-size: 12px; }
+.device-derived-location strong { font-size: 14px; }
+
+@media (max-width: 560px) {
+  .asset-dialog, .asset-dialog-wide { width: calc(100vw - 20px); max-height: 92dvh; }
+  .asset-detail-actions { width: 100%; }
+  .asset-detail-actions > *:first-child { flex: 1; }
+  .asset-detail-actions > *:first-child button { width: 100%; }
+  .asset-detail-tabs { padding-inline: 8px; }
+  .asset-detail-tabs button { min-height: 44px; padding-inline: 9px; }
+}
+.device-mobile-context { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.device-mobile-context > span { display: grid; gap: 2px; min-width: 0; }
+.device-mobile-context small { color: var(--app-text-secondary); font-size: 11px; }
+.device-mobile-context strong { font-size: 13px; overflow-wrap: anywhere; }
+@media (max-width: 420px) { .device-mobile-context { grid-template-columns: 1fr; } }

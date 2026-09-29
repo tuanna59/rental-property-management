@@ -14,6 +14,9 @@ export type AssetAttachmentType = (typeof ASSET_ATTACHMENT_TYPES)[number];
 export const DEVICE_STATUSES = ["ONLINE", "OFFLINE", "UNKNOWN"] as const;
 export type DeviceStatus = (typeof DEVICE_STATUSES)[number];
 
+export const DEVICE_LINK_TYPES = ["NO_LINK", "SPACE", "ASSET", "METER"] as const;
+export type DeviceLinkType = (typeof DEVICE_LINK_TYPES)[number];
+
 export type WarrantyState = "NO_WARRANTY" | "ACTIVE" | "EXPIRING_SOON" | "EXPIRED";
 
 export type AssetLocationOption = {

@@ -23,7 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { formatDate, formatVnd } from "@/lib/presentation";
-import { MaintenanceFormDialog } from "@/modules/operations/components/operation-dialogs";
+import { ExpenseFormDialog, MaintenanceFormDialog } from "@/modules/operations/components/operation-dialogs";
 
 import type { AssetCategoryView, AssetDetailView, AssetLocationOption, AssetOptionView } from "../domain/types";
 import {
@@ -51,12 +51,13 @@ export function AssetDetailWorkspace({
   const [tab, setTab] = React.useState<Tab>("OVERVIEW");
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [replaceOpen, setReplaceOpen] = React.useState(false);
+  const coverPhoto = asset.attachments.find((item) => item.type === "PHOTO");
 
   return (
     <>
       <div className="asset-detail-back"><Link href="/assets">← Back to assets</Link></div>
       <header className="asset-detail-header">
-        <div className="asset-detail-icon"><ImageIcon /></div>
+        <div className={`asset-detail-icon${coverPhoto ? " has-cover" : ""}`}>{coverPhoto ? <img src={coverPhoto.url} alt={`${asset.name} asset`} /> : <ImageIcon />}</div>
         <div className="asset-detail-identity">
           <div className="asset-detail-title-row"><h1>{asset.name}</h1><AssetStatusBadge status={asset.status} />{asset.underMaintenance && <UnderMaintenanceBadge />}</div>
           <strong>{asset.categoryName}</strong>
@@ -115,7 +116,7 @@ export function AssetDetailWorkspace({
         <div className="asset-tab-content">
           {tab === "OVERVIEW" && <OverviewTab asset={asset} />}
           {tab === "MAINTENANCE" && <MaintenanceTab asset={asset} locations={locations} assetOptions={assetOptions} />}
-          {tab === "EXPENSES" && <ExpensesTab asset={asset} />}
+          {tab === "EXPENSES" && <ExpensesTab asset={asset} locations={locations} assetOptions={assetOptions} />}
           {tab === "DOCUMENTS" && <DocumentsTab asset={asset} />}
           {tab === "HISTORY" && <HistoryTab asset={asset} />}
         </div>
@@ -152,10 +153,10 @@ function MaintenanceTab({ asset, locations, assetOptions }: { asset: AssetDetail
   );
 }
 
-function ExpensesTab({ asset }: { asset: AssetDetailView }) {
+function ExpensesTab({ asset, locations, assetOptions }: { asset: AssetDetailView; locations: AssetLocationOption[]; assetOptions: AssetOptionView[] }) {
   return (
     <div className="asset-tab-stack">
-      <div className="asset-tab-toolbar"><div><h2>Linked expenses</h2><p>Owner costs remain sourced from the Expenses module.</p></div><Button asChild variant="outline"><Link href={`/operations/expenses?asset=${asset.id}`}>Add / view expense</Link></Button></div>
+      <div className="asset-tab-toolbar"><div><h2>Linked expenses</h2><p>Owner costs remain sourced from the Expenses module.</p></div><ExpenseFormDialog propertyId={asset.propertyId} locations={locations} maintenanceOptions={[]} assetOptions={assetOptions} defaultAssetId={asset.id} defaultFloorId={asset.floorId} defaultSpaceId={asset.spaceId} trigger={<Button variant="outline"><ReceiptText /> Add expense</Button>} /></div>
       <div className="asset-cost-breakdown"><span>Purchase <strong>{asset.purchasePriceVnd ? formatVnd(asset.purchasePriceVnd) : "0 đ"}</strong></span><span>Linked expenses <strong>{formatVnd(asset.linkedExpenseTotalVnd)}</strong></span><span>Lifetime <strong>{formatVnd(asset.lifetimeCostVnd)}</strong></span></div>
       {asset.expenses.length ? <div className="asset-simple-list">{asset.expenses.map((expense) => <article key={expense.id}><div><strong>{expense.description}</strong><span>{formatDate(expense.expenseDate)} · {expense.category}</span>{expense.maintenanceTitle && <small>Maintenance · {expense.maintenanceTitle}</small>}</div><strong>{formatVnd(expense.amountVnd)}</strong></article>)}</div> : <AssetEmpty title="No linked expenses" detail="Asset lifetime cost currently contains purchase price only." />}
     </div>
@@ -188,7 +189,14 @@ function PhotoGallery({ photos }: { photos: AssetDetailView["attachments"] }) {
 }
 
 function HistoryTab({ asset }: { asset: AssetDetailView }) {
-  return asset.history.length ? <div className="asset-timeline">{asset.history.map((item) => <article key={item.id}><span className={`asset-timeline-dot is-${item.tone}`} /><div><div className="asset-history-head"><strong>{item.title}</strong><span>{formatDate(item.date)}</span></div>{item.detail && <p>{item.detail.match(/^\d+$/) ? formatVnd(item.detail) : item.detail}</p>}</div></article>)}</div> : <AssetEmpty title="No history yet" detail="Lifecycle and operational history will appear as records are created." />;
+  return (
+    <div className="asset-tab-stack">
+      {(asset.replacementForAsset || asset.replacedByAsset) && (
+        <section className="asset-replacement-chain"><History /><div><strong>Replacement relationship</strong>{asset.replacementForAsset && <p>Replaces <Link href={`/assets/${asset.replacementForAsset.id}`}>{asset.replacementForAsset.name}</Link> · {asset.replacementForAsset.status}</p>}{asset.replacedByAsset && <p>Replaced by <Link href={`/assets/${asset.replacedByAsset.id}`}>{asset.replacedByAsset.name}</Link> · {asset.replacedByAsset.status}</p>}</div></section>
+      )}
+      {asset.history.length ? <div className="asset-timeline">{asset.history.map((item) => <article key={item.id}><span className={`asset-timeline-dot is-${item.tone}`} /><div><div className="asset-history-head"><strong>{item.title}</strong><span>{formatDate(item.date)}</span></div>{item.detail && <p>{item.detail.match(/^\d+$/) ? formatVnd(item.detail) : item.detail}</p>}</div></article>)}</div> : <AssetEmpty title="No history yet" detail="Lifecycle and operational history will appear as records are created." />}
+    </div>
+  );
 }
 
 function AssetEmpty({ title, detail }: { title: string; detail: string }) {

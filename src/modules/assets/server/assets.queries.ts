@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { toDateOnly } from "@/lib/presentation";
+import { formatLocationLabel } from "@/lib/location";
 import { getOperationsLocations } from "@/modules/operations/server/operations.queries";
 
 import { warrantyState } from "../domain/rules";
@@ -34,9 +35,7 @@ function addMoney(left: bigint, value: unknown) {
 }
 
 function locationLabel(item: any) {
-  return item.space?.name
-    ? `${item.space.name}${item.floor?.name ? ` · ${item.floor.name}` : ""}`
-    : item.floor?.name || "Property";
+  return formatLocationLabel({ spaceName: item.space?.name, floorName: item.floor?.name });
 }
 
 function mapAssetOption(asset: any): AssetOptionView {

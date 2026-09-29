@@ -386,11 +386,11 @@ function CategoryRow({ propertyId, category }: { propertyId: string; category: A
       <div><strong>{category.name}</strong><span>{category.assetCount} asset{category.assetCount === 1 ? "" : "s"}{category.archived ? " · Archived" : ""}</span></div>
       {!category.archived && (
         <div className="asset-category-actions">
-          <Button size="icon" variant="ghost" type="button" title="Edit category" onClick={() => setEditing(true)}><Pencil /></Button>
+          <Button size="icon" variant="ghost" type="button" title="Edit category" aria-label={`Edit category ${category.name}`} onClick={() => setEditing(true)}><Pencil /></Button>
           <PreservingActionForm action={archiveAction}>
             <input type="hidden" name="propertyId" value={propertyId} />
             <input type="hidden" name="categoryId" value={category.id} />
-            <Button size="icon" variant="ghost" type="submit" title="Archive category"><Archive /></Button>
+            <Button size="icon" variant="ghost" type="submit" title="Archive category" aria-label={`Archive category ${category.name}`}><Archive /></Button>
           </PreservingActionForm>
         </div>
       )}
@@ -511,6 +511,34 @@ export function DeviceFormDialog({
 }) {
   const [open, setOpen] = React.useState(false);
   const [state, action] = useDialogAction(device ? updateDeviceAction : createDeviceAction, () => setOpen(false));
+  const initialLinkType = device?.assetId ? "ASSET" : device?.meterId ? "METER" : device?.spaceId ? "SPACE" : "NO_LINK";
+  const [linkType, setLinkType] = React.useState<"NO_LINK" | "SPACE" | "ASSET" | "METER">(initialLinkType);
+  const [assetId, setAssetId] = React.useState(device?.assetId ?? "");
+  const [meterId, setMeterId] = React.useState(device?.meterId ?? "");
+  const [spaceTargetId, setSpaceTargetId] = React.useState(device?.spaceId ?? "");
+
+  React.useEffect(() => {
+    if (!open) {
+      setLinkType(initialLinkType);
+      setAssetId(device?.assetId ?? "");
+      setMeterId(device?.meterId ?? "");
+      setSpaceTargetId(device?.spaceId ?? "");
+    }
+  }, [open, device?.assetId, device?.meterId, device?.spaceId, initialLinkType]);
+
+  const derivedLocation = React.useMemo(() => {
+    if (linkType === "ASSET") return assetOptions.find((asset) => asset.id === assetId)?.locationLabel ?? "Choose an asset";
+    if (linkType === "METER") {
+      const meter = meterOptions.find((item) => item.id === meterId);
+      return meter ? `${meter.spaceName} · ${meter.floorName}` : "Choose a meter";
+    }
+    if (linkType === "SPACE") {
+      const location = locations.find((item) => item.spaceId === spaceTargetId);
+      return location ? `${location.spaceName} · ${location.floorName}` : "Choose a space";
+    }
+    return null;
+  }, [assetId, assetOptions, linkType, locations, meterId, meterOptions, spaceTargetId]);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger ?? <Button><Plus /> Add device</Button>}</DialogTrigger>
@@ -523,17 +551,34 @@ export function DeviceFormDialog({
             <Field label="Name" name="name" required defaultValue={device?.name ?? ""} />
             <Field label="Device type" name="deviceType" required defaultValue={device?.deviceType ?? ""} placeholder="Smart meter, leak sensor…" />
           </div>
-          <LocationFields locations={locations} defaultFloorId={device?.floorId} defaultSpaceId={device?.spaceId} />
-          <div className="asset-form-grid">
-            <SelectField label="Linked asset (optional)" name="assetId" defaultValue={device?.assetId ?? ""}>
-              <option value="">None</option>
+          <SelectField label="Link device to" name="linkType" value={linkType} onChange={(event) => setLinkType(event.target.value as typeof linkType)}>
+            <option value="NO_LINK">No link</option>
+            <option value="SPACE">Space</option>
+            <option value="ASSET">Asset</option>
+            <option value="METER">Meter</option>
+          </SelectField>
+          {linkType === "NO_LINK" && (
+            <LocationFields locations={locations} defaultFloorId={device?.floorId} defaultSpaceId={device?.spaceId} />
+          )}
+          {linkType === "SPACE" && (
+            <SelectField label="Space" name="spaceId" value={spaceTargetId} required onChange={(event) => setSpaceTargetId(event.target.value)}>
+              <option value="" disabled>Choose space</option>
+              {locations.map((location) => <option key={location.spaceId} value={location.spaceId}>{location.spaceName} · {location.floorName}</option>)}
+            </SelectField>
+          )}
+          {linkType === "ASSET" && (
+            <SelectField label="Asset" name="assetId" value={assetId} required onChange={(event) => setAssetId(event.target.value)}>
+              <option value="" disabled>Choose asset</option>
               {assetOptions.map((asset) => <option key={asset.id} value={asset.id}>{asset.name} · {asset.locationLabel}</option>)}
             </SelectField>
-            <SelectField label="Linked meter (optional)" name="meterId" defaultValue={device?.meterId ?? ""}>
-              <option value="">None</option>
-              {meterOptions.map((meter) => <option key={meter.id} value={meter.id}>{meter.meterNumber || "Meter"} · {meter.spaceName}</option>)}
+          )}
+          {linkType === "METER" && (
+            <SelectField label="Meter" name="meterId" value={meterId} required onChange={(event) => setMeterId(event.target.value)}>
+              <option value="" disabled>Choose meter</option>
+              {meterOptions.map((meter) => <option key={meter.id} value={meter.id}>{meter.meterNumber || "Electricity meter"} · {meter.spaceName}</option>)}
             </SelectField>
-          </div>
+          )}
+          {derivedLocation && <div className="device-derived-location"><span>Location</span><strong>{derivedLocation}</strong><small>Derived from linked {linkType.toLowerCase()}.</small></div>}
           <div className="asset-form-grid asset-form-grid-3">
             <Field label="External ID" name="externalId" defaultValue={device?.externalId ?? ""} />
             <Field label="Protocol" name="protocol" defaultValue={device?.protocol ?? ""} placeholder="Optional metadata" />
@@ -584,8 +629,7 @@ export function DeviceDetailDialog({
         <dl className="device-detail-list">
           <div><dt>Status</dt><dd>{device.status === "ONLINE" ? "Online" : device.status === "OFFLINE" ? "Offline" : "Unknown"}</dd></div>
           <div><dt>Location</dt><dd>{device.locationLabel}</dd></div>
-          <div><dt>Linked asset</dt><dd>{device.assetName || "None"}</dd></div>
-          <div><dt>Linked meter</dt><dd>{device.meterLabel || "None"}</dd></div>
+          <div><dt>Linked to</dt><dd>{device.assetName ? `Asset · ${device.assetName}` : device.meterLabel ? device.meterLabel : device.spaceName ? `Space · ${device.spaceName}` : "No link"}</dd></div>
           <div><dt>External ID</dt><dd>{device.externalId || "Not provided"}</dd></div>
           <div><dt>Protocol</dt><dd>{device.protocol || "Not provided"}</dd></div>
           <div><dt>Last seen</dt><dd>{device.lastSeenAt ? formatUtcDateTime(device.lastSeenAt) : "Not recorded"}</dd></div>

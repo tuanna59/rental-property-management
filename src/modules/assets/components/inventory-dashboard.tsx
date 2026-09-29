@@ -144,7 +144,7 @@ export function InventoryDashboard({
                         </div>
                       </td>
                       <td>{item.categoryName}</td>
-                      <td><strong>{item.spaceName || item.floorName || "Property"}</strong>{item.spaceName && item.floorName && <span className="asset-cell-subtle">{item.floorName}</span>}</td>
+                      <td><strong>{item.locationLabel}</strong></td>
                       <td><div className="asset-badge-stack"><AssetStatusBadge status={item.status} />{item.underMaintenance && <UnderMaintenanceBadge />}</div></td>
                       <td><div className="asset-warranty-cell"><WarrantyBadge state={item.warrantyState} />{item.warrantyExpiresAt && <span>{formatDate(item.warrantyExpiresAt)}</span>}</div></td>
                       <td>{item.activeMaintenanceCount ? `${item.activeMaintenanceCount} active issue${item.activeMaintenanceCount === 1 ? "" : "s"}` : <span className="asset-muted">Clear</span>}</td>

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { toDateOnly } from "@/lib/presentation";
+import { formatLocationLabel } from "@/lib/location";
 
 import type {
   ExpenseCategory,
@@ -90,9 +91,7 @@ export async function getOperationsAssetOptions(
     name: asset.name,
     floorId: asset.floorId ?? null,
     spaceId: asset.spaceId ?? null,
-    locationLabel: asset.space?.name
-      ? `${asset.space.name}${asset.floor?.name ? ` · ${asset.floor.name}` : ""}`
-      : asset.floor?.name || "Property",
+    locationLabel: formatLocationLabel({ spaceName: asset.space?.name, floorName: asset.floor?.name }),
   }));
 }
 
@@ -163,9 +162,7 @@ function mapMaintenance(issue: any): MaintenanceListItemView {
     (sum: bigint, expense: any) => addMoney(sum, expense.amount),
     BigInt(0),
   );
-  const locationLabel = issue.space?.name
-    ? `${issue.space.name}${issue.floor?.name ? ` · ${issue.floor.name}` : ""}`
-    : issue.floor?.name || "Property";
+  const locationLabel = formatLocationLabel({ spaceName: issue.space?.name, floorName: issue.floor?.name });
   return {
     id: issue.id,
     title: issue.title,
@@ -293,9 +290,7 @@ export async function getExpensePage(
       floorName: expense.floor?.name ?? null,
       spaceId: expense.spaceId ?? null,
       spaceName: expense.space?.name ?? null,
-      locationLabel: expense.space?.name
-        ? `${expense.space.name}${expense.floor?.name ? ` · ${expense.floor.name}` : ""}`
-        : expense.floor?.name || "Property",
+      locationLabel: formatLocationLabel({ spaceName: expense.space?.name, floorName: expense.floor?.name }),
       maintenanceIssueId: expense.maintenanceIssueId ?? null,
       maintenanceTitle: expense.maintenanceIssue?.title ?? null,
       hasReceipt: Boolean(expense.receiptStorageKey),
@@ -311,9 +306,7 @@ export async function getExpensePage(
     maintenanceOptions: maintenance.map((issue: any) => ({
       id: issue.id,
       title: issue.title,
-      locationLabel: issue.space?.name
-        ? `${issue.space.name}${issue.floor?.name ? ` · ${issue.floor.name}` : ""}`
-        : issue.floor?.name || "Property",
+      locationLabel: formatLocationLabel({ spaceName: issue.space?.name, floorName: issue.floor?.name }),
     })),
     maintenanceItems: maintenance.map((issue: any) => mapMaintenance(issue)),
     assetOptions,
@@ -438,9 +431,7 @@ export async function getTaskPage(propertyId: string): Promise<TaskPageView> {
     maintenanceOptions: maintenance.map((issue: any) => ({
       id: issue.id,
       title: issue.title,
-      locationLabel: issue.space?.name
-        ? `${issue.space.name}${issue.floor?.name ? ` · ${issue.floor.name}` : ""}`
-        : issue.floor?.name || "Property",
+      locationLabel: formatLocationLabel({ spaceName: issue.space?.name, floorName: issue.floor?.name }),
     })),
     invoiceOptions,
   };

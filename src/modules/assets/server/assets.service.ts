@@ -11,6 +11,7 @@ import {
   type AssetAttachmentType,
   type AssetStatus,
   type DeviceStatus,
+  type DeviceLinkType,
 } from "../domain/types";
 import { assetsDb, requireAssetsSchema } from "./assets-db";
 import { removePrivateAssetFile, storeAssetAttachment } from "./private-media";
@@ -34,6 +35,7 @@ type AssetInput = LocationInput & {
 };
 
 type DeviceInput = LocationInput & {
+  linkType: DeviceLinkType;
   name: string;
   deviceType: string;
   assetId?: string | null;
@@ -305,26 +307,44 @@ async function validateMeterLink(propertyId: string, meterId?: string | null, cl
   return { id: meter.id, spaceId: meter.spaceId, floorId: meter.space.floorId };
 }
 
+async function resolveDeviceLink(input: DeviceInput) {
+  switch (input.linkType) {
+    case "ASSET": {
+      if (!input.assetId) throw new Error("Choose an asset to link this device.");
+      const asset = await validateAssetLink(input.propertyId, input.assetId);
+      if (!asset) throw new Error("Linked asset was not found.");
+      return { floorId: asset.floorId ?? null, spaceId: asset.spaceId ?? null, assetId: asset.id, meterId: null };
+    }
+    case "METER": {
+      if (!input.meterId) throw new Error("Choose a meter to link this device.");
+      const meter = await validateMeterLink(input.propertyId, input.meterId);
+      if (!meter) throw new Error("Linked meter was not found.");
+      return { floorId: meter.floorId, spaceId: meter.spaceId, assetId: null, meterId: meter.id };
+    }
+    case "SPACE": {
+      if (!input.spaceId) throw new Error("Choose a space to link this device.");
+      const location = await validateLocation({ propertyId: input.propertyId, spaceId: input.spaceId });
+      return { ...location, assetId: null, meterId: null };
+    }
+    case "NO_LINK": {
+      const location = await validateLocation({ propertyId: input.propertyId, floorId: input.floorId, spaceId: input.spaceId });
+      return { ...location, assetId: null, meterId: null };
+    }
+    default:
+      throw new Error("Choose how this device is linked.");
+  }
+}
+
 export async function createDevice(input: DeviceInput) {
   const db = requireAssetsSchema();
-  let location = await validateLocation(input);
-  const asset = await validateAssetLink(input.propertyId, input.assetId);
-  const meter = await validateMeterLink(input.propertyId, input.meterId);
-  if (asset) {
-    if (location.spaceId && asset.spaceId && location.spaceId !== asset.spaceId) throw new Error("Device location conflicts with the selected asset.");
-    location = { floorId: asset.floorId ?? location.floorId, spaceId: asset.spaceId ?? location.spaceId };
-  }
-  if (meter) {
-    if (location.spaceId && location.spaceId !== meter.spaceId) throw new Error("Device location conflicts with the selected meter.");
-    location = { floorId: meter.floorId, spaceId: meter.spaceId };
-  }
+  const link = await resolveDeviceLink(input);
   return db.device!.create({
     data: {
       propertyId: input.propertyId,
-      floorId: location.floorId,
-      spaceId: location.spaceId,
-      assetId: asset?.id ?? null,
-      meterId: meter?.id ?? null,
+      floorId: link.floorId,
+      spaceId: link.spaceId,
+      assetId: link.assetId,
+      meterId: link.meterId,
       name: requiredText(input.name, "Device name is required."),
       deviceType: requiredText(input.deviceType, "Device type is required."),
       externalId: input.externalId?.trim() || null,
@@ -339,24 +359,14 @@ export async function updateDevice(deviceId: string, input: DeviceInput) {
   const db = requireAssetsSchema();
   const existing = await db.device!.findFirst({ where: { id: deviceId, propertyId: input.propertyId, archivedAt: null } });
   if (!existing) throw new Error("Device was not found.");
-  let location = await validateLocation(input);
-  const asset = await validateAssetLink(input.propertyId, input.assetId);
-  const meter = await validateMeterLink(input.propertyId, input.meterId);
-  if (asset) {
-    if (location.spaceId && asset.spaceId && location.spaceId !== asset.spaceId) throw new Error("Device location conflicts with the selected asset.");
-    location = { floorId: asset.floorId ?? location.floorId, spaceId: asset.spaceId ?? location.spaceId };
-  }
-  if (meter) {
-    if (location.spaceId && location.spaceId !== meter.spaceId) throw new Error("Device location conflicts with the selected meter.");
-    location = { floorId: meter.floorId, spaceId: meter.spaceId };
-  }
+  const link = await resolveDeviceLink(input);
   return db.device!.update({
     where: { id: deviceId },
     data: {
-      floorId: location.floorId,
-      spaceId: location.spaceId,
-      assetId: asset?.id ?? null,
-      meterId: meter?.id ?? null,
+      floorId: link.floorId,
+      spaceId: link.spaceId,
+      assetId: link.assetId,
+      meterId: link.meterId,
       name: requiredText(input.name, "Device name is required."),
       deviceType: requiredText(input.deviceType, "Device type is required."),
       externalId: input.externalId?.trim() || null,
