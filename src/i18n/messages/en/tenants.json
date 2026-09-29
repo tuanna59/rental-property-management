@@ -1,0 +1,13 @@
+{
+  "title": "Tenants",
+  "tenant": "Tenant",
+  "currentRental": "Current rental",
+  "monthlyRent": "Monthly rent",
+  "deposit": "Deposit",
+  "responsible": "Responsible",
+  "additional": "Additional",
+  "moveIn": "Move in",
+  "moveOut": "Move out",
+  "rentalHistory": "Rental history",
+  "documents": "Documents"
+}

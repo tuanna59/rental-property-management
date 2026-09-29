@@ -1,0 +1,22 @@
+{
+  "appName": "My Rental Property",
+  "close": "Close",
+  "open": "Open",
+  "save": "Save",
+  "cancel": "Cancel",
+  "edit": "Edit",
+  "add": "Add",
+  "delete": "Delete",
+  "archive": "Archive",
+  "active": "Active",
+  "all": "All",
+  "status": "Status",
+  "actions": "Actions",
+  "search": "Search",
+  "noData": "No data",
+  "loading": "Loading",
+  "filesSelected": "{count, plural, one {# file selected} other {# files selected}}",
+  "attachmentsCount": "{count, plural, one {# attachment} other {# attachments}}",
+  "noAttachmentSelected": "No attachment selected",
+  "changeSelection": "Change selection"
+}

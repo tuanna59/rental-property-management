@@ -237,9 +237,9 @@
 .analytics-bar-month { height: 100%; display: grid; grid-template-rows: 1fr auto; gap: 6px; min-width: 0; }
 .analytics-bar-group { display: flex; align-items: flex-end; justify-content: center; gap: 4px; min-height: 0; }
 .analytics-bar { display: block; width: min(22%, 16px); min-height: 2px; border-radius: 4px 4px 1px 1px; transition: height .2s ease; }
-.series-billed { background: var(--app-brand); }
-.series-collected { background: var(--app-info); }
-.series-expenses { background: var(--app-warning); }
+.series-billed { background: var(--app-chart-billed); }
+.series-collected { background: var(--app-chart-collected); }
+.series-expenses { background: var(--app-chart-expenses); }
 .analytics-bar-month > span { text-align: center; color: var(--app-text-muted); font-size: 10.5px; white-space: nowrap; }
 
 .billing-heading-icon {
@@ -462,7 +462,7 @@
 .occupancy-trend-chart { height: 220px; display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); gap: 6px; align-items: end; margin-top: 18px; }
 .occupancy-trend-column { height: 100%; display: grid; grid-template-rows: 1fr auto; gap: 5px; }
 .occupancy-trend-column > div { display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid var(--app-border); }
-.occupancy-trend-column i { display: block; width: 58%; max-width: 24px; background: var(--app-brand); border-radius: 5px 5px 0 0; }
+.occupancy-trend-column i { display: block; width: 58%; max-width: 24px; background: var(--app-chart-occupancy); border-radius: 5px 5px 0 0; }
 .occupancy-trend-column span { text-align: center; color: var(--app-text-muted); font-size: 10.5px; }
 .expense-category-bars { margin-top: 16px; display: grid; gap: 12px; }
 .expense-category-row { display: grid; grid-template-columns: 100px minmax(80px,1fr) auto; gap: 10px; align-items: center; font-size: 12.5px; }

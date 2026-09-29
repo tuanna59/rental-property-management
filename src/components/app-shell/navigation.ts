@@ -10,13 +10,36 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+export type AppNavigationLabelKey =
+  | "dashboard"
+  | "building"
+  | "tenants"
+  | "utilities"
+  | "utilitiesOverview"
+  | "meters"
+  | "rates"
+  | "billing"
+  | "invoices"
+  | "payments"
+  | "deposits"
+  | "operations"
+  | "maintenance"
+  | "tasks"
+  | "expenses"
+  | "assets"
+  | "inventory"
+  | "devices"
+  | "reports";
+
 export type AppNavigationChild = {
-  label: string;
+  id: string;
+  labelKey: AppNavigationLabelKey;
   href: string;
 };
 
 export type AppNavigationItem = {
-  label: string;
+  id: string;
+  labelKey: AppNavigationLabelKey;
   href?: string;
   icon: LucideIcon;
   children?: readonly AppNavigationChild[];
@@ -24,57 +47,65 @@ export type AppNavigationItem = {
 
 export const appNavigation: readonly AppNavigationItem[] = [
   {
-    label: "Dashboard",
+    id: "dashboard",
+    labelKey: "dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
-    label: "Building",
+    id: "building",
+    labelKey: "building",
     href: "/building",
     icon: Building2,
   },
   {
-    label: "Tenants",
+    id: "tenants",
+    labelKey: "tenants",
     href: "/tenants",
     icon: Users,
   },
   {
-    label: "Utilities",
+    id: "utilities",
+    labelKey: "utilities",
     icon: Zap,
     children: [
-      { label: "Overview", href: "/utilities" },
-      { label: "Meters", href: "/utilities/meters" },
-      { label: "Rates", href: "/utilities/rates" },
+      { id: "utilities-overview", labelKey: "utilitiesOverview", href: "/utilities" },
+      { id: "utilities-meters", labelKey: "meters", href: "/utilities/meters" },
+      { id: "utilities-rates", labelKey: "rates", href: "/utilities/rates" },
     ],
   },
   {
-    label: "Billing",
+    id: "billing",
+    labelKey: "billing",
     icon: ReceiptText,
     children: [
-      { label: "Invoices", href: "/billing/invoices" },
-      { label: "Payments", href: "/billing/payments" },
-      { label: "Deposits", href: "/billing/deposits" },
+      { id: "billing-invoices", labelKey: "invoices", href: "/billing/invoices" },
+      { id: "billing-payments", labelKey: "payments", href: "/billing/payments" },
+      { id: "billing-deposits", labelKey: "deposits", href: "/billing/deposits" },
     ],
   },
   {
-    label: "Operations",
+    id: "operations",
+    labelKey: "operations",
     icon: ClipboardCheck,
     children: [
-      { label: "Maintenance", href: "/operations/maintenance" },
-      { label: "Tasks", href: "/operations/tasks" },
-      { label: "Expenses", href: "/operations/expenses" },
+      { id: "operations-maintenance", labelKey: "maintenance", href: "/operations/maintenance" },
+      { id: "operations-tasks", labelKey: "tasks", href: "/operations/tasks" },
+      { id: "operations-expenses", labelKey: "expenses", href: "/operations/expenses" },
     ],
   },
   {
-    label: "Assets",
+    id: "assets",
+    labelKey: "assets",
     icon: Boxes,
     children: [
-      { label: "Inventory", href: "/assets" },
-      { label: "Devices", href: "/assets/devices" },
+      { id: "assets-inventory", labelKey: "inventory", href: "/assets" },
+      { id: "assets-devices", labelKey: "devices", href: "/assets/devices" },
     ],
   },
   {
-    label: "Reports",
+    id: "reports",
+    labelKey: "reports",
     href: "/reports",
     icon: BarChart3,
   },

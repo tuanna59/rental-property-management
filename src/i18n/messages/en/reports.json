@@ -1,0 +1,13 @@
+{
+  "title": "Reports",
+  "financial": "Financial",
+  "revenue": "Revenue",
+  "expenses": "Expenses",
+  "occupancy": "Occupancy",
+  "utilities": "Utilities",
+  "deposits": "Deposits",
+  "billed": "Billed",
+  "collected": "Collected",
+  "outstanding": "Outstanding",
+  "netCash": "Net cash"
+}

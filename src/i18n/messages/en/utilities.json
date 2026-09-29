@@ -1,0 +1,18 @@
+{
+  "title": "Utilities",
+  "overview": "Utilities Overview",
+  "meters": "Meters",
+  "rates": "Rates",
+  "meter": "Meter",
+  "meterReading": "Meter reading",
+  "monthlyClosing": "Monthly closing",
+  "previousClosing": "Previous closing",
+  "latestReading": "Latest reading",
+  "newReading": "New reading",
+  "readingDate": "Reading date",
+  "knownUsage": "Known usage",
+  "earlyClosing": "Early closing",
+  "missingBoundary": "Missing boundary",
+  "noMeter": "No meter",
+  "locked": "Locked"
+}

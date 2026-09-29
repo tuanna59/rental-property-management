@@ -1,0 +1,22 @@
+{
+  "appName": "Nhà Trọ Của Tôi",
+  "close": "Đóng",
+  "open": "Mở",
+  "save": "Lưu",
+  "cancel": "Hủy",
+  "edit": "Chỉnh sửa",
+  "add": "Thêm",
+  "delete": "Xóa",
+  "archive": "Lưu trữ",
+  "active": "Đang hoạt động",
+  "all": "Tất cả",
+  "status": "Trạng thái",
+  "actions": "Thao tác",
+  "search": "Tìm kiếm",
+  "noData": "Không có dữ liệu",
+  "loading": "Đang tải",
+  "filesSelected": "Đã chọn {count} tệp",
+  "attachmentsCount": "{count} tệp đính kèm",
+  "noAttachmentSelected": "Chưa chọn tệp đính kèm",
+  "changeSelection": "Đổi tệp đã chọn"
+}

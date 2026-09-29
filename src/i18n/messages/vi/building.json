@@ -1,0 +1,16 @@
+{
+  "title": "Tòa nhà",
+  "occupancy": "Tình trạng thuê",
+  "maintenance": "Bảo trì",
+  "utilities": "Điện nước",
+  "assets": "Tài sản",
+  "day": "Ban ngày",
+  "night": "Ban đêm",
+  "allFloors": "Tất cả tầng",
+  "spaceOverview": "Thông tin khu vực",
+  "overview": "Tổng quan",
+  "rental": "Thông tin thuê",
+  "operations": "Vận hành",
+  "basicInformation": "Thông tin cơ bản",
+  "notes": "Ghi chú"
+}

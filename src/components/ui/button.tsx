@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-brand)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-focus-ring-offset)] disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -14,7 +14,7 @@ const buttonVariants = cva(
         outline:
           "border border-[var(--app-border-strong)] bg-[var(--app-surface)] text-[var(--app-text-primary)] shadow-sm hover:bg-[var(--app-row-hover-bg)]",
         ghost: "text-[var(--app-text-primary)] hover:bg-[var(--app-brand-soft)]",
-        danger: "bg-[var(--app-danger)] text-white shadow-sm hover:brightness-90",
+        danger: "bg-[var(--app-danger)] text-[var(--app-danger-foreground)] shadow-sm hover:brightness-90",
       },
       size: {
         default: "h-10 px-4 py-2",

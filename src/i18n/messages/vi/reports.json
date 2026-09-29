@@ -1,0 +1,13 @@
+{
+  "title": "Báo cáo",
+  "financial": "Tài chính",
+  "revenue": "Doanh thu",
+  "expenses": "Chi phí",
+  "occupancy": "Tình trạng thuê",
+  "utilities": "Điện nước",
+  "deposits": "Tiền cọc",
+  "billed": "Đã lập hóa đơn",
+  "collected": "Đã thu",
+  "outstanding": "Còn phải thu",
+  "netCash": "Dòng tiền ròng"
+}

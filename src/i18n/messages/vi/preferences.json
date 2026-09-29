@@ -1,0 +1,13 @@
+{
+  "title": "Giao diện",
+  "description": "Chọn giao diện và ngôn ngữ sử dụng trong ứng dụng.",
+  "open": "Giao diện và ngôn ngữ",
+  "theme": "Chủ đề",
+  "light": "Sáng",
+  "dark": "Tối",
+  "system": "Theo hệ thống",
+  "language": "Ngôn ngữ",
+  "english": "Tiếng Anh",
+  "vietnamese": "Tiếng Việt",
+  "systemHint": "Theo hệ thống sẽ dùng giao diện sáng/tối của thiết bị."
+}

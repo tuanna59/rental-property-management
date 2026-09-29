@@ -1,0 +1,18 @@
+{
+  "title": "Billing",
+  "invoice": "Invoice",
+  "invoices": "Invoices",
+  "payments": "Payments",
+  "deposits": "Deposits",
+  "draft": "Draft",
+  "finalized": "Finalized",
+  "unpaid": "Unpaid",
+  "partial": "Partial",
+  "paid": "Paid",
+  "billed": "Billed",
+  "collected": "Collected",
+  "outstanding": "Outstanding",
+  "generate": "Generate",
+  "finalize": "Finalize",
+  "recordPayment": "Record payment"
+}

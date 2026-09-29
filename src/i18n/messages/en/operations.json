@@ -1,0 +1,20 @@
+{
+  "title": "Operations",
+  "maintenance": "Maintenance",
+  "tasks": "Tasks",
+  "expenses": "Expenses",
+  "open": "Open",
+  "inProgress": "In progress",
+  "urgent": "Urgent",
+  "completed": "Completed",
+  "priority": "Priority",
+  "assigned": "Assigned",
+  "relatedCost": "Related cost",
+  "photos": "Photos",
+  "due": "Due",
+  "overdue": "Overdue",
+  "upcoming": "Upcoming",
+  "recurrence": "Recurrence",
+  "receipt": "Receipt",
+  "location": "Location"
+}

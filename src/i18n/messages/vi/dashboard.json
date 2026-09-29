@@ -1,0 +1,17 @@
+{
+  "overview": "Tổng quan",
+  "title": "Bảng điều khiển",
+  "currentMonth": "Tháng hiện tại",
+  "digitalTwin": "Mô hình tòa nhà",
+  "openBuilding": "Mở tòa nhà",
+  "needsAttention": "Cần xử lý",
+  "operationalQueue": "Hàng đợi vận hành",
+  "billedRevenue": "Doanh thu đã lập hóa đơn",
+  "cashCollected": "Tiền đã thu",
+  "expenses": "Chi phí",
+  "netCash": "Dòng tiền ròng",
+  "financialTrend": "Xu hướng tài chính",
+  "billingStatus": "Tình trạng thu tiền",
+  "recentPayments": "Thanh toán gần đây",
+  "upcoming": "Sắp tới"
+}

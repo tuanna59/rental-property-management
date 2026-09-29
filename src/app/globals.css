@@ -6,10 +6,12 @@
   --app-surface: #ffffff;
   --app-surface-subtle: #faf9f6;
   --app-surface-elevated: #fffdf9;
+  --app-surface-interactive: #f4f7f4;
 
   --app-text-primary: #1d2d29;
   --app-text-secondary: #5f6f68;
   --app-text-muted: #7a8781;
+  --app-text-disabled: #a4ada8;
 
   --app-border: #dce3de;
   --app-border-strong: #cbd6cf;
@@ -18,6 +20,7 @@
   --app-brand-hover: #195c4c;
   --app-brand-soft: #e7f1eb;
   --app-brand-foreground: #ffffff;
+  --app-primary-foreground: var(--app-brand-foreground);
 
   --app-success: #216448;
   --app-success-soft: #e5f3eb;
@@ -25,6 +28,7 @@
   --app-warning-soft: #fff2dc;
   --app-danger: #9c3c2f;
   --app-danger-soft: #fbe7e3;
+  --app-danger-foreground: #ffffff;
   --app-info: #496f9d;
   --app-info-soft: #e7eef9;
   --app-neutral: #6f6658;
@@ -36,6 +40,7 @@
   --app-row-hover-bg: #f7faf8;
   --app-tab-active: var(--app-brand);
   --app-input-bg: var(--app-surface);
+  --app-input-border: var(--app-border-strong);
   --app-sidebar-active-bg: #e5efe9;
   --app-status-success-bg: var(--app-success-soft);
   --app-status-warning-bg: var(--app-warning-soft);
@@ -45,8 +50,21 @@
 
   --app-radius-card: 12px;
   --app-radius-control: 8px;
+  --app-shadow-sm: 0 1px 2px rgb(25 45 36 / 5%);
   --app-shadow-card: 0 1px 2px rgb(25 45 36 / 3%);
   --app-shadow-elevated: 0 14px 38px rgb(38 58 49 / 8%);
+
+  /* Shared chart semantics. Features should consume these instead of hardcoding series colors. */
+  --app-chart-billed: #1f6f5b;
+  --app-chart-collected: #4b78b5;
+  --app-chart-expenses: #a5752a;
+  --app-chart-occupancy: #2f8068;
+  --app-chart-utility: #5d83a9;
+  --app-chart-grid: #e4e9e5;
+  --app-chart-axis: #7a8781;
+  --app-chart-tooltip-bg: #ffffff;
+  --app-chart-tooltip-border: #dce3de;
+  --app-chart-tooltip-text: #1d2d29;
 
   /* Shared application page scale. Feature pages keep their own content, but
      use the same outer width, gutters, heading rhythm, and typography. */
@@ -70,15 +88,120 @@
 
   /* Shared component scale used by every feature shell. */
   --app-focus-ring: #2869a0;
+  --app-focus-ring-offset: var(--app-page-bg);
+  --app-control-disabled-bg: #f0f1ee;
+  --app-control-disabled-text: #9aa39e;
   --app-sidebar-width: 228px;
   --app-sidebar-collapsed-width: 68px;
   --app-sidebar-row-height: 42px;
   --app-mobile-bar-height: 52px;
   --app-overlay-bg: rgb(18 35 29 / 50%);
 
+  /* Semantic aliases for new cross-application infrastructure. */
+  --app-bg: var(--app-page-bg);
+  --surface: var(--app-surface);
+  --surface-subtle: var(--app-surface-subtle);
+  --surface-elevated: var(--app-surface-elevated);
+  --surface-interactive: var(--app-surface-interactive);
+  --text: var(--app-text-primary);
+  --text-secondary: var(--app-text-secondary);
+  --text-muted: var(--app-text-muted);
+  --text-disabled: var(--app-text-disabled);
+  --border: var(--app-border);
+  --border-strong: var(--app-border-strong);
+  --primary: var(--app-brand);
+  --primary-hover: var(--app-brand-hover);
+  --primary-subtle: var(--app-brand-soft);
+  --primary-foreground: var(--app-brand-foreground);
+  --success: var(--app-success);
+  --success-subtle: var(--app-success-soft);
+  --warning: var(--app-warning);
+  --warning-subtle: var(--app-warning-soft);
+  --danger: var(--app-danger);
+  --danger-subtle: var(--app-danger-soft);
+  --info: var(--app-info);
+  --info-subtle: var(--app-info-soft);
+  --input-bg: var(--app-input-bg);
+  --input-border: var(--app-input-border);
+  --overlay: var(--app-overlay-bg);
+  --shadow: var(--app-shadow-card);
+  --chart-billed: var(--app-chart-billed);
+  --chart-collected: var(--app-chart-collected);
+  --chart-expenses: var(--app-chart-expenses);
+  --chart-occupancy: var(--app-chart-occupancy);
+  --chart-utility: var(--app-chart-utility);
+  --chart-grid: var(--app-chart-grid);
+  --chart-axis: var(--app-chart-axis);
+  --chart-tooltip-bg: var(--app-chart-tooltip-bg);
+
   /* Backward-compatible aliases used by Tailwind theme utilities. */
   --background: var(--app-page-bg);
   --foreground: var(--app-text-primary);
+}
+
+
+html[data-theme="dark"] {
+  --app-page-bg: #171b19;
+  --app-surface: #202522;
+  --app-surface-subtle: #252b27;
+  --app-surface-elevated: #292f2b;
+  --app-surface-interactive: #2d342f;
+
+  --app-text-primary: #f1eee7;
+  --app-text-secondary: #c4cbc6;
+  --app-text-muted: #929d96;
+  --app-text-disabled: #68716c;
+
+  --app-border: #343d38;
+  --app-border-strong: #46514b;
+
+  --app-brand: #65b59c;
+  --app-brand-hover: #78c5ac;
+  --app-brand-soft: #263f37;
+  --app-brand-foreground: #10251e;
+  --app-primary-foreground: var(--app-brand-foreground);
+
+  --app-success: #76c39a;
+  --app-success-soft: #253d31;
+  --app-warning: #dfb261;
+  --app-warning-soft: #433722;
+  --app-danger: #e58c7d;
+  --app-danger-soft: #442d2a;
+  --app-danger-foreground: #24110e;
+  --app-info: #83addc;
+  --app-info-soft: #283746;
+  --app-neutral: #b8afa0;
+  --app-neutral-soft: #35322d;
+
+  --app-card-bg: var(--app-surface);
+  --app-table-header-bg: #252b27;
+  --app-row-selected-bg: #294139;
+  --app-row-hover-bg: #2a312d;
+  --app-input-bg: #1d221f;
+  --app-input-border: #46514b;
+  --app-sidebar-active-bg: #294139;
+
+  --app-focus-ring: #78c5ac;
+  --app-focus-ring-offset: var(--app-page-bg);
+  --app-control-disabled-bg: #232824;
+  --app-control-disabled-text: #68716c;
+  --app-overlay-bg: rgb(5 8 7 / 68%);
+  --app-shadow-sm: 0 1px 2px rgb(0 0 0 / 22%);
+  --app-shadow-card: 0 1px 2px rgb(0 0 0 / 18%);
+  --app-shadow-elevated: 0 18px 44px rgb(0 0 0 / 34%);
+
+  --app-chart-billed: #68b79f;
+  --app-chart-collected: #7faee0;
+  --app-chart-expenses: #d8a85a;
+  --app-chart-occupancy: #73c0a4;
+  --app-chart-utility: #8aadd0;
+  --app-chart-grid: #343d38;
+  --app-chart-axis: #929d96;
+  --app-chart-tooltip-bg: #252b27;
+  --app-chart-tooltip-border: #46514b;
+  --app-chart-tooltip-text: #f1eee7;
+
+  --app-page-eyebrow-color: #c5a98f;
 }
 
 @theme inline {
@@ -104,6 +227,18 @@ body {
   color: var(--app-text-primary);
 }
 
+html {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  transition: background-color .16s ease, color .16s ease;
+}
+
 body {
   font-family: var(--font-source-sans), "Segoe UI", Arial, Helvetica, sans-serif;
 }
@@ -115,6 +250,115 @@ textarea,
 select {
   font-family: inherit;
   letter-spacing: 0;
+}
+
+
+/* Shared cross-application presentation primitives. Feature modules should
+   compose these semantic styles instead of introducing theme-specific colors. */
+::selection {
+  background: color-mix(in srgb, var(--app-brand) 28%, transparent);
+  color: var(--app-text-primary);
+}
+
+.app-focusable:focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 2px;
+}
+
+.app-card {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-card);
+  background: var(--app-card-bg);
+  color: var(--app-text-primary);
+  box-shadow: var(--app-shadow-card);
+}
+
+.app-surface-subtle {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-subtle);
+  color: var(--app-text-primary);
+}
+
+.app-empty-state {
+  min-height: 132px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 5px;
+  padding: 20px;
+  border: 1px dashed var(--app-border-strong);
+  border-radius: var(--app-radius-card);
+  background: var(--app-surface-subtle);
+  color: var(--app-text-secondary);
+  text-align: center;
+}
+.app-empty-state svg { width: 28px; height: 28px; color: var(--app-text-muted); }
+.app-empty-state strong { color: var(--app-text-primary); font-size: 14px; }
+.app-empty-state p { max-width: 48ch; margin: 0; color: var(--app-text-muted); font-size: 12.5px; line-height: 1.45; }
+
+.app-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.app-status-badge[data-tone="success"] { background: var(--app-success-soft); color: var(--app-success); border-color: color-mix(in srgb, var(--app-success) 18%, transparent); }
+.app-status-badge[data-tone="warning"] { background: var(--app-warning-soft); color: var(--app-warning); border-color: color-mix(in srgb, var(--app-warning) 18%, transparent); }
+.app-status-badge[data-tone="danger"] { background: var(--app-danger-soft); color: var(--app-danger); border-color: color-mix(in srgb, var(--app-danger) 18%, transparent); }
+.app-status-badge[data-tone="info"] { background: var(--app-info-soft); color: var(--app-info); border-color: color-mix(in srgb, var(--app-info) 18%, transparent); }
+.app-status-badge[data-tone="neutral"] { background: var(--app-neutral-soft); color: var(--app-neutral); border-color: color-mix(in srgb, var(--app-neutral) 18%, transparent); }
+
+.app-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-card);
+  background: var(--app-card-bg);
+}
+.app-table { width: 100%; border-collapse: collapse; color: var(--app-text-secondary); }
+.app-table th {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-table-header-bg);
+  color: var(--app-text-secondary);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: left;
+}
+.app-table td { padding: 11px 12px; border-bottom: 1px solid var(--app-border); }
+.app-table tbody tr:last-child td { border-bottom: 0; }
+.app-table tbody tr:hover td { background: var(--app-row-hover-bg); }
+.app-table tbody tr[aria-selected="true"] td { background: var(--app-row-selected-bg); }
+
+.app-field-help { margin: 4px 0 0; color: var(--app-text-muted); font-size: 12px; line-height: 1.4; }
+.app-field-error { margin: 4px 0 0; color: var(--app-danger); font-size: 12px; font-weight: 600; line-height: 1.4; }
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  background: var(--app-control-disabled-bg);
+  color: var(--app-control-disabled-text);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--app-brand);
+}
+
+input[type="date"],
+input[type="month"] {
+  color-scheme: inherit;
+}
+
+select option {
+  background: var(--app-surface-elevated);
+  color: var(--app-text-primary);
 }
 
 /* Shared semantic badge primitives; feature-specific components may compose these tokens. */

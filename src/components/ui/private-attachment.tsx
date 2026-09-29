@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Camera, FileText, ImagePlus, Paperclip, Upload } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
@@ -39,15 +40,16 @@ export function PrivateAttachmentPicker({
   className?: string;
 }) {
   const id = React.useId();
+  const tCommon = useTranslations("common");
   const [files, setFiles] = React.useState<File[]>([]);
   const Icon = kind === "image" ? ImagePlus : kind === "receipt" ? FileText : Paperclip;
   const selectedLabel = files.length
-    ? files.length === 1
-      ? files[0]?.name || "1 file selected"
-      : `${files.length} files selected`
+    ? files.length === 1 && files[0]?.name
+      ? files[0].name
+      : tCommon("filesSelected", { count: files.length })
     : existingCount > 0
-      ? `${existingCount} attached`
-      : emptyText ?? "No attachment selected";
+      ? tCommon("attachmentsCount", { count: existingCount })
+      : emptyText ?? tCommon("noAttachmentSelected");
 
   const input = (
     <input
@@ -90,7 +92,7 @@ export function PrivateAttachmentPicker({
         title={files.length ? selectedLabel : actionLabel}
       >
         <Upload aria-hidden="true" />
-        <span>{files.length ? "Change selection" : actionLabel}</span>
+        <span>{files.length ? tCommon("changeSelection") : actionLabel}</span>
         {input}
       </label>
     );
@@ -108,7 +110,7 @@ export function PrivateAttachmentPicker({
       </div>
       <label className="private-attachment-button" htmlFor={id}>
         <Upload aria-hidden="true" />
-        {files.length ? "Change selection" : actionLabel}
+        {files.length ? tCommon("changeSelection") : actionLabel}
       </label>
       {input}
     </div>

@@ -1,0 +1,20 @@
+{
+  "title": "Vận hành",
+  "maintenance": "Bảo trì",
+  "tasks": "Công việc",
+  "expenses": "Chi phí",
+  "open": "Đang mở",
+  "inProgress": "Đang xử lý",
+  "urgent": "Khẩn cấp",
+  "completed": "Hoàn tất",
+  "priority": "Mức ưu tiên",
+  "assigned": "Người phụ trách",
+  "relatedCost": "Chi phí liên quan",
+  "photos": "Hình ảnh",
+  "due": "Đến hạn",
+  "overdue": "Quá hạn",
+  "upcoming": "Sắp tới",
+  "recurrence": "Lặp lại",
+  "receipt": "Biên nhận",
+  "location": "Vị trí"
+}

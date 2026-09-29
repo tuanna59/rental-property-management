@@ -1,0 +1,18 @@
+{
+  "title": "Hóa đơn",
+  "invoice": "Hóa đơn",
+  "invoices": "Hóa đơn",
+  "payments": "Thanh toán",
+  "deposits": "Tiền cọc",
+  "draft": "Bản nháp",
+  "finalized": "Đã chốt",
+  "unpaid": "Chưa thanh toán",
+  "partial": "Thanh toán một phần",
+  "paid": "Đã thanh toán",
+  "billed": "Đã lập hóa đơn",
+  "collected": "Đã thu",
+  "outstanding": "Còn phải thu",
+  "generate": "Tạo hóa đơn",
+  "finalize": "Chốt hóa đơn",
+  "recordPayment": "Ghi nhận thanh toán"
+}

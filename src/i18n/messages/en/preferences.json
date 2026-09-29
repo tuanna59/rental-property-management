@@ -1,0 +1,13 @@
+{
+  "title": "Appearance",
+  "description": "Choose how the application looks and which language it uses.",
+  "open": "Appearance and language",
+  "theme": "Theme",
+  "light": "Light",
+  "dark": "Dark",
+  "system": "System",
+  "language": "Language",
+  "english": "English",
+  "vietnamese": "Vietnamese",
+  "systemHint": "System follows your operating system theme."
+}

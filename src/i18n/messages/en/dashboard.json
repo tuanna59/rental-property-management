@@ -1,0 +1,17 @@
+{
+  "overview": "Overview",
+  "title": "Dashboard",
+  "currentMonth": "Current month",
+  "digitalTwin": "Digital Twin",
+  "openBuilding": "Open building",
+  "needsAttention": "Needs attention",
+  "operationalQueue": "Operational queue",
+  "billedRevenue": "Billed revenue",
+  "cashCollected": "Cash collected",
+  "expenses": "Expenses",
+  "netCash": "Net cash",
+  "financialTrend": "Financial trend",
+  "billingStatus": "Billing status",
+  "recentPayments": "Recent payments",
+  "upcoming": "Upcoming"
+}

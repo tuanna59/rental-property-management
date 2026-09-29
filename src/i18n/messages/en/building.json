@@ -1,0 +1,16 @@
+{
+  "title": "Building",
+  "occupancy": "Occupancy",
+  "maintenance": "Maintenance",
+  "utilities": "Utilities",
+  "assets": "Assets",
+  "day": "Day",
+  "night": "Night",
+  "allFloors": "All floors",
+  "spaceOverview": "Space Overview",
+  "overview": "Overview",
+  "rental": "Rental",
+  "operations": "Operations",
+  "basicInformation": "Basic information",
+  "notes": "Notes"
+}

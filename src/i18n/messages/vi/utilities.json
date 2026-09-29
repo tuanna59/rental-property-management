@@ -1,0 +1,18 @@
+{
+  "title": "Điện nước",
+  "overview": "Tổng quan điện nước",
+  "meters": "Công tơ",
+  "rates": "Đơn giá",
+  "meter": "Công tơ",
+  "meterReading": "Chỉ số công tơ",
+  "monthlyClosing": "Chốt chỉ số tháng",
+  "previousClosing": "Chỉ số chốt trước",
+  "latestReading": "Chỉ số mới nhất",
+  "newReading": "Chỉ số mới",
+  "readingDate": "Ngày ghi chỉ số",
+  "knownUsage": "Mức sử dụng đã biết",
+  "earlyClosing": "Chốt sớm",
+  "missingBoundary": "Thiếu chỉ số biên",
+  "noMeter": "Chưa có công tơ",
+  "locked": "Đã khóa"
+}

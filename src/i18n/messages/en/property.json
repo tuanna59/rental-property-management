@@ -1,0 +1,9 @@
+{
+  "settings": "Property settings",
+  "floor": "Floor",
+  "space": "Space",
+  "rentalRoom": "Rental Room",
+  "ownerHome": "Owner Home",
+  "garage": "Garage",
+  "rooftop": "Rooftop"
+}

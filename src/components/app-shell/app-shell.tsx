@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   ChevronDown,
   Home,
@@ -10,9 +11,11 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 
+import { PreferencesDialog } from "@/components/preferences/preferences-dialog";
 import { PropertyFormDialog } from "@/modules/property/components/property-forms";
 import type { PropertyShellProjection } from "@/modules/property/domain/types";
 import {
@@ -72,7 +75,7 @@ function initialOpenGroups(pathname: string) {
   return Object.fromEntries(
     appNavigation
       .filter((item) => item.children)
-      .map((item) => [item.label, groupContainsPath(item, pathname)]),
+      .map((item) => [item.id, groupContainsPath(item, pathname)]),
   ) as Record<string, boolean>;
 }
 
@@ -99,7 +102,7 @@ export function AppShell({
     if (activeParents.length) {
       setOpenGroups((current) => {
         const next = { ...current };
-        for (const item of activeParents) next[item.label] = true;
+        for (const item of activeParents) next[item.id] = true;
         return next;
       });
     }
@@ -136,16 +139,19 @@ export function AppShell({
   }, [mobileOpen]);
 
   const toggleGroup = React.useCallback(
-    (label: string) => {
-      const item = appNavigation.find((entry) => entry.label === label);
+    (id: string) => {
+      const item = appNavigation.find((entry) => entry.id === id);
       const isActiveParent = Boolean(item && groupContainsPath(item, pathname));
       setOpenGroups((current) => ({
         ...current,
-        [label]: isActiveParent ? true : !current[label],
+        [id]: isActiveParent ? true : !current[id],
       }));
     },
     [pathname],
   );
+
+  const tCommon = useTranslations("common");
+  const tNav = useTranslations("navigation");
 
   return (
     <div className={`app-shell${collapsed ? " is-collapsed" : ""}`}>
@@ -164,7 +170,7 @@ export function AppShell({
           <button
             type="button"
             className="app-shell-mobile-backdrop"
-            aria-label="Close navigation"
+            aria-label={tNav("closeNavigation")}
             onClick={() => setMobileOpen(false)}
           />
           <AppSidebar
@@ -186,12 +192,12 @@ export function AppShell({
             ref={mobileTriggerRef}
             type="button"
             className="app-shell-mobile-trigger"
-            aria-label="Open navigation"
+            aria-label={tNav("openNavigation")}
             onClick={() => setMobileOpen(true)}
           >
             <Menu aria-hidden="true" />
           </button>
-          <span>My Rental Property</span>
+          <span>{tCommon("appName")}</span>
         </div>
         <div className="app-shell-content">{children}</div>
       </div>
@@ -221,11 +227,14 @@ function AppSidebar({
   onClose?: () => void;
 }) {
   const pathname = usePathname();
+  const tCommon = useTranslations("common");
+  const tNav = useTranslations("navigation");
+  const tPreferences = useTranslations("preferences");
 
   return (
     <aside
       className={`app-sidebar${mobile ? " is-mobile" : " app-sidebar-desktop"}`}
-      aria-label="Application navigation"
+      aria-label={tNav("applicationNavigation")}
       role={mobile ? "dialog" : undefined}
       aria-modal={mobile ? "true" : undefined}
     >
@@ -233,18 +242,18 @@ function AppSidebar({
         <Link
           href="/dashboard"
           className="app-sidebar-brand-link"
-          aria-label="My Rental Property"
-          title={collapsed ? "My Rental Property" : undefined}
+          aria-label={tCommon("appName")}
+          title={collapsed ? tCommon("appName") : undefined}
           onClick={onClose}
         >
           <Home aria-hidden="true" />
-          <span>My Rental Property</span>
+          <span>{tCommon("appName")}</span>
         </Link>
         {mobile && (
           <button
             type="button"
             className="app-sidebar-icon-button"
-            aria-label="Close navigation"
+            aria-label={tNav("closeNavigation")}
             onClick={onClose}
           >
             <X aria-hidden="true" />
@@ -262,27 +271,27 @@ function AppSidebar({
           if (item.href) {
             return (
               <Link
-                key={item.label}
+                key={item.id}
                 href={item.href}
                 className={`app-sidebar-item${active ? " is-active" : ""}`}
                 aria-current={active ? "page" : undefined}
-                aria-label={collapsed ? item.label : undefined}
-                title={collapsed ? item.label : undefined}
+                aria-label={collapsed ? tNav(item.labelKey) : undefined}
+                title={collapsed ? tNav(item.labelKey) : undefined}
                 onClick={onClose}
               >
                 <Icon aria-hidden="true" />
-                <span>{item.label}</span>
+                <span>{tNav(item.labelKey)}</span>
               </Link>
             );
           }
 
-          const expanded = Boolean(openGroups[item.label]);
-          const flyoutOpen = collapsed && flyout === item.label;
+          const expanded = Boolean(openGroups[item.id]);
+          const flyoutOpen = collapsed && flyout === item.id;
           return (
             <div
-              key={item.label}
+              key={item.id}
               className="app-sidebar-parent-wrap"
-              onMouseEnter={() => collapsed && onFlyoutChange(item.label)}
+              onMouseEnter={() => collapsed && onFlyoutChange(item.id)}
               onMouseLeave={() => collapsed && onFlyoutChange(null)}
               onBlur={(event) => {
                 if (
@@ -297,17 +306,17 @@ function AppSidebar({
                 type="button"
                 className={`app-sidebar-item app-sidebar-parent${active ? " is-contextual" : ""}`}
                 aria-expanded={collapsed ? flyoutOpen : expanded}
-                aria-label={collapsed ? item.label : undefined}
-                title={collapsed ? item.label : undefined}
-                onFocus={() => collapsed && onFlyoutChange(item.label)}
+                aria-label={collapsed ? tNav(item.labelKey) : undefined}
+                title={collapsed ? tNav(item.labelKey) : undefined}
+                onFocus={() => collapsed && onFlyoutChange(item.id)}
                 onClick={() =>
                   collapsed
-                    ? onFlyoutChange(flyoutOpen ? null : item.label)
-                    : onGroupToggle(item.label)
+                    ? onFlyoutChange(flyoutOpen ? null : item.id)
+                    : onGroupToggle(item.id)
                 }
               >
                 <Icon aria-hidden="true" />
-                <span>{item.label}</span>
+                <span>{tNav(item.labelKey)}</span>
                 {!collapsed && (
                   <ChevronDown
                     aria-hidden="true"
@@ -331,7 +340,7 @@ function AppSidebar({
                         aria-current={childActive ? "page" : undefined}
                         onClick={onClose}
                       >
-                        {child.label}
+                        {tNav(child.labelKey)}
                       </Link>
                     );
                   })}
@@ -340,7 +349,7 @@ function AppSidebar({
 
               {collapsed && flyoutOpen && (
                 <div className="app-sidebar-flyout" role="menu">
-                  <strong>{item.label}</strong>
+                  <strong>{tNav(item.labelKey)}</strong>
                   <div />
                   {item.children?.map((child) => {
                     const childActive = isNavigationHrefActive(
@@ -359,7 +368,7 @@ function AppSidebar({
                           onClose?.();
                         }}
                       >
-                        {child.label}
+                        {tNav(child.labelKey)}
                       </Link>
                     );
                   })}
@@ -371,17 +380,30 @@ function AppSidebar({
       </nav>
 
       <div className="app-sidebar-footer">
+        <PreferencesDialog
+          trigger={
+            <button
+              type="button"
+              className="app-sidebar-item"
+              aria-label={collapsed ? tPreferences("open") : undefined}
+              title={collapsed ? tPreferences("open") : undefined}
+            >
+              <SlidersHorizontal aria-hidden="true" />
+              <span>{tPreferences("open")}</span>
+            </button>
+          }
+        />
         <PropertyFormDialog
           property={property}
           trigger={
             <button
               type="button"
               className="app-sidebar-item"
-              aria-label={collapsed ? "Property settings" : undefined}
-              title={collapsed ? "Property settings" : undefined}
+              aria-label={collapsed ? tNav("propertySettings") : undefined}
+              title={collapsed ? tNav("propertySettings") : undefined}
             >
               <Settings aria-hidden="true" />
-              <span>Property settings</span>
+              <span>{tNav("propertySettings")}</span>
             </button>
           }
         />
@@ -389,8 +411,8 @@ function AppSidebar({
           <button
             type="button"
             className="app-sidebar-collapse"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={collapsed ? "Expand sidebar" : undefined}
+            aria-label={collapsed ? tNav("expandSidebar") : tNav("collapseSidebar")}
+            title={collapsed ? tNav("expandSidebar") : undefined}
             onClick={() => onCollapsedChange?.(!collapsed)}
           >
             {collapsed ? (
@@ -398,7 +420,7 @@ function AppSidebar({
             ) : (
               <PanelLeftClose aria-hidden="true" />
             )}
-            <span>{collapsed ? "Expand" : "Collapse"}</span>
+            <span>{collapsed ? tNav("expand") : tNav("collapse")}</span>
           </button>
         )}
       </div>
