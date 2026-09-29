@@ -621,3 +621,126 @@
 @media (max-width: 720px) { .analytics-loading-hero { grid-template-columns: 1fr; } .analytics-loading-grid { grid-template-columns: repeat(2,1fr); } .analytics-loading-header i:last-child { display: none; } }
 
 .report-no-data-note { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--app-border); border-radius: 9px; background: var(--app-surface-subtle); color: var(--app-text-secondary); font-size: 13px; line-height: 1.45; }
+
+/* Phase 10.3 — locale-aware chart tooltip + dark-theme chart chrome. */
+.analytics-bar-month,
+.occupancy-trend-column {
+  position: relative;
+  outline: none;
+}
+.analytics-bar-month:focus-visible,
+.occupancy-trend-column:focus-visible {
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px var(--app-focus-ring);
+}
+.analytics-chart-tooltip {
+  position: absolute;
+  z-index: 30;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  width: max-content;
+  min-width: 190px;
+  max-width: min(270px, 80vw);
+  display: grid;
+  gap: 7px;
+  padding: 10px 11px;
+  border: 1px solid var(--app-chart-tooltip-border);
+  border-radius: 9px;
+  background: var(--app-chart-tooltip-bg);
+  color: var(--app-chart-tooltip-text);
+  box-shadow: var(--app-shadow-elevated);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 5px);
+  transition: opacity .12s ease, transform .12s ease;
+}
+.analytics-bar-month:hover .analytics-chart-tooltip,
+.analytics-bar-month:focus-within .analytics-chart-tooltip,
+.occupancy-trend-column:hover .analytics-chart-tooltip,
+.occupancy-trend-column:focus-within .analytics-chart-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.analytics-chart-tooltip > strong {
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--app-chart-grid);
+  font-size: 12px;
+}
+.analytics-chart-tooltip > span {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: center;
+  color: var(--app-text-secondary);
+  font-size: 11.5px;
+  text-align: left;
+}
+.analytics-chart-tooltip > span > i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+.analytics-chart-tooltip > span > b {
+  color: var(--app-text-primary);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.occupancy-tooltip {
+  min-width: 140px;
+}
+.occupancy-tooltip > span {
+  display: flex;
+  justify-content: flex-end;
+}
+.occupancy-trend-column > div:first-child {
+  border-bottom-color: var(--app-chart-grid);
+}
+.analytics-bar-grid {
+  border-bottom-color: var(--app-chart-grid);
+}
+.analytics-bar-month > span,
+.occupancy-trend-column > span {
+  color: var(--app-chart-axis);
+}
+
+html[data-theme="dark"] .report-table-wrap,
+html[data-theme="dark"] .report-mobile-card,
+html[data-theme="dark"] .analytics-card,
+html[data-theme="dark"] .analytics-summary-card {
+  box-shadow: var(--app-shadow-card);
+}
+
+@media (max-width: 720px) {
+  .analytics-chart-tooltip {
+    min-width: 165px;
+  }
+}
+.occupancy-trend-column > .analytics-chart-tooltip {
+  border-bottom: 0;
+  align-items: initial;
+  justify-content: initial;
+}
+.analytics-bar-month:first-child .analytics-chart-tooltip,
+.occupancy-trend-column:first-child .analytics-chart-tooltip {
+  left: 0;
+  transform: translate(0, 5px);
+}
+.analytics-bar-month:first-child:hover .analytics-chart-tooltip,
+.analytics-bar-month:first-child:focus-within .analytics-chart-tooltip,
+.occupancy-trend-column:first-child:hover .analytics-chart-tooltip,
+.occupancy-trend-column:first-child:focus-within .analytics-chart-tooltip {
+  transform: translate(0, 0);
+}
+.analytics-bar-month:last-child .analytics-chart-tooltip,
+.occupancy-trend-column:last-child .analytics-chart-tooltip {
+  left: auto;
+  right: 0;
+  transform: translate(0, 5px);
+}
+.analytics-bar-month:last-child:hover .analytics-chart-tooltip,
+.analytics-bar-month:last-child:focus-within .analytics-chart-tooltip,
+.occupancy-trend-column:last-child:hover .analytics-chart-tooltip,
+.occupancy-trend-column:last-child:focus-within .analytics-chart-tooltip {
+  transform: translate(0, 0);
+}

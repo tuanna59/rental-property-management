@@ -29,6 +29,39 @@ export function formatDateOnlyLocale(value: string | Date, locale: AppLocale) {
   }).format(dateOnlyToUtc(value));
 }
 
+
+export function formatCompactDateLocale(value: string | Date, locale: AppLocale) {
+  return new Intl.DateTimeFormat(localeTag(locale), {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(dateOnlyToUtc(value));
+}
+
+export function formatMonthAxisLocale(value: string | Date, locale: AppLocale) {
+  const date = value instanceof Date
+    ? new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), 1))
+    : /^\d{4}-\d{2}$/.test(value)
+      ? new Date(`${value}-01T00:00:00Z`)
+      : dateOnlyToUtc(value);
+  return new Intl.DateTimeFormat(localeTag(locale), {
+    month: "short",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+export function formatMonthShortLocale(value: string | Date, locale: AppLocale) {
+  const date = value instanceof Date
+    ? new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), 1))
+    : /^\d{4}-\d{2}$/.test(value)
+      ? new Date(`${value}-01T00:00:00Z`)
+      : dateOnlyToUtc(value);
+  return new Intl.DateTimeFormat(localeTag(locale), {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
 export function formatMonthLocale(value: string | Date, locale: AppLocale) {
   const date = value instanceof Date
     ? new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), 1))

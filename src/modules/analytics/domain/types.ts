@@ -10,26 +10,38 @@ export type DashboardAttentionType =
   | "DEVICE"
   | "TENANCY";
 
+export type DashboardAttentionCode =
+  | "INVOICE_UNPAID"
+  | "INVOICE_PARTIAL"
+  | "UTILITY_BOUNDARY"
+  | "UTILITY_CLOSING"
+  | "UTILITY_ATTENTION"
+  | "MAINTENANCE_URGENT"
+  | "MAINTENANCE_HIGH"
+  | "TASK_OVERDUE"
+  | "DEVICE_OFFLINE";
+
 export type DashboardAttentionItem = {
   id: string;
   type: DashboardAttentionType;
+  code: DashboardAttentionCode;
   severity: DashboardAttentionSeverity;
-  title: string;
-  description: string;
+  subject: string;
+  context?: string | null;
   href: string;
   spaceId: string | null;
   date: string | null;
   amountVnd?: string;
+  count?: number;
 };
 
 export type DashboardAttentionGroup = {
   id: string;
   type: DashboardAttentionType;
   severity: DashboardAttentionSeverity;
-  title: string;
   count: number;
-  summary: string;
   href: string;
+  amountVnd?: string;
 };
 
 export type DashboardTrendPoint = {
@@ -53,8 +65,8 @@ export type DashboardUpcomingItem = {
   id: string;
   type: "MOVE_IN" | "MOVE_OUT" | "TASK" | "WARRANTY";
   date: string;
-  title: string;
-  description: string;
+  subject: string;
+  context?: string | null;
   href: string;
 };
 

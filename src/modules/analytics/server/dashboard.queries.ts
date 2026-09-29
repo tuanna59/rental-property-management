@@ -1,6 +1,6 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { formatVnd, toDateOnly } from "@/lib/presentation";
+import { toDateOnly } from "@/lib/presentation";
 import { assetsDb } from "@/modules/assets/server/assets-db";
 import { operationsDb } from "@/modules/operations/server/operations-db";
 import { getBuildingVisualProjection } from "@/modules/property/server/property.queries";
@@ -19,7 +19,6 @@ function businessToday() { const now = new Date(); return new Date(Date.UTC(now.
 function monthStart(year: number, monthIndex: number) { return new Date(Date.UTC(year, monthIndex, 1)); }
 function monthKey(value: Date) { return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, "0")}`; }
 function monthLabel(value: Date) { return new Intl.DateTimeFormat("en", { month: "short", year: "numeric", timeZone: "UTC" }).format(value); }
-function monthLabelLong(value: Date) { return new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(value); }
 function invoiceTotal(invoice: { lines: Array<{ finalAmount: Prisma.Decimal }>; adjustments: Array<{ type: string; amount: Prisma.Decimal }> }) { return invoice.lines.reduce((sum, line) => sum.plus(line.finalAmount), ZERO()).plus(invoice.adjustments.reduce((sum, adjustment) => adjustment.type === "CHARGE" ? sum.plus(adjustment.amount) : sum.minus(adjustment.amount), ZERO())); }
 function paidTotal(invoice: { payments: Array<{ amount: Prisma.Decimal }> }) { return invoice.payments.reduce((sum, payment) => sum.plus(payment.amount), ZERO()); }
 function severityRank(value: DashboardAttentionSeverity) { return { BLOCKING: 0, URGENT: 1, WARNING: 2, INFO: 3 }[value]; }
@@ -272,8 +271,8 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
       id: `invoice:${invoice.id}`,
       type: "BILLING",
       severity: paid.isZero() ? "WARNING" : "INFO",
-      title: paid.isZero() ? "Finalized invoice unpaid" : "Invoice partially paid",
-      description: `${invoice.roomNameSnapshot} · ${monthLabelLong(invoice.billingPeriod)} · ${formatVnd(balance.toString())} outstanding`,
+      code: paid.isZero() ? "INVOICE_UNPAID" : "INVOICE_PARTIAL",
+      subject: invoice.roomNameSnapshot,
       href: `/billing/invoices/${invoice.id}`,
       spaceId: null,
       date: dateOnly(invoice.billingPeriod),
@@ -287,8 +286,8 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
           id: `utility-boundary:${space.id}`,
           type: "UTILITIES",
           severity: "BLOCKING",
-          title: "Utility boundary missing",
-          description: `${space.name} · boundary reading required`,
+          code: "UTILITY_BOUNDARY",
+          subject: space.name,
           href: `/utilities/meters?month=${monthKey(currentMonth)}`,
           spaceId: space.id,
           date: dateOnly(currentMonth),
@@ -298,8 +297,8 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
           id: `utility-closing:${space.id}`,
           type: "UTILITIES",
           severity: "WARNING",
-          title: "Electricity closing required",
-          description: `${space.name} · ${monthLabelLong(currentMonth)}`,
+          code: "UTILITY_CLOSING",
+          subject: space.name,
           href: `/utilities/meters?month=${monthKey(currentMonth)}`,
           spaceId: space.id,
           date: dateOnly(currentMonth),
@@ -309,8 +308,9 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
           id: `utility-attention:${space.id}`,
           type: "UTILITIES",
           severity: "WARNING",
-          title: "Utility data needs attention",
-          description: `${space.name} · ${space.utilities.attentionCount} issue${space.utilities.attentionCount === 1 ? "" : "s"}`,
+          code: "UTILITY_ATTENTION",
+          subject: space.name,
+          count: space.utilities.attentionCount,
           href: `/utilities?month=${monthKey(currentMonth)}`,
           spaceId: space.id,
           date: dateOnly(currentMonth),
@@ -323,8 +323,9 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
       id: `maintenance:${issue.id}`,
       type: "MAINTENANCE",
       severity: issue.priority === "URGENT" ? "URGENT" : "WARNING",
-      title: issue.priority === "URGENT" ? "Urgent maintenance" : "High priority maintenance",
-      description: `${issue.title}${issue.space?.name ? ` · ${issue.space.name}` : ""}`,
+      code: issue.priority === "URGENT" ? "MAINTENANCE_URGENT" : "MAINTENANCE_HIGH",
+      subject: issue.title,
+      context: issue.space?.name ?? null,
       href: `/operations/maintenance?issue=${issue.id}`,
       spaceId: issue.spaceId,
       date: dateOnly(issue.reportedAt),
@@ -335,8 +336,8 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
       id: `task:${task.id}`,
       type: "TASK",
       severity: task.priority === "HIGH" ? "URGENT" : "WARNING",
-      title: "Task overdue",
-      description: `${task.title}${task.dueDate ? ` · due ${task.dueDate.toISOString().slice(0, 10)}` : ""}`,
+      code: "TASK_OVERDUE",
+      subject: task.title,
       href: "/operations/tasks",
       spaceId: null,
       date: dateOnly(task.dueDate),
@@ -347,8 +348,9 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
       id: `device:${device.id}`,
       type: "DEVICE",
       severity: "WARNING",
-      title: "Device offline",
-      description: `${device.name}${device.space?.name ? ` · ${device.space.name}` : ""}`,
+      code: "DEVICE_OFFLINE",
+      subject: device.name,
+      context: device.space?.name ?? null,
       href: "/assets/devices",
       spaceId: device.spaceId,
       date: null,
@@ -377,15 +379,15 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
 
   const upcoming = [
     ...upcomingTenancies.flatMap((tenancy) => {
-      const tenant = tenancy.occupants[0]?.person.fullName ?? "Tenant";
+      const tenant = tenancy.occupants[0]?.person.fullName ?? "";
       const entries = [] as DashboardProjection["upcomingItems"];
       if (tenancy.moveInDate >= today && tenancy.moveInDate <= upcomingEnd) {
         entries.push({
           id: `move-in:${tenancy.id}`,
           type: "MOVE_IN",
           date: toDateOnly(tenancy.moveInDate),
-          title: "Move-in",
-          description: `${tenant} · ${tenancy.space.name}`,
+          subject: tenant,
+          context: tenancy.space.name,
           href: `/building?space=${tenancy.spaceId}`,
         });
       }
@@ -394,8 +396,8 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
           id: `move-out:${tenancy.id}`,
           type: "MOVE_OUT",
           date: toDateOnly(tenancy.moveOutDate),
-          title: "Move-out",
-          description: `${tenant} · ${tenancy.space.name}`,
+          subject: tenant,
+          context: tenancy.space.name,
           href: `/building?space=${tenancy.spaceId}`,
         });
       }
@@ -407,8 +409,7 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
         id: `task:${task.id}`,
         type: "TASK" as const,
         date: toDateOnly(task.dueDate!),
-        title: "Task due",
-        description: task.title,
+        subject: task.title,
         href: "/operations/tasks",
       })),
     ...expiringAssets
@@ -417,8 +418,7 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
         id: `warranty:${asset.id}`,
         type: "WARRANTY" as const,
         date: toDateOnly(asset.warrantyExpiresAt!),
-        title: "Warranty expires",
-        description: asset.name,
+        subject: asset.name,
         href: `/assets/${asset.id}`,
       })),
   ]
@@ -428,7 +428,7 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
   return {
     propertyId,
     propertyName: building.name,
-    period: { month: monthKey(currentMonth), label: monthLabelLong(currentMonth) },
+    period: { month: monthKey(currentMonth), label: monthLabel(currentMonth) },
     financial: {
       billedVnd: billed.toString(),
       collectedVnd: collected.toString(),
@@ -488,51 +488,34 @@ function groupAttention(items: DashboardAttentionItem[]): DashboardAttentionGrou
     groups.set(item.type, current);
   }
 
+  const hrefs: Record<DashboardAttentionType, string> = {
+    BILLING: "/billing/invoices",
+    UTILITIES: "/utilities",
+    MAINTENANCE: "/operations/maintenance",
+    TASK: "/operations/tasks",
+    ASSET: "/assets",
+    DEVICE: "/assets/devices",
+    TENANCY: "/tenants",
+  };
+
   return Array.from(groups.entries())
     .map(([type, groupItems]) => {
       const severity = groupItems.reduce<DashboardAttentionSeverity>(
         (highest, item) => severityRank(item.severity) < severityRank(highest) ? item.severity : highest,
         "INFO",
       );
-      const count = groupItems.length;
-      const first = groupItems[0];
-      if (!first) return null;
+      const amountVnd = type === "BILLING"
+        ? groupItems.reduce((sum, item) => sum.plus(item.amountVnd ?? 0), ZERO()).toString()
+        : undefined;
 
-      if (type === "BILLING") {
-        const outstanding = groupItems.reduce(
-          (sum, item) => sum.plus(item.amountVnd ?? 0),
-          ZERO(),
-        );
-        return {
-          id: "billing",
-          type,
-          severity,
-          title: "Unpaid invoices",
-          count,
-          summary: `${count} invoice${count === 1 ? "" : "s"} · ${formatVnd(outstanding.toString())} outstanding`,
-          href: "/billing/invoices",
-        };
-      }
-
-      const config: Record<Exclude<DashboardAttentionType, "BILLING">, { title: string; noun: string; href: string }> = {
-        UTILITIES: { title: "Utility data needs attention", noun: "utility issue", href: "/utilities" },
-        MAINTENANCE: { title: severity === "URGENT" ? "Urgent maintenance" : "Maintenance attention", noun: "active issue", href: "/operations/maintenance" },
-        TASK: { title: "Overdue tasks", noun: "overdue task", href: "/operations/tasks" },
-        ASSET: { title: "Asset attention", noun: "asset issue", href: "/assets" },
-        DEVICE: { title: "Offline devices", noun: "offline device", href: "/assets/devices" },
-        TENANCY: { title: "Tenancy attention", noun: "tenancy item", href: "/tenants" },
-      };
-      const definition = config[type];
       return {
         id: type.toLowerCase(),
         type,
         severity,
-        title: definition.title,
-        count,
-        summary: `${count} ${definition.noun}${count === 1 ? "" : "s"}`,
-        href: definition.href,
+        count: groupItems.length,
+        href: hrefs[type],
+        ...(amountVnd !== undefined ? { amountVnd } : {}),
       };
     })
-    .filter((group): group is DashboardAttentionGroup => group !== null)
     .sort((left, right) => severityRank(left.severity) - severityRank(right.severity) || right.count - left.count);
 }

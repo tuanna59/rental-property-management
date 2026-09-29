@@ -1,8 +1,11 @@
+import { getTranslations } from "next-intl/server";
+
 import "@/modules/analytics/components/analytics.css";
 
-export default function DashboardLoading() {
+export default async function DashboardLoading() {
+  const t = await getTranslations("dashboard");
   return (
-    <main className="analytics-page analytics-loading-page" aria-label="Loading dashboard">
+    <main className="analytics-page analytics-loading-page" aria-label={t("loading")}>
       <div className="analytics-loading-header"><i /><i /></div>
       <div className="analytics-loading-hero"><i /><i /></div>
       <div className="analytics-loading-grid">{Array.from({ length: 4 }, (_, index) => <i key={index} />)}</div>
