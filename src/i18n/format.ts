@@ -4,6 +4,11 @@ function localeTag(locale: AppLocale) {
   return locale === "vi" ? "vi-VN" : "en-US";
 }
 
+function capitalizeLocaleLabel(value: string, locale: AppLocale) {
+  if (!value) return value;
+  return value.charAt(0).toLocaleUpperCase(localeTag(locale)) + value.slice(1);
+}
+
 function numericValue(value: string | number | bigint) {
   if (typeof value === "number") return value;
   if (typeof value === "bigint") return Number(value);
@@ -44,10 +49,10 @@ export function formatMonthAxisLocale(value: string | Date, locale: AppLocale) {
     : /^\d{4}-\d{2}$/.test(value)
       ? new Date(`${value}-01T00:00:00Z`)
       : dateOnlyToUtc(value);
-  return new Intl.DateTimeFormat(localeTag(locale), {
+  return capitalizeLocaleLabel(new Intl.DateTimeFormat(localeTag(locale), {
     month: "short",
     timeZone: "UTC",
-  }).format(date);
+  }).format(date), locale);
 }
 
 export function formatMonthShortLocale(value: string | Date, locale: AppLocale) {
@@ -56,11 +61,11 @@ export function formatMonthShortLocale(value: string | Date, locale: AppLocale) 
     : /^\d{4}-\d{2}$/.test(value)
       ? new Date(`${value}-01T00:00:00Z`)
       : dateOnlyToUtc(value);
-  return new Intl.DateTimeFormat(localeTag(locale), {
+  return capitalizeLocaleLabel(new Intl.DateTimeFormat(localeTag(locale), {
     month: "short",
     year: "numeric",
     timeZone: "UTC",
-  }).format(date);
+  }).format(date), locale);
 }
 export function formatMonthLocale(value: string | Date, locale: AppLocale) {
   const date = value instanceof Date
@@ -68,11 +73,11 @@ export function formatMonthLocale(value: string | Date, locale: AppLocale) {
     : /^\d{4}-\d{2}$/.test(value)
       ? new Date(`${value}-01T00:00:00Z`)
       : dateOnlyToUtc(value);
-  return new Intl.DateTimeFormat(localeTag(locale), {
+  return capitalizeLocaleLabel(new Intl.DateTimeFormat(localeTag(locale), {
     year: "numeric",
     month: "long",
     timeZone: "UTC",
-  }).format(date);
+  }).format(date), locale);
 }
 
 export function formatNumberLocale(
