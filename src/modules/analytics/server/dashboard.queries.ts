@@ -5,7 +5,13 @@ import { assetsDb } from "@/modules/assets/server/assets-db";
 import { operationsDb } from "@/modules/operations/server/operations-db";
 import { getBuildingVisualProjection } from "@/modules/property/server/property.queries";
 
-import type { DashboardAttentionItem, DashboardAttentionSeverity, DashboardProjection } from "../domain/types";
+import type {
+  DashboardAttentionGroup,
+  DashboardAttentionItem,
+  DashboardAttentionSeverity,
+  DashboardAttentionType,
+  DashboardProjection,
+} from "../domain/types";
 
 const ZERO = () => new Prisma.Decimal(0);
 const DAY_MS = 86_400_000;
@@ -207,6 +213,31 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
   const expenses = periodExpenses.reduce((sum: Prisma.Decimal, expense: any) => sum.plus(expense.amount), ZERO());
   const netCash = collected.minus(expenses);
 
+  let billedAgainstFinalized = ZERO();
+  let paidAgainstFinalized = ZERO();
+  let outstandingAgainstFinalized = ZERO();
+  let paidInvoiceCount = 0;
+  let unpaidInvoiceCount = 0;
+  let partialInvoiceCount = 0;
+  for (const invoice of periodInvoices) {
+    const total = invoiceTotal(invoice);
+    const paid = paidTotal(invoice);
+    const applied = paid.greaterThan(total) ? total : paid;
+    const balance = total.minus(applied);
+    billedAgainstFinalized = billedAgainstFinalized.plus(total);
+    paidAgainstFinalized = paidAgainstFinalized.plus(applied);
+    if (balance.isPositive()) {
+      outstandingAgainstFinalized = outstandingAgainstFinalized.plus(balance);
+      if (applied.isZero()) unpaidInvoiceCount += 1;
+      else partialInvoiceCount += 1;
+    } else {
+      paidInvoiceCount += 1;
+    }
+  }
+  const collectionRate = billedAgainstFinalized.isZero()
+    ? null
+    : clampPercent(paidAgainstFinalized.dividedBy(billedAgainstFinalized).times(100).toNumber());
+
   const trend = Array.from({ length: 6 }, (_, index) => {
     const point = monthStart(trendStart.getUTCFullYear(), trendStart.getUTCMonth() + index);
     return {
@@ -246,6 +277,7 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
       href: `/billing/invoices/${invoice.id}`,
       spaceId: null,
       date: dateOnly(invoice.billingPeriod),
+      amountVnd: balance.toString(),
     });
   }
   for (const floor of building.floors) {
@@ -310,18 +342,6 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
       date: dateOnly(task.dueDate),
     });
   }
-  for (const asset of expiringAssets) {
-    attention.push({
-      id: `asset:${asset.id}`,
-      type: "ASSET",
-      severity: "INFO",
-      title: "Warranty expiring soon",
-      description: `${asset.name}${asset.space?.name ? ` · ${asset.space.name}` : ""}`,
-      href: `/assets/${asset.id}`,
-      spaceId: asset.spaceId,
-      date: dateOnly(asset.warrantyExpiresAt),
-    });
-  }
   for (const device of offlineDevices) {
     attention.push({
       id: `device:${device.id}`,
@@ -341,10 +361,19 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
     return (left.date ?? "9999-12-31").localeCompare(right.date ?? "9999-12-31");
   });
 
+  const attentionGroups = groupAttention(attention);
+
   const rentableSpaces = building.floors.flatMap((floor) => floor.spaces).filter((space) => space.type === "ROOM");
   const occupied = rentableSpaces.filter((space) => space.occupancyState === "OCCUPIED");
   const currentOccupants = occupied.reduce((sum, space) => sum + (space.occupancy?.occupantCount ?? 0), 0);
   const upcomingMoveIns = rentableSpaces.filter((space) => space.occupancyState === "UPCOMING").length;
+
+  const allSpaces = building.floors.flatMap((floor) => floor.spaces);
+  const propertySummary = {
+    rentalRoomCount: rentableSpaces.length,
+    floorCount: building.floors.length,
+    otherSpaceCount: allSpaces.filter((space) => space.type !== "ROOM").length,
+  };
 
   const upcoming = [
     ...upcomingTenancies.flatMap((tenancy) => {
@@ -416,8 +445,20 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
       currentOccupants,
       upcomingMoveIns,
     },
+    billingSummary: {
+      finalizedInvoiceCount: periodInvoices.length,
+      paidInvoiceCount,
+      unpaidInvoiceCount,
+      partialInvoiceCount,
+      billedVnd: billedAgainstFinalized.toString(),
+      paidVnd: paidAgainstFinalized.toString(),
+      outstandingVnd: outstandingAgainstFinalized.toString(),
+      collectionRate,
+    },
     attentionItems: attention,
+    attentionGroups,
     attentionTotal: attention.length,
+    propertySummary,
     financialTrend: trend.map((point) => ({
       month: point.month,
       label: point.label,
@@ -436,4 +477,62 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
     upcomingItems: upcoming,
     building,
   };
+}
+
+
+function groupAttention(items: DashboardAttentionItem[]): DashboardAttentionGroup[] {
+  const groups = new Map<DashboardAttentionType, DashboardAttentionItem[]>();
+  for (const item of items) {
+    const current = groups.get(item.type) ?? [];
+    current.push(item);
+    groups.set(item.type, current);
+  }
+
+  return Array.from(groups.entries())
+    .map(([type, groupItems]) => {
+      const severity = groupItems.reduce<DashboardAttentionSeverity>(
+        (highest, item) => severityRank(item.severity) < severityRank(highest) ? item.severity : highest,
+        "INFO",
+      );
+      const count = groupItems.length;
+      const first = groupItems[0];
+      if (!first) return null;
+
+      if (type === "BILLING") {
+        const outstanding = groupItems.reduce(
+          (sum, item) => sum.plus(item.amountVnd ?? 0),
+          ZERO(),
+        );
+        return {
+          id: "billing",
+          type,
+          severity,
+          title: "Unpaid invoices",
+          count,
+          summary: `${count} invoice${count === 1 ? "" : "s"} · ${formatVnd(outstanding.toString())} outstanding`,
+          href: "/billing/invoices",
+        };
+      }
+
+      const config: Record<Exclude<DashboardAttentionType, "BILLING">, { title: string; noun: string; href: string }> = {
+        UTILITIES: { title: "Utility data needs attention", noun: "utility issue", href: "/utilities" },
+        MAINTENANCE: { title: severity === "URGENT" ? "Urgent maintenance" : "Maintenance attention", noun: "active issue", href: "/operations/maintenance" },
+        TASK: { title: "Overdue tasks", noun: "overdue task", href: "/operations/tasks" },
+        ASSET: { title: "Asset attention", noun: "asset issue", href: "/assets" },
+        DEVICE: { title: "Offline devices", noun: "offline device", href: "/assets/devices" },
+        TENANCY: { title: "Tenancy attention", noun: "tenancy item", href: "/tenants" },
+      };
+      const definition = config[type];
+      return {
+        id: type.toLowerCase(),
+        type,
+        severity,
+        title: definition.title,
+        count,
+        summary: `${count} ${definition.noun}${count === 1 ? "" : "s"}`,
+        href: definition.href,
+      };
+    })
+    .filter((group): group is DashboardAttentionGroup => group !== null)
+    .sort((left, right) => severityRank(left.severity) - severityRank(right.severity) || right.count - left.count);
 }

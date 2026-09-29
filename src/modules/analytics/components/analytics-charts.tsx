@@ -1,28 +1,42 @@
 import { formatVnd } from "@/lib/presentation";
 
+export function FinancialTrendLegend({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className={`analytics-chart-legend${compact ? " is-compact" : ""}`}>
+      <span><i className="series-billed" />Billed</span>
+      <span><i className="series-collected" />Collected</span>
+      <span><i className="series-expenses" />Expenses</span>
+    </div>
+  );
+}
+
 export function FinancialTrendChart({
   points,
+  compact = false,
+  hideLegend = false,
 }: {
-  points: Array<{ label: string; billedVnd: string; collectedVnd: string; expensesVnd: string }>;
+  points: Array<{ month?: string; label: string; billedVnd: string; collectedVnd: string; expensesVnd: string }>;
+  compact?: boolean;
+  hideLegend?: boolean;
 }) {
   const max = Math.max(
     1,
     ...points.flatMap((point) => [Number(point.billedVnd), Number(point.collectedVnd), Number(point.expensesVnd)]),
   );
   return (
-    <div className="analytics-chart" role="img" aria-label="Billed, collected, and expenses trend">
-      <div className="analytics-chart-legend">
-        <span><i className="series-billed" />Billed</span>
-        <span><i className="series-collected" />Collected</span>
-        <span><i className="series-expenses" />Expenses</span>
-      </div>
-      <div className="analytics-bar-grid" style={{ gridTemplateColumns: `repeat(${points.length}, minmax(0, 1fr))` }}>
+    <div className={`analytics-chart${compact ? " is-compact" : ""}`} role="img" aria-label="Billed, collected, and expenses trend">
+      {!hideLegend ? <FinancialTrendLegend /> : null}
+      <div className={`analytics-bar-grid${compact ? " is-compact" : ""}`} style={{ gridTemplateColumns: `repeat(${points.length}, minmax(0, 1fr))` }}>
         {points.map((point) => (
-          <div className="analytics-bar-month" key={point.label}>
+          <div
+            className="analytics-bar-month"
+            key={point.month ?? point.label}
+            title={`${formatLongMonth(point.month, point.label)}\nBilled: ${formatVnd(point.billedVnd)}\nCollected: ${formatVnd(point.collectedVnd)}\nExpenses: ${formatVnd(point.expensesVnd)}`}
+          >
             <div className="analytics-bar-group">
-              <Bar value={Number(point.billedVnd)} max={max} className="series-billed" label={`Billed ${formatVnd(point.billedVnd)}`} />
-              <Bar value={Number(point.collectedVnd)} max={max} className="series-collected" label={`Collected ${formatVnd(point.collectedVnd)}`} />
-              <Bar value={Number(point.expensesVnd)} max={max} className="series-expenses" label={`Expenses ${formatVnd(point.expensesVnd)}`} />
+              <Bar value={Number(point.billedVnd)} max={max} className="series-billed" />
+              <Bar value={Number(point.collectedVnd)} max={max} className="series-collected" />
+              <Bar value={Number(point.expensesVnd)} max={max} className="series-expenses" />
             </div>
             <span>{point.label}</span>
           </div>
@@ -32,9 +46,9 @@ export function FinancialTrendChart({
   );
 }
 
-function Bar({ value, max, className, label }: { value: number; max: number; className: string; label: string }) {
+function Bar({ value, max, className }: { value: number; max: number; className: string }) {
   const height = value <= 0 ? 2 : Math.max(4, (value / max) * 100);
-  return <i className={`analytics-bar ${className}`} style={{ height: `${height}%` }} title={label} />;
+  return <i className={`analytics-bar ${className}`} style={{ height: `${height}%` }} />;
 }
 
 export function OccupancyTrendChart({ points }: { points: Array<{ label: string; occupancyRate: number }> }) {
@@ -67,4 +81,12 @@ export function ExpenseCategoryBars({ points }: { points: Array<{ category: stri
 
 function labelEnum(value: string) {
   return value.toLowerCase().replaceAll("_", " ").replace(/^./, (character) => character.toUpperCase());
+}
+
+
+function formatLongMonth(month: string | undefined, fallback: string) {
+  if (!month) return fallback;
+  const value = new Date(`${month}-01T00:00:00Z`);
+  if (Number.isNaN(value.getTime())) return fallback;
+  return new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(value);
 }

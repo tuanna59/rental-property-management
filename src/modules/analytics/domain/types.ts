@@ -19,6 +19,17 @@ export type DashboardAttentionItem = {
   href: string;
   spaceId: string | null;
   date: string | null;
+  amountVnd?: string;
+};
+
+export type DashboardAttentionGroup = {
+  id: string;
+  type: DashboardAttentionType;
+  severity: DashboardAttentionSeverity;
+  title: string;
+  count: number;
+  summary: string;
+  href: string;
 };
 
 export type DashboardTrendPoint = {
@@ -67,8 +78,24 @@ export type DashboardProjection = {
     currentOccupants: number;
     upcomingMoveIns: number;
   };
+  billingSummary: {
+    finalizedInvoiceCount: number;
+    paidInvoiceCount: number;
+    unpaidInvoiceCount: number;
+    partialInvoiceCount: number;
+    billedVnd: string;
+    paidVnd: string;
+    outstandingVnd: string;
+    collectionRate: number | null;
+  };
   attentionItems: DashboardAttentionItem[];
+  attentionGroups: DashboardAttentionGroup[];
   attentionTotal: number;
+  propertySummary: {
+    rentalRoomCount: number;
+    floorCount: number;
+    otherSpaceCount: number;
+  };
   financialTrend: DashboardTrendPoint[];
   recentPayments: DashboardRecentPayment[];
   upcomingItems: DashboardUpcomingItem[];
