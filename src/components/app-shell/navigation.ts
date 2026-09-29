@@ -1,7 +1,9 @@
 import {
+  BarChart3,
   Boxes,
   Building2,
   ClipboardCheck,
+  LayoutDashboard,
   ReceiptText,
   Users,
   Zap,
@@ -21,6 +23,11 @@ export type AppNavigationItem = {
 };
 
 export const appNavigation: readonly AppNavigationItem[] = [
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
   {
     label: "Building",
     href: "/building",
@@ -66,10 +73,15 @@ export const appNavigation: readonly AppNavigationItem[] = [
       { label: "Devices", href: "/assets/devices" },
     ],
   },
+  {
+    label: "Reports",
+    href: "/reports",
+    icon: BarChart3,
+  },
 ] as const;
 
 export function isNavigationHrefActive(pathname: string, href: string) {
-  if (href === "/building" || href === "/utilities") return pathname === href;
+  if (href === "/dashboard" || href === "/building" || href === "/utilities" || href === "/reports") return pathname === href;
   if (href === "/assets") {
     return pathname === href || (pathname.startsWith("/assets/") && !pathname.startsWith("/assets/devices"));
   }

@@ -231,7 +231,7 @@ function AppSidebar({
     >
       <div className="app-sidebar-brand">
         <Link
-          href="/building"
+          href="/dashboard"
           className="app-sidebar-brand-link"
           aria-label="My Rental Property"
           title={collapsed ? "My Rental Property" : undefined}
