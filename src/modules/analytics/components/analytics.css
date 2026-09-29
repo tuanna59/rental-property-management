@@ -215,8 +215,23 @@
   gap: 14px;
   margin-top: 14px;
 }
-.dashboard-middle-grid { align-items: start; }
-.dashboard-trend-card { align-self: start; }
+.dashboard-middle-grid { align-items: stretch; }
+.dashboard-trend-card {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+.dashboard-trend-card > .analytics-chart {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 188px;
+  flex-direction: column;
+}
+.dashboard-trend-card > .analytics-chart .analytics-bar-grid {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 154px;
+}
 .dashboard-trend-card,
 .dashboard-billing-card,
 .dashboard-list-card,
@@ -793,4 +808,57 @@ html[data-theme="dark"] .analytics-summary-card {
 .occupancy-trend-column:last-child:hover .analytics-chart-tooltip,
 .occupancy-trend-column:last-child:focus-within .analytics-chart-tooltip {
   transform: translate(0, 0);
+}
+
+/* Phase 10.8 dashboard: six-month context below the financial trend. */
+.dashboard-trend-summary {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--app-border);
+}
+.dashboard-trend-summary-heading {
+  margin-bottom: 10px;
+  color: var(--app-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+.dashboard-trend-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.dashboard-trend-summary-grid > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 10px 11px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--app-surface-subtle) 58%, transparent);
+}
+.dashboard-trend-summary-grid span {
+  color: var(--app-text-muted);
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+.dashboard-trend-summary-grid strong {
+  min-width: 0;
+  color: var(--app-text-primary);
+  font-size: 14px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.dashboard-trend-summary-grid strong.is-negative-value {
+  color: var(--app-danger);
+}
+
+@media (max-width: 900px) {
+  .dashboard-trend-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 460px) {
+  .dashboard-trend-summary-grid { gap: 8px; }
+  .dashboard-trend-summary-grid > div { padding: 9px 10px; }
 }

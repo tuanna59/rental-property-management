@@ -38,6 +38,7 @@ import type {
   DashboardAttentionGroup,
   DashboardAttentionItem,
   DashboardProjection,
+  DashboardTrendPoint,
 } from "../domain/types";
 import { FinancialTrendChart, FinancialTrendLegend } from "./analytics-charts";
 import "./analytics.css";
@@ -118,6 +119,7 @@ export function DashboardView({ view }: { view: DashboardProjection }) {
             </div>
           </div>
           <FinancialTrendChart points={view.financialTrend} locale={locale} labels={chartLabels} compact hideLegend />
+          <SixMonthFinancialSummary points={view.financialTrend} />
         </article>
 
         <BillingStatusCard view={view} />
@@ -128,6 +130,49 @@ export function DashboardView({ view }: { view: DashboardProjection }) {
         <Upcoming view={view} />
       </section>
     </main>
+  );
+}
+
+
+function SixMonthFinancialSummary({ points }: { points: DashboardTrendPoint[] }) {
+  const t = useTranslations("dashboard");
+  const locale = useLocale() as AppLocale;
+
+  const totals = points.reduce(
+    (summary, point) => ({
+      billed: summary.billed + BigInt(point.billedVnd),
+      collected: summary.collected + BigInt(point.collectedVnd),
+      expenses: summary.expenses + BigInt(point.expensesVnd),
+    }),
+    { billed: BigInt(0), collected: BigInt(0), expenses: BigInt(0) },
+  );
+  const netCash = totals.collected - totals.expenses;
+  const collectionRate = totals.billed > BigInt(0)
+    ? Number((totals.collected * BigInt(10_000)) / totals.billed) / 100
+    : null;
+
+  return (
+    <section className="dashboard-trend-summary" aria-label={t("sixMonthSummary")}>
+      <div className="dashboard-trend-summary-heading">{t("sixMonthSummary")}</div>
+      <div className="dashboard-trend-summary-grid">
+        <div>
+          <span>{t("sixMonthBilled")}</span>
+          <strong>{formatVndLocale(totals.billed, locale)}</strong>
+        </div>
+        <div>
+          <span>{t("sixMonthCollectionRate")}</span>
+          <strong>{collectionRate === null ? "—" : formatPercentLocale(collectionRate, locale, 0)}</strong>
+        </div>
+        <div>
+          <span>{t("sixMonthExpenses")}</span>
+          <strong>{formatVndLocale(totals.expenses, locale)}</strong>
+        </div>
+        <div>
+          <span>{t("sixMonthNetCash")}</span>
+          <strong className={netCash < BigInt(0) ? "is-negative-value" : undefined}>{formatVndLocale(netCash, locale)}</strong>
+        </div>
+      </div>
+    </section>
   );
 }
 
