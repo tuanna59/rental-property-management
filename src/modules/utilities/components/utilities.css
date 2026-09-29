@@ -1638,3 +1638,75 @@
     padding: 0.8rem;
   }
 }
+
+/* Utilities overview alignment polish */
+.utility-overview-summary .utility-summary-card {
+  height: 168px;
+  min-height: 168px;
+  display: grid;
+  grid-template-rows: 24px minmax(52px, auto) minmax(34px, auto) 5px;
+  row-gap: 7px;
+  align-content: start;
+}
+.utility-overview-summary .utility-summary-card header {
+  min-width: 0;
+}
+.utility-overview-summary .utility-summary-card strong {
+  align-self: end;
+  margin-top: 0;
+  line-height: 1.08;
+}
+.utility-overview-summary .utility-summary-card p {
+  align-self: start;
+  margin-top: 0;
+  line-height: 1.35;
+}
+.utility-overview-summary .utility-progress {
+  align-self: end;
+  margin-top: 0;
+}
+.utility-overview-summary .utility-progress.is-empty {
+  visibility: hidden;
+}
+
+.utility-estimate-cell {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.utility-estimate-primary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.utility-estimate-primary > strong {
+  min-width: 0;
+  color: var(--app-text-primary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.utility-estimate-details-trigger {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+  border-radius: 999px;
+  color: var(--app-brand);
+}
+.utility-estimate-details-trigger:hover,
+.utility-estimate-details-trigger:focus-visible {
+  background: var(--app-brand-soft);
+}
+.utility-estimate-details-trigger svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 640px) {
+  .utility-overview-summary .utility-summary-card {
+    height: auto;
+    min-height: 150px;
+  }
+}

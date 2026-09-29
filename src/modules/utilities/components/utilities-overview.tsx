@@ -169,27 +169,37 @@ export function UtilitiesOverview({
                         </div>
                       </td>
                       <td>
-                        {row.preview.finalAmount
-                          ? formatVnd(row.preview.finalAmount)
-                          : "—"}
-                        <div className="utility-subtle">
-                          {row.preview.totalAttributableUsage ?? "0"} billable
-                          kWh
+                        <div className="utility-estimate-cell">
+                          <div className="utility-estimate-primary">
+                            <strong>
+                              {row.preview.finalAmount
+                                ? formatVnd(row.preview.finalAmount)
+                                : "—"}
+                            </strong>
+                            <ElectricityBreakdownDialog
+                              preview={row.preview}
+                              room={row.room}
+                            />
+                          </div>
+                          <div className="utility-subtle">
+                            {row.preview.totalAttributableUsage ?? "0"} billable kWh
+                          </div>
                         </div>
-                        <ElectricityBreakdownDialog
-                          preview={row.preview}
-                          room={row.room}
-                        />
                       </td>
                       <td>
-                        {row.water.finalPreviewAmount !== null
-                          ? formatVnd(row.water.finalPreviewAmount)
-                          : "—"}
-                        <div className="utility-subtle">
-                          {row.water.billablePeople} billable people ·{" "}
-                          {row.water.occupantDays} occupant-days
+                        <div className="utility-estimate-cell">
+                          <div className="utility-estimate-primary">
+                            <strong>
+                              {row.water.finalPreviewAmount !== null
+                                ? formatVnd(row.water.finalPreviewAmount)
+                                : "—"}
+                            </strong>
+                            <WaterBreakdownDialog water={row.water} />
+                          </div>
+                          <div className="utility-subtle">
+                            {row.water.billablePeople} billable people
+                          </div>
                         </div>
-                        <WaterBreakdownDialog water={row.water} />
                       </td>
                       <td className="utility-subtle">
                         {row.warnings[0] ?? "—"}
@@ -266,11 +276,14 @@ function SummaryCard({
       </header>
       <strong>{value}</strong>
       <p>{detail}</p>
-      {progress !== undefined && (
-        <div className="utility-progress">
+      <div
+        className={`utility-progress${progress === undefined ? " is-empty" : ""}`}
+        aria-hidden={progress === undefined}
+      >
+        {progress !== undefined && (
           <span style={{ width: `${progress}%` }} />
-        </div>
-      )}
+        )}
+      </div>
     </article>
   );
 }

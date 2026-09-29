@@ -1,6 +1,6 @@
 "use client";
 
-import { Droplets } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,8 +32,15 @@ export function WaterBreakdownDialog({ water }: { water: Water }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button type="button" size="sm" variant="ghost">
-          <Droplets /> Details
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="utility-estimate-details-trigger"
+          aria-label={`View water details for ${water.room}`}
+          title="View water details"
+        >
+          <ChevronRight />
         </Button>
       </DialogTrigger>
       <DialogContent>

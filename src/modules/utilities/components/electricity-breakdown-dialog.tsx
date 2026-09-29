@@ -1,6 +1,6 @@
 "use client";
 
-import { Zap } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -41,8 +41,15 @@ export function ElectricityBreakdownDialog({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button type="button" size="sm" variant="ghost">
-          <Zap /> Details
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="utility-estimate-details-trigger"
+          aria-label={`View electricity details for ${room}`}
+          title="View electricity details"
+        >
+          <ChevronRight />
         </Button>
       </DialogTrigger>
       <DialogContent className="electricity-details-dialog">
