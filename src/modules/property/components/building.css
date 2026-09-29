@@ -1034,3 +1034,42 @@
     font-size: var(--app-page-title-size);
   }
 }
+
+/* Phase 6: compact derived maintenance signal inside Space Overview. */
+.space-maintenance-signal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid var(--app-warning-soft);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--app-warning-soft) 72%, var(--app-surface));
+}
+.space-maintenance-signal > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.space-maintenance-icon {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--app-warning-soft);
+  color: var(--app-warning);
+}
+.space-maintenance-icon svg { width: 15px; }
+.space-maintenance-signal strong { font-size: 13px; }
+.space-maintenance-signal p { margin: 2px 0 0; color: var(--app-text-secondary); font-size: 12px; }
+.space-maintenance-signal > a {
+  flex: none;
+  color: var(--app-brand);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.space-maintenance-signal > a:hover { text-decoration: underline; }

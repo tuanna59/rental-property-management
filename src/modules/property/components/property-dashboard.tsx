@@ -13,6 +13,7 @@ import {
   Search,
   CalendarDays,
   LogOut,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatVnd } from "@/lib/presentation";
@@ -39,6 +40,7 @@ import {
   SpaceReorderButton,
   ArchiveOrDeleteDialog,
 } from "./property-forms";
+import type { SpaceMaintenanceSignal } from "@/modules/operations/domain/types";
 import "./building.css";
 
 function subscribeDesktop(callback: () => void) {
@@ -51,11 +53,15 @@ const desktopSnapshot = () => window.matchMedia("(min-width: 1100px)").matches;
 export function PropertyDashboard({
   property,
   people,
+  maintenanceSignals = [],
+  initialSpaceId = null,
 }: {
   property: DashboardProperty;
   people: DashboardPersonOption[];
+  maintenanceSignals?: SpaceMaintenanceSignal[];
+  initialSpaceId?: string | null;
 }) {
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [selectedId, setSelectedId] = React.useState<string | null>(initialSpaceId);
   const [editing, setEditing] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const desktop = React.useSyncExternalStore(
@@ -187,6 +193,9 @@ export function PropertyDashboard({
                       key={selected.space.id}
                       {...selected}
                       people={people}
+                      maintenanceSignal={maintenanceSignals.find(
+                        (signal) => signal.spaceId === selected.space.id,
+                      )}
                     />
                   </>
                 ) : (
@@ -226,6 +235,9 @@ export function PropertyDashboard({
                 key={selected.space.id}
                 {...selected}
                 people={people}
+                maintenanceSignal={maintenanceSignals.find(
+                  (signal) => signal.spaceId === selected.space.id,
+                )}
               />
             </section>
           </div>
@@ -289,10 +301,12 @@ function SpaceDetails({
   floor,
   space,
   people,
+  maintenanceSignal,
 }: {
   floor: DashboardFloor;
   space: DashboardSpace;
   people: DashboardPersonOption[];
+  maintenanceSignal?: SpaceMaintenanceSignal;
 }) {
   const isRoom = space.type === "ROOM";
   const occupied = Boolean(space.occupancy);
@@ -319,6 +333,23 @@ function SpaceDetails({
         </div>
       ) : (
         <div className="active-status non-rental-status">Active space</div>
+      )}
+      {maintenanceSignal && maintenanceSignal.openCount > 0 && (
+        <section className="space-maintenance-signal">
+          <div>
+            <span className="space-maintenance-icon"><Wrench aria-hidden="true" /></span>
+            <div>
+              <strong>Maintenance</strong>
+              <p>
+                {maintenanceSignal.openCount} open issue{maintenanceSignal.openCount === 1 ? "" : "s"}
+                {maintenanceSignal.urgentCount > 0
+                  ? ` · ${maintenanceSignal.urgentCount} urgent`
+                  : ""}
+              </p>
+            </div>
+          </div>
+          <a href={`/operations/maintenance?space=${space.id}`}>View maintenance</a>
+        </section>
       )}
       {isRoom && space.occupancy?.moveOutDate && (
         <ScheduledEvent

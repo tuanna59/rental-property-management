@@ -1,5 +1,6 @@
 import {
   Building2,
+  ClipboardCheck,
   ReceiptText,
   Users,
   Zap,
@@ -45,6 +46,15 @@ export const appNavigation: readonly AppNavigationItem[] = [
       { label: "Invoices", href: "/billing/invoices" },
       { label: "Payments", href: "/billing/payments" },
       { label: "Deposits", href: "/billing/deposits" },
+    ],
+  },
+  {
+    label: "Operations",
+    icon: ClipboardCheck,
+    children: [
+      { label: "Maintenance", href: "/operations/maintenance" },
+      { label: "Tasks", href: "/operations/tasks" },
+      { label: "Expenses", href: "/operations/expenses" },
     ],
   },
 ] as const;

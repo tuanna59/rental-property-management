@@ -2,6 +2,7 @@ import { Building2, DatabaseZap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PropertyDashboard } from "@/modules/property/components/property-dashboard";
+import { getSpaceMaintenanceSignals } from "@/modules/operations/server/operations.queries";
 import {
   getActivePersonOptions,
   getPrimaryPropertyDashboard,
@@ -9,15 +10,23 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ space?: string }>;
+}) {
   let property;
   let people;
+  let maintenanceSignals;
 
   try {
     [property, people] = await Promise.all([
       getPrimaryPropertyDashboard(),
       getActivePersonOptions(),
     ]);
+    maintenanceSignals = property
+      ? await getSpaceMaintenanceSignals(property.id)
+      : [];
   } catch (error) {
     if (isDatabaseUnavailable(error)) {
       console.error(
@@ -50,7 +59,14 @@ export default async function Home() {
     );
   }
 
-  return <PropertyDashboard property={property} people={people} />;
+  return (
+    <PropertyDashboard
+      property={property}
+      people={people}
+      maintenanceSignals={maintenanceSignals ?? []}
+      initialSpaceId={(await searchParams).space ?? null}
+    />
+  );
 }
 
 function isDatabaseUnavailable(error: unknown) {

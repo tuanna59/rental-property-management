@@ -96,34 +96,84 @@ enum DepositDeductionCategory {
   OTHER
 }
 
+enum ExpenseCategory {
+  REPAIR
+  UTILITIES
+  CLEANING
+  SUPPLIES
+  OTHER
+}
+
+enum MaintenanceStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  TODO
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskLinkedEntityType {
+  PROPERTY
+  SPACE
+  MAINTENANCE
+  INVOICE
+}
+
+enum TaskRecurrenceUnit {
+  DAYS
+  MONTHS
+  YEARS
+}
+
 model Property {
-  id           String        @id @default(cuid())
-  name         String
-  description  String?
-  addressLine1 String?
-  city         String?
-  country      String?
-  floors       Floor[]
-  utilityRates UtilityRate[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  archivedAt   DateTime?
+  id                String             @id @default(cuid())
+  name              String
+  description       String?
+  addressLine1      String?
+  city              String?
+  country           String?
+  floors            Floor[]
+  utilityRates      UtilityRate[]
+  maintenanceIssues MaintenanceIssue[]
+  expenses          Expense[]
+  tasks             Task[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  archivedAt        DateTime?
 
   @@index([archivedAt, createdAt])
 }
 
 model Floor {
-  id         String    @id @default(cuid())
-  propertyId String
-  property   Property  @relation(fields: [propertyId], references: [id], onDelete: Restrict)
-  name       String
-  level      Int?
-  sortOrder  Int
-  notes      String?
-  spaces     Space[]
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  archivedAt DateTime?
+  id                String             @id @default(cuid())
+  propertyId        String
+  property          Property           @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  name              String
+  level             Int?
+  sortOrder         Int
+  notes             String?
+  spaces            Space[]
+  maintenanceIssues MaintenanceIssue[]
+  expenses          Expense[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  archivedAt        DateTime?
 
   @@index([propertyId, archivedAt, sortOrder])
 }
@@ -139,6 +189,8 @@ model Space {
   tenancies                Tenancy[]
   meters                   Meter[]
   electricityRateOverrides ElectricityRateOverride[]
+  maintenanceIssues        MaintenanceIssue[]
+  expenses                 Expense[]
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   archivedAt               DateTime?
@@ -435,3 +487,98 @@ model ElectricityRateOverride {
 
   @@unique([spaceId, billingMonth])
 }
+
+model MaintenanceIssue {
+  id          String              @id @default(cuid())
+  propertyId  String
+  property    Property            @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  floorId     String?
+  floor       Floor?              @relation(fields: [floorId], references: [id], onDelete: Restrict)
+  spaceId     String?
+  space       Space?              @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  title       String
+  description String
+  status      MaintenanceStatus   @default(OPEN)
+  priority    MaintenancePriority @default(MEDIUM)
+  reportedAt  DateTime            @db.Date
+  reportedBy  String?
+  assignedTo  String?
+  notes       String?
+  resolution  String?
+  completedAt DateTime?           @db.Date
+  expenses    Expense[]
+  photos      MaintenancePhoto[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  archivedAt  DateTime?
+
+  @@index([propertyId, status, priority])
+  @@index([floorId, status])
+  @@index([spaceId, status])
+  @@index([reportedAt])
+  @@index([archivedAt])
+}
+
+model MaintenancePhoto {
+  id                 String           @id @default(cuid())
+  maintenanceIssueId String
+  maintenanceIssue   MaintenanceIssue @relation(fields: [maintenanceIssueId], references: [id], onDelete: Cascade)
+  storageKey         String
+  createdAt          DateTime         @default(now())
+
+  @@index([maintenanceIssueId, createdAt])
+}
+
+model Expense {
+  id                 String            @id @default(cuid())
+  propertyId         String
+  property           Property          @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  floorId            String?
+  floor              Floor?            @relation(fields: [floorId], references: [id], onDelete: Restrict)
+  spaceId            String?
+  space              Space?            @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  maintenanceIssueId String?
+  maintenanceIssue   MaintenanceIssue? @relation(fields: [maintenanceIssueId], references: [id], onDelete: Restrict)
+  expenseDate        DateTime           @db.Date
+  category           ExpenseCategory
+  description        String
+  amount             Decimal            @db.Decimal(16, 0)
+  receiptStorageKey  String?
+  notes              String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  archivedAt         DateTime?
+
+  @@index([propertyId, expenseDate])
+  @@index([floorId, expenseDate])
+  @@index([spaceId, expenseDate])
+  @@index([maintenanceIssueId])
+  @@index([archivedAt])
+}
+
+model Task {
+  id                   String                @id @default(cuid())
+  propertyId           String
+  property             Property              @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  title                String
+  description          String?
+  status               TaskStatus            @default(TODO)
+  priority             TaskPriority          @default(MEDIUM)
+  dueDate              DateTime?              @db.Date
+  linkedEntityType     TaskLinkedEntityType?
+  linkedEntityId       String?
+  recurrenceUnit       TaskRecurrenceUnit?
+  recurrenceInterval   Int?
+  completedAt          DateTime?
+  previousOccurrenceId String?                @unique
+  previousOccurrence   Task?                  @relation("TaskRecurrence", fields: [previousOccurrenceId], references: [id], onDelete: Restrict)
+  nextOccurrence       Task?                  @relation("TaskRecurrence")
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  archivedAt           DateTime?
+
+  @@index([propertyId, status, dueDate])
+  @@index([linkedEntityType, linkedEntityId])
+  @@index([archivedAt])
+}
+
