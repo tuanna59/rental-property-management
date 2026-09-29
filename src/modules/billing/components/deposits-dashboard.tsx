@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { CircleDollarSign, HandCoins, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
   DialogContent,
@@ -297,7 +298,7 @@ function DepositAction({
             />
           </div>
         )}
-        <form action={action} className="dialog-form">
+        <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="tenancyId" value={deposit.tenancyId} />
           <input type="hidden" name="kind" value={kind} />
           <div className="dialog-grid">
@@ -390,7 +391,7 @@ function DepositAction({
             </p>
           )}
           <Button type="submit">{label}</Button>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );

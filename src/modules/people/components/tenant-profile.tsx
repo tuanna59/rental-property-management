@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
   DialogContent,
@@ -872,7 +873,7 @@ function AddDocumentDialog({ person }: { person: DirectoryPerson }) {
           <DialogTitle>Add document</DialogTitle>
           <DialogDescription>Upload a private PDF or image for {person.fullName}.</DialogDescription>
         </DialogHeader>
-        <form action={action} className="person-form">
+        <PreservingActionForm action={action} className="person-form">
           <input type="hidden" name="personId" value={person.id} />
           {type === "RENTAL_CONTRACT" && tenancyId && (
             <input type="hidden" name="tenancyId" value={tenancyId} />
@@ -901,7 +902,7 @@ function AddDocumentDialog({ person }: { person: DirectoryPerson }) {
           </div>
           {state.message && <p className={state.ok ? "form-success" : "form-error"}>{state.message}</p>}
           <DialogFooter><Button type="submit">Upload document</Button></DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );
@@ -1088,14 +1089,14 @@ function ChangeRentDialog({ tenancy }: { tenancy: HistoryItem }) {
       <DialogTrigger asChild><Button size="sm" variant="outline">Change rent</Button></DialogTrigger>
       <DialogContent>
         <DialogHeader><DialogTitle>Change monthly rent</DialogTitle><DialogDescription>Current rent: {formatVnd(tenancy.currentRent.monthlyRentVnd)} / month</DialogDescription></DialogHeader>
-        <form action={action} className="person-form">
+        <PreservingActionForm action={action} className="person-form">
           <input type="hidden" name="tenancyId" value={tenancy.tenancyId} />
           <div className="grid gap-2"><Label>New monthly rent</Label><input className="tenant-native-input" name="monthlyRentVnd" type="number" step="10" required /></div>
           <div className="grid gap-2"><Label>Effective from</Label><input className="tenant-native-input" name="effectiveFrom" type="date" required /></div>
           <div className="grid gap-2"><Label>Reason</Label><input className="tenant-native-input" name="reason" required /></div>
           {state.message && <p className={state.ok ? "form-success" : "form-error"}>{state.message}</p>}
           <DialogFooter><Button type="submit">Save new rate</Button></DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );

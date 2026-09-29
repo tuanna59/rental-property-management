@@ -4,6 +4,7 @@ import * as React from "react";
 import { CalendarDays, Plus, Zap, Droplets } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
   DialogContent,
@@ -223,7 +224,7 @@ function RateDialog({
             date.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="dialog-form">
+        <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="propertyId" value={propertyId} />
           <input type="hidden" name="utilityType" value={type} />
           <div className="dialog-grid">
@@ -252,7 +253,7 @@ function RateDialog({
           <DialogFooter>
             <Button type="submit">Save rate</Button>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );
@@ -282,7 +283,7 @@ function OverrideDialog({
             This applies only to one room for one calendar month.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="dialog-form">
+        <PreservingActionForm action={action} className="dialog-form">
           <div className="field">
             <Label htmlFor="override-room">Room</Label>
             <select id="override-room" name="spaceId" required>
@@ -316,7 +317,7 @@ function OverrideDialog({
           <DialogFooter>
             <Button type="submit">Save override</Button>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );

@@ -19,6 +19,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
   DialogContent,
@@ -874,7 +875,7 @@ function OverrideDialog({
             calculation remains preserved.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="dialog-form">
+        <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="invoiceId" value={invoiceId} />
           <input type="hidden" name="lineId" value={line.id} />
           <Field
@@ -899,7 +900,7 @@ function OverrideDialog({
           <DialogFooter>
             <Button type="submit">Save charge</Button>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );
@@ -933,7 +934,7 @@ function AdjustmentDialog({
             Add an independent charge or credit without changing a service line.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="dialog-form">
+        <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="invoiceId" value={invoiceId} />
           {adjustment && (
             <input type="hidden" name="adjustmentId" value={adjustment.id} />
@@ -975,7 +976,7 @@ function AdjustmentDialog({
               {adjustment ? "Save adjustment" : "Add adjustment"}
             </Button>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );
@@ -1033,7 +1034,7 @@ function PaymentDialog({ invoice }: { invoice: Invoice }) {
           <Info label="Paid" value={formatVnd(invoice.totalPaid)} />
           <Info label="Remaining" value={formatVnd(invoice.balance)} />
         </div>
-        <form action={action} className="dialog-form">
+        <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="invoiceId" value={invoice.id} />
           <div className="dialog-grid">
             <Field
@@ -1062,7 +1063,7 @@ function PaymentDialog({ invoice }: { invoice: Invoice }) {
             </p>
           )}
           <Button type="submit">Record payment</Button>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );
@@ -1091,7 +1092,7 @@ function EditPaymentDialog({
             Update this recorded transaction.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="dialog-form">
+        <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="paymentId" value={payment.id} />
           <div className="dialog-grid">
             <Field
@@ -1127,7 +1128,7 @@ function EditPaymentDialog({
             </p>
           )}
           <Button type="submit">Save payment</Button>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );

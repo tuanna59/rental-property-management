@@ -4,6 +4,7 @@ import * as React from "react";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,7 +48,7 @@ export function MeterReadingDialog({ meterId }: { meterId: string }) {
             Add a manual observation to this physical meter.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="dialog-form">
+        <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="meterId" value={meterId} />
           <div className="dialog-grid">
             <Field
@@ -110,7 +111,7 @@ export function MeterReadingDialog({ meterId }: { meterId: string }) {
               <Plus /> Record reading
             </Button>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );

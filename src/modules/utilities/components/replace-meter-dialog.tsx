@@ -4,6 +4,7 @@ import * as React from "react";
 import { Repeat2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,7 +49,7 @@ export function ReplaceMeterDialog({ spaceId }: { spaceId: string }) {
             operation.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="dialog-form">
+        <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="spaceId" value={spaceId} />
           <Field
             label="Replacement date"
@@ -131,7 +132,7 @@ export function ReplaceMeterDialog({ spaceId }: { spaceId: string }) {
               <Repeat2 /> Replace meter
             </Button>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );

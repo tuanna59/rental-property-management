@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
   DialogContent,
@@ -263,7 +264,7 @@ function PhotoDialog({
           </div>
         )}
         {!readOnly && (
-          <form action={action} className="dialog-form">
+          <PreservingActionForm action={action} className="dialog-form">
             <input type="hidden" name="readingId" value={readingId} />
             <Input
               name="photo"
@@ -277,7 +278,7 @@ function PhotoDialog({
               </p>
             )}
             <Button type="submit">Add evidence photo</Button>
-          </form>
+          </PreservingActionForm>
         )}
       </DialogContent>
     </Dialog>

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
   DialogContent,
@@ -62,7 +63,7 @@ export function BoundaryReadingDialog({
             are locked.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="dialog-form">
+        <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="tenancyId" value={boundary.tenancyId} />
           <input
             type="hidden"
@@ -123,7 +124,7 @@ export function BoundaryReadingDialog({
           <DialogFooter>
             <Button type="submit">Save boundary</Button>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );

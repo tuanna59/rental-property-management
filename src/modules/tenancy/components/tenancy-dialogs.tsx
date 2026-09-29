@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
   DialogContent,
@@ -85,7 +86,7 @@ export function MoveInDialog({
             Select one responsible renter and any additional occupants.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="tenancy-form">
+        <PreservingActionForm action={action} className="tenancy-form">
           <input type="hidden" name="spaceId" value={space.id} />
           <div className="grid gap-2">
             <Label htmlFor={`responsible-${space.id}`}>
@@ -192,7 +193,7 @@ export function MoveInDialog({
               Record move-in
             </Button>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );
@@ -229,7 +230,7 @@ export function MoveOutDialog({ space }: { space: DashboardSpace }) {
             records remain.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="tenancy-form">
+        <PreservingActionForm action={action} className="tenancy-form">
           <input
             type="hidden"
             name="tenancyId"
@@ -294,7 +295,7 @@ export function MoveOutDialog({ space }: { space: DashboardSpace }) {
               Confirm move-out
             </Button>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );
@@ -356,7 +357,7 @@ export function AddOccupantDialog({
             Add someone to the active tenancy in {space.name}.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="tenancy-form">
+        <PreservingActionForm action={action} className="tenancy-form">
           <input
             type="hidden"
             name="tenancyId"
@@ -406,7 +407,7 @@ export function AddOccupantDialog({
               Add occupant
             </Button>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );
@@ -447,7 +448,7 @@ export function EndOccupancyDialog({
             The participation record remains in rental history.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="tenancy-form">
+        <PreservingActionForm action={action} className="tenancy-form">
           <input type="hidden" name="membershipId" value={membershipId} />
           <Field
             label="End date"
@@ -471,7 +472,7 @@ export function EndOccupancyDialog({
               End occupancy
             </Button>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );
@@ -561,7 +562,7 @@ export function MoveOccupantDialog({
             The old participation ends on the same date the new one begins.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="tenancy-form">
+        <PreservingActionForm action={action} className="tenancy-form">
           <input type="hidden" name="membershipId" value={membershipId} />
           <div className="grid gap-2">
             <Label htmlFor={`destination-${membershipId}`}>
@@ -598,7 +599,7 @@ export function MoveOccupantDialog({
               Move occupant
             </Button>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );

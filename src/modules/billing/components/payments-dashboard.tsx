@@ -10,6 +10,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
   DialogContent,
@@ -298,7 +299,7 @@ function EditPayment({ payment }: { payment: Payments[number] }) {
           <Info label="Total paid" value={formatVnd(payment.totalPaid)} />
           <Info label="Balance" value={formatVnd(payment.balance)} />
         </div>
-        <form action={action} className="dialog-form">
+        <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="paymentId" value={payment.id} />
           <div className="dialog-grid">
             <Field
@@ -341,7 +342,7 @@ function EditPayment({ payment }: { payment: Payments[number] }) {
             </p>
           )}
           <Button type="submit">Save payment</Button>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );

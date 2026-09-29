@@ -16,6 +16,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
   DialogContent,
@@ -531,7 +532,7 @@ function BulkClosingDialog({
             </div>
           ))}
         </div>
-        <form action={action}>
+        <PreservingActionForm action={action}>
           <input type="hidden" name="propertyId" value={propertyId} />
           <input type="hidden" name="billingMonth" value={`${month}-01`} />
           <input
@@ -550,7 +551,7 @@ function BulkClosingDialog({
               Set closings
             </Button>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );
@@ -797,7 +798,7 @@ function PhotoAction({
             )}
           </div>
         )}
-        <form action={action} className="dialog-form">
+        <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="readingId" value={readingId} />
           <Input
             name="photo"
@@ -811,7 +812,7 @@ function PhotoAction({
             </p>
           )}
           <Button type="submit">Add photo</Button>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );
@@ -872,7 +873,7 @@ function InstallMeterDialog({
             Configure the first meter for {room}.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="dialog-form">
+        <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="spaceId" value={spaceId} />
           <Field label="Meter number" name="meterNumber" />
           <Field
@@ -898,7 +899,7 @@ function InstallMeterDialog({
             </p>
           )}
           <Button type="submit">Install meter</Button>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );

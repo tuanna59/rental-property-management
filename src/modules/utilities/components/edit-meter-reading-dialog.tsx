@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
   DialogContent,
@@ -55,7 +56,7 @@ export function EditMeterReadingDialog({
             physical meter.
           </DialogDescription>
         </DialogHeader>
-        <form action={action} className="dialog-form">
+        <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="readingId" value={reading.id} />
           <div className="dialog-grid">
             <Field
@@ -110,7 +111,7 @@ export function EditMeterReadingDialog({
           <DialogFooter>
             <Button type="submit">Save changes</Button>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );

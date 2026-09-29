@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
   DialogContent,
@@ -65,7 +66,7 @@ export function PersonFormDialog({
             Identity is kept separately from room assignments.
           </DialogDescription>
         </DialogHeader>
-        <form action={formAction} className="person-form">
+        <PreservingActionForm action={formAction} className="person-form">
           {person && <input type="hidden" name="personId" value={person.id} />}
           <PersonField
             label="Full name"
@@ -113,7 +114,7 @@ export function PersonFormDialog({
               {mode === "create" ? "Add person" : "Save changes"}
             </Button>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );

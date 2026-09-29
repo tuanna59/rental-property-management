@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PreservingActionForm } from "@/components/ui/preserving-action-form";
 import {
   Dialog,
   DialogContent,
@@ -147,7 +148,7 @@ export function PropertyFormDialog({
             Update the basic information shown on the dashboard.
           </DialogDescription>
         </DialogHeader>
-        <form action={formAction} className="grid gap-4">
+        <PreservingActionForm action={formAction} className="grid gap-4">
           <input type="hidden" name="propertyId" value={property.id} />
           <Field
             id="property-name"
@@ -190,7 +191,7 @@ export function PropertyFormDialog({
           <DialogFooter>
             <SubmitButton>Save property</SubmitButton>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );
@@ -230,7 +231,7 @@ export function FloorFormDialog({
             Floors are ordered independently for each property.
           </DialogDescription>
         </DialogHeader>
-        <form action={formAction} className="grid gap-4">
+        <PreservingActionForm action={formAction} className="grid gap-4">
           {mode === "create" ? (
             <input type="hidden" name="propertyId" value={propertyId} />
           ) : (
@@ -264,7 +265,7 @@ export function FloorFormDialog({
               {mode === "create" ? "Add floor" : "Save floor"}
             </SubmitButton>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );
@@ -302,7 +303,7 @@ export function SpaceFormDialog({
           </DialogTitle>
           <DialogDescription>{floor.name}</DialogDescription>
         </DialogHeader>
-        <form action={formAction} className="grid gap-4">
+        <PreservingActionForm action={formAction} className="grid gap-4">
           {mode === "create" ? (
             <input type="hidden" name="floorId" value={floor.id} />
           ) : (
@@ -350,7 +351,7 @@ export function SpaceFormDialog({
               {mode === "create" ? "Add space" : "Save space"}
             </SubmitButton>
           </DialogFooter>
-        </form>
+        </PreservingActionForm>
       </DialogContent>
     </Dialog>
   );
