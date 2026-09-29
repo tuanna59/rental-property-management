@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { PrivateAttachmentPicker } from "@/components/ui/private-attachment";
 import { PreservingActionForm } from "@/components/ui/preserving-action-form";
@@ -30,6 +31,7 @@ export function EditMeterReadingDialog({
   meterNumber: string | null;
   reading: Reading;
 }) {
+  const t = useTranslations("utilities");
   const [open, setOpen] = React.useState(false);
   const [source, setSource] = React.useState<"MEASURED" | "ESTIMATED">(
     reading.source,
@@ -46,14 +48,14 @@ export function EditMeterReadingDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button type="button" size="sm" variant="ghost">
-          Edit
+          {t("editReading")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit reading</DialogTitle>
+          <DialogTitle>{t("editReading")}</DialogTitle>
           <DialogDescription>
-            {meterNumber || "Unnumbered meter"} · corrections remain on the same
+            {meterNumber || t("unnumberedMeter")} · corrections remain on the same
             physical meter.
           </DialogDescription>
         </DialogHeader>
@@ -61,7 +63,7 @@ export function EditMeterReadingDialog({
           <input type="hidden" name="readingId" value={reading.id} />
           <div className="dialog-grid">
             <Field
-              label="Reading"
+              label={t("reading")}
               name="readingValue"
               type="number"
               step="0.001"
@@ -69,7 +71,7 @@ export function EditMeterReadingDialog({
               required
             />
             <Field
-              label="Reading date"
+              label={t("readingDate")}
               name="readingDate"
               type="date"
               defaultValue={toDateOnly(reading.readingDate)}
@@ -78,7 +80,7 @@ export function EditMeterReadingDialog({
             />
           </div>
           <div className="field">
-            <Label>Source</Label>
+            <Label>{t("source")}</Label>
             <select
               name="source"
               value={source}
@@ -86,13 +88,13 @@ export function EditMeterReadingDialog({
                 setSource(event.target.value as "MEASURED" | "ESTIMATED")
               }
             >
-              <option value="MEASURED">Measured</option>
-              <option value="ESTIMATED">Estimated</option>
+              <option value="MEASURED">{t("measured")}</option>
+              <option value="ESTIMATED">{t("estimated")}</option>
             </select>
           </div>
           {source === "ESTIMATED" && (
             <Field
-              label="Estimated reason"
+              label={t("estimatedReason")}
               name="reason"
               defaultValue={reading.reason ?? ""}
               required
@@ -101,9 +103,9 @@ export function EditMeterReadingDialog({
           <PrivateAttachmentPicker
             name="photo"
             accept="image/jpeg,image/png,image/webp"
-            title="Evidence photo"
-            emptyText="No new photo selected"
-            actionLabel="Add photo"
+            title={t("evidencePhoto")}
+            emptyText={t("noNewPhoto")}
+            actionLabel={t("addPhoto")}
             kind="image"
           />
           {state.message && (
@@ -112,7 +114,7 @@ export function EditMeterReadingDialog({
             </p>
           )}
           <DialogFooter>
-            <Button type="submit">Save changes</Button>
+            <Button type="submit">{t("saveChanges")}</Button>
           </DialogFooter>
         </PreservingActionForm>
       </DialogContent>

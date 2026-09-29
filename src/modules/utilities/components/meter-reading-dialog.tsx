@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import { emptyActionState, type ActionState } from "@/lib/action-state";
 import { recordReadingAction } from "../actions";
 
 export function MeterReadingDialog({ meterId }: { meterId: string }) {
+  const t = useTranslations("utilities");
   const [open, setOpen] = React.useState(false);
   const [source, setSource] = React.useState<"MEASURED" | "ESTIMATED">(
     "MEASURED",
@@ -39,21 +41,21 @@ export function MeterReadingDialog({ meterId }: { meterId: string }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
-          <Plus /> Record reading
+          <Plus /> {t("recordReadingShort")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Record meter reading</DialogTitle>
+          <DialogTitle>{t("recordReading")}</DialogTitle>
           <DialogDescription>
-            Add a manual observation to this physical meter.
+            {t("recordReadingDescription")}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="meterId" value={meterId} />
           <div className="dialog-grid">
             <Field
-              label="Reading date"
+              label={t("readingDate")}
               name="readingDate"
               type="date"
               defaultValue={todayDate()}
@@ -61,7 +63,7 @@ export function MeterReadingDialog({ meterId }: { meterId: string }) {
               required
             />
             <Field
-              label="Reading value"
+              label={t("readingValue")}
               name="readingValue"
               type="number"
               step="0.001"
@@ -71,7 +73,7 @@ export function MeterReadingDialog({ meterId }: { meterId: string }) {
           <input type="hidden" name="readingType" value="MANUAL" />
           <div className="dialog-grid">
             <div className="field">
-              <Label htmlFor="reading-source">Source</Label>
+              <Label htmlFor="reading-source">{t("source")}</Label>
               <select
                 id="reading-source"
                 name="source"
@@ -80,16 +82,16 @@ export function MeterReadingDialog({ meterId }: { meterId: string }) {
                   setSource(event.target.value as "MEASURED" | "ESTIMATED")
                 }
               >
-                <option value="MEASURED">Measured</option>
-                <option value="ESTIMATED">Estimated</option>
+                <option value="MEASURED">{t("measured")}</option>
+                <option value="ESTIMATED">{t("estimated")}</option>
               </select>
             </div>
           </div>
           {source === "ESTIMATED" && (
             <Field
-              label="Estimate reason"
+              label={t("estimateReason")}
               name="reason"
-              placeholder="Required"
+              placeholder={t("required")}
               required
             />
           )}
@@ -97,12 +99,12 @@ export function MeterReadingDialog({ meterId }: { meterId: string }) {
             <PrivateAttachmentPicker
               name="photo"
               accept="image/jpeg,image/png,image/webp"
-              title="Meter photo"
-              emptyText="No photo selected"
-              actionLabel="Add photo"
+              title={t("meterPhoto")}
+              emptyText={t("noPhoto")}
+              actionLabel={t("addPhoto")}
               kind="image"
             />
-            <Field label="Notes" name="notes" />
+            <Field label={t("notes")} name="notes" />
           </div>
           {state.message && (
             <p className={state.ok ? "form-success" : "form-error"}>
@@ -111,7 +113,7 @@ export function MeterReadingDialog({ meterId }: { meterId: string }) {
           )}
           <DialogFooter>
             <Button type="submit">
-              <Plus /> Record reading
+              <Plus /> {t("recordReadingShort")}
             </Button>
           </DialogFooter>
         </PreservingActionForm>

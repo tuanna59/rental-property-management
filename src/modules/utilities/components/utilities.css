@@ -129,7 +129,7 @@
   align-items: center;
   justify-content: center;
   margin-left: 0.2rem;
-  color: #a16207;
+  color: var(--app-warning);
   vertical-align: text-bottom;
   outline: none;
 }
@@ -148,8 +148,8 @@
   max-width: 12rem;
   padding: 0.4rem 0.5rem;
   border-radius: 0.4rem;
-  background: #1f2937;
-  color: #fff;
+  background: var(--app-chart-tooltip-bg);
+  color: var(--app-chart-tooltip-text);
   font-size: 0.7rem;
   font-weight: 600;
   line-height: 1.25;
@@ -552,7 +552,7 @@
   align-items: flex-start;
   padding: 13px 19px;
   border-top: 1px solid var(--app-border);
-  color: #5f4d33;
+  color: var(--app-text-secondary);
   font-size: calc(13px + var(--app-font-size-bump));
 }
 .utility-warning svg {
@@ -622,7 +622,7 @@
 }
 .rate-card-header {
   padding: 20px;
-  background: #fbfcfa;
+  background: var(--app-surface-subtle);
   border-bottom: 1px solid var(--app-border);
 }
 .rate-card-header h2 {
@@ -673,7 +673,7 @@
   border-top: 1px solid var(--app-border);
 }
 .override-copy {
-  color: #6e7c74;
+  color: var(--app-text-muted);
   font-size: calc(13px + var(--app-font-size-bump));
   margin: 0;
 }
@@ -685,14 +685,14 @@
   display: grid;
   gap: 11px;
   padding-top: 14px;
-  border-top: 1px solid #e6ebe6;
+  border-top: 1px solid var(--app-border);
 }
 .dialog-section:first-of-type {
   border-top: 0;
   padding-top: 0;
 }
 .dialog-section h3 {
-  color: #5f7068;
+  color: var(--app-text-secondary);
   font-size: calc(12px + var(--app-font-size-bump));
   font-weight: 700;
   letter-spacing: 0.07em;
@@ -820,7 +820,7 @@
   height: 32px;
   align-items: center;
   gap: 5px;
-  border: 1px solid #cfd9d1;
+  border: 1px solid var(--app-border-strong);
   border-radius: 6px;
   background: var(--app-surface);
   color: var(--app-text-secondary);
@@ -829,7 +829,7 @@
   font-size: calc(11px + var(--app-font-size-bump));
 }
 .compact-photo-button:hover {
-  background: #f4f7f3;
+  background: var(--app-row-hover-bg);
 }
 .compact-photo-button svg {
   width: 14px;
@@ -892,7 +892,7 @@
   align-items: center;
   gap: 6px;
   border-bottom: 2px solid transparent;
-  color: #67776f;
+  color: var(--app-text-secondary);
   font-size: calc(12px + var(--app-font-size-bump));
   font-weight: 600;
   padding: 9px 12px;
@@ -901,7 +901,7 @@
   width: 14px;
 }
 .meter-detail-tabs button.is-active {
-  border-bottom-color: #24745f;
+  border-bottom-color: var(--app-brand);
   color: var(--app-brand);
 }
 .meter-breakdown {
@@ -950,17 +950,17 @@
   flex-direction: column;
   justify-content: center;
   padding: 8px 10px;
-  color: white;
-  border-right: 2px solid white;
+  color: var(--app-primary-foreground);
+  border-right: 2px solid var(--app-surface);
 }
 .usage-timeline > div:last-child {
   border-right: 0;
 }
 .usage-timeline .is-tenant {
-  background: #397b66;
+  background: var(--app-brand);
 }
 .usage-timeline .is-vacant {
-  background: #b59d78;
+  background: var(--app-neutral);
 }
 .usage-timeline span {
   overflow: hidden;
@@ -987,10 +987,10 @@
   border-radius: 3px;
 }
 .usage-legend span.is-tenant {
-  background: #397b66;
+  background: var(--app-brand);
 }
 .usage-legend span.is-vacant {
-  background: #b59d78;
+  background: var(--app-neutral);
 }
 .usage-legend div div {
   display: grid;
@@ -1004,7 +1004,7 @@
 }
 .meter-breakdown-empty,
 .meter-details-empty {
-  border: 1px dashed #d6dfd7;
+  border: 1px dashed var(--app-border-strong);
   border-radius: 8px;
   color: var(--app-text-secondary);
   padding: 20px;
@@ -1118,7 +1118,7 @@
 
 .electricity-calculation {
   background: var(--app-neutral-soft);
-  border: 1px solid #e1ddd1;
+  border: 1px solid var(--app-border);
   border-radius: 9px;
   padding: 2px 14px 10px;
 }
@@ -1132,7 +1132,7 @@
 }
 
 .electricity-calculation > div.is-strong {
-  color: #1e5948;
+  color: var(--app-success);
 }
 
 .electricity-calculation span,
@@ -1149,20 +1149,20 @@
 }
 
 .electricity-allocation-bar span {
-  border-right: 1px solid #fff;
+  border-right: 1px solid var(--app-surface);
   min-width: 2px;
 }
 
 .electricity-allocation-bar .is-tenant {
-  background: #397b66;
+  background: var(--app-brand);
 }
 
 .electricity-allocation-bar .is-tenant:nth-child(even) {
-  background: #639680;
+  background: color-mix(in srgb, var(--app-brand) 68%, var(--app-surface));
 }
 
 .electricity-allocation-bar .is-vacant {
-  background: #b59d78;
+  background: var(--app-neutral);
 }
 
 .electricity-details-table {
@@ -1170,13 +1170,13 @@
 }
 
 .electricity-details-table .is-vacant-row {
-  background: #faf7f0;
-  color: #76654d;
+  background: var(--app-neutral-soft);
+  color: var(--app-neutral);
 }
 
 .electricity-details-notes {
   border-top: 1px solid var(--app-border);
-  color: #6d7b74;
+  color: var(--app-text-muted);
   display: flex;
   flex-wrap: wrap;
   font-size: calc(10px + var(--app-font-size-bump));
@@ -1346,12 +1346,12 @@
   font-size: calc(11px + var(--app-font-size-bump));
 }
 .meter-inline-warning {
-  border: 1px solid #eadbbd;
-  background: #fffaf0;
+  border: 1px solid color-mix(in srgb, var(--app-warning) 38%, var(--app-border));
+  background: var(--app-warning-soft);
   color: var(--app-warning);
 }
 .meter-inline-note {
-  border: 1px solid #e2e8e3;
+  border: 1px solid var(--app-border);
   background: var(--app-surface-subtle);
   color: var(--app-text-secondary);
 }
@@ -1375,7 +1375,7 @@
   display: none;
 }
 .meter-segment-disclosure > summary strong {
-  color: #24745f;
+  color: var(--app-brand);
   font-size: calc(11px + var(--app-font-size-bump));
 }
 .meter-segment-disclosure .meter-physical-segments {
@@ -1431,7 +1431,7 @@
   width: 5px;
   height: 5px;
   border-radius: 999px;
-  background: #9b856f;
+  background: var(--app-neutral);
   transform: translateY(-50%);
 }
 .meter-reading-role {

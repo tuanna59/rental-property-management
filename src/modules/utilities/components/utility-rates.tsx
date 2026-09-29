@@ -1,6 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { useLocale, useTranslations } from "next-intl";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale, formatMonthShortLocale, formatVndLocale } from "@/i18n/format";
 import { CalendarDays, Plus, Zap, Droplets } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -18,7 +21,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { emptyActionState } from "@/lib/action-state";
-import { formatDate, formatVnd } from "@/lib/presentation";
 
 import { saveOverrideAction, saveRateAction } from "../actions";
 
@@ -35,15 +37,16 @@ export function UtilityRates({
   data: Rates;
   rooms: Array<{ id: string; name: string }>;
 }) {
+  const t = useTranslations("utilities");
+  const locale = useLocale() as AppLocale;
   return (
     <div className="utilities-content">
       <header className="utilities-header">
         <div className="utilities-header-copy">
-          <p className="utilities-eyebrow">PROPERTY UTILITIES</p>
-          <h1>Utility rates</h1>
+          <p className="utilities-eyebrow">{t("eyebrow")}</p>
+          <h1>{t("ratesTitle")}</h1>
           <p>
-            Manage electricity and water rates while preserving historical
-            pricing.
+            {t("ratesSubtitle")}
           </p>
         </div>
       </header>
@@ -51,8 +54,8 @@ export function UtilityRates({
         <RateCard
           propertyId={propertyId}
           type="ELECTRICITY"
-          title="Electricity"
-          description="VND per electricity unit (kWh)"
+          title={t("electricity")}
+          description={t("perKwh")}
           icon={<Zap />}
           rates={data.rates.filter(
             (rate) => rate.utilityType === "ELECTRICITY",
@@ -61,8 +64,8 @@ export function UtilityRates({
         <RateCard
           propertyId={propertyId}
           type="WATER"
-          title="Water"
-          description="VND per person per month"
+          title={t("waterUtility")}
+          description={t("perPersonMonth")}
           icon={<Droplets />}
           rates={data.rates.filter((rate) => rate.utilityType === "WATER")}
         />
@@ -70,10 +73,9 @@ export function UtilityRates({
       <section className="utility-section">
         <div className="utility-section-header">
           <div>
-            <h2>Room electricity overrides</h2>
+            <h2>{t("roomOverrides")}</h2>
             <p>
-              Overrides apply only to a specific room and month and do not
-              change the property rate.
+              {t("roomOverridesSubtitle")}
             </p>
           </div>
           <OverrideDialog rooms={rooms} />
@@ -83,18 +85,18 @@ export function UtilityRates({
             <table className="utility-table">
               <thead>
                 <tr>
-                  <th>Room</th>
-                  <th>Month</th>
-                  <th>Rate</th>
-                  <th>Reason</th>
+                  <th>{t("room")}</th>
+                  <th>{t("month")}</th>
+                  <th>{t("rate")}</th>
+                  <th>{t("reason")}</th>
                 </tr>
               </thead>
               <tbody>
                 {data.overrides.map((item) => (
                   <tr key={item.id}>
                     <td className="utility-room">{item.space.name}</td>
-                    <td>{formatDate(item.billingMonth)}</td>
-                    <td>{formatVnd(item.rate)} / kWh</td>
+                    <td>{formatMonthShortLocale(item.billingMonth, locale)}</td>
+                    <td>{formatVndLocale(item.rate, locale)} / kWh</td>
                     <td>{item.reason}</td>
                   </tr>
                 ))}
@@ -105,10 +107,9 @@ export function UtilityRates({
           <div className="utilities-empty">
             <CalendarDays />
             <div>
-              <strong>No room-specific overrides</strong>
+              <strong>{t("noOverrides")}</strong>
               <p>
-                Add an override only when a room needs a distinct monthly
-                electricity rate.
+                {t("noOverridesDetail")}
               </p>
             </div>
           </div>
@@ -133,6 +134,8 @@ function RateCard({
   icon: React.ReactNode;
   rates: Rates["rates"];
 }) {
+  const t = useTranslations("utilities");
+  const locale = useLocale() as AppLocale;
   const current = rates.find((rate) => !rate.effectiveTo) ?? rates[0];
   return (
     <section className="rate-card">
@@ -145,16 +148,16 @@ function RateCard({
       </header>
       <div className="rate-current">
         <div>
-          <span>Current rate</span>
+          <span>{t("currentRate")}</span>
           <strong>
             {current
-              ? `${formatVnd(current.rate)} / ${type === "ELECTRICITY" ? "kWh" : "person / month"}`
-              : "Not configured"}
+              ? `${formatVndLocale(current.rate, locale)} / ${type === "ELECTRICITY" ? "kWh" : t("personMonth")}`
+              : t("notConfigured")}
           </strong>
           <span>
             {current
-              ? `Effective ${formatDate(current.effectiveFrom)}`
-              : "Add a rate to begin"}
+              ? t("effective", { date: formatDateOnlyLocale(current.effectiveFrom, locale) })
+              : t("addRateBegin")}
           </span>
         </div>
         <RateDialog propertyId={propertyId} type={type} />
@@ -163,21 +166,21 @@ function RateCard({
         <table className="rate-history">
           <thead>
             <tr>
-              <th>Effective from</th>
-              <th>Effective to</th>
-              <th>Rate</th>
+              <th>{t("effectiveFrom")}</th>
+              <th>{t("effectiveTo")}</th>
+              <th>{t("rate")}</th>
             </tr>
           </thead>
           <tbody>
             {rates.map((rate) => (
               <tr key={rate.id}>
-                <td>{formatDate(rate.effectiveFrom)}</td>
+                <td>{formatDateOnlyLocale(rate.effectiveFrom, locale)}</td>
                 <td>
-                  {rate.effectiveTo ? formatDate(rate.effectiveTo) : "Current"}
+                  {rate.effectiveTo ? formatDateOnlyLocale(rate.effectiveTo, locale) : t("currentMonth")}
                 </td>
                 <td>
-                  {formatVnd(rate.rate)} /{" "}
-                  {type === "ELECTRICITY" ? "kWh" : "person / month"}
+                  {formatVndLocale(rate.rate, locale)} /{" "}
+                  {type === "ELECTRICITY" ? "kWh" : t("personMonth")}
                 </td>
               </tr>
             ))}
@@ -186,8 +189,8 @@ function RateCard({
       ) : (
         <div className="utilities-empty">
           <div>
-            <strong>No {title.toLowerCase()} rate configured</strong>
-            <p>Rates are preserved as historical records after they change.</p>
+            <strong>{t("noRateConfigured", { type: title.toLowerCase() })}</strong>
+            <p>{t("ratesHistoryNote")}</p>
           </div>
         </div>
       )}
@@ -202,6 +205,7 @@ function RateDialog({
   propertyId: string;
   type: "ELECTRICITY" | "WATER";
 }) {
+  const t = useTranslations("utilities");
   const [open, setOpen] = React.useState(false);
   const [state, action] = React.useActionState(
     saveRateAction,
@@ -211,17 +215,16 @@ function RateDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm">
-          <Plus /> Add new rate
+          <Plus /> {t("addNewRate")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            Add {type === "ELECTRICITY" ? "electricity" : "water"} rate
+            {t("addUtilityRate", { type: type === "ELECTRICITY" ? t("electricity").toLowerCase() : t("waterUtility").toLowerCase() })}
           </DialogTitle>
           <DialogDescription>
-            The previous rate remains in history and is closed on this effective
-            date.
+            {t("previousRateHistory")}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="dialog-form">
@@ -231,8 +234,8 @@ function RateDialog({
             <Field
               label={
                 type === "ELECTRICITY"
-                  ? "Rate (VND / kWh)"
-                  : "Rate (VND / person / month)"
+                  ? t("rateVndKwh")
+                  : t("rateVndPerson")
               }
               name="rate"
               type="number"
@@ -240,18 +243,18 @@ function RateDialog({
               required
             />
             <Field
-              label="Effective from"
+              label={t("effectiveFrom")}
               name="effectiveFrom"
               type="date"
               required
             />
           </div>
-          <Field label="Notes" name="notes" as="textarea" />
+          <Field label={t("notes")} name="notes" as="textarea" />
           <p className={`dialog-message ${state.ok ? "success" : "error"}`}>
             {state.message}
           </p>
           <DialogFooter>
-            <Button type="submit">Save rate</Button>
+            <Button type="submit">{t("saveRate")}</Button>
           </DialogFooter>
         </PreservingActionForm>
       </DialogContent>
@@ -264,6 +267,7 @@ function OverrideDialog({
 }: {
   rooms: Array<{ id: string; name: string }>;
 }) {
+  const t = useTranslations("utilities");
   const [open, setOpen] = React.useState(false);
   const [state, action] = React.useActionState(
     saveOverrideAction,
@@ -273,21 +277,21 @@ function OverrideDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm">
-          <Plus /> Add override
+          <Plus /> {t("addOverride")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add room override</DialogTitle>
+          <DialogTitle>{t("addRoomOverrideTitle")}</DialogTitle>
           <DialogDescription>
-            This applies only to one room for one calendar month.
+            {t("roomOverrideDescription")}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="dialog-form">
           <div className="field">
-            <Label htmlFor="override-room">Room</Label>
+            <Label htmlFor="override-room">{t("room")}</Label>
             <select id="override-room" name="spaceId" required>
-              <option value="">Choose a room</option>
+              <option value="">{t("chooseRoom")}</option>
               {rooms.map((room) => (
                 <option key={room.id} value={room.id}>
                   {room.name}
@@ -297,25 +301,25 @@ function OverrideDialog({
           </div>
           <div className="dialog-grid">
             <Field
-              label="Billing month"
+              label={t("billingMonthLabel")}
               name="billingMonth"
               type="month"
               required
             />
             <Field
-              label="Override rate (VND / kWh)"
+              label={t("overrideRate")}
               name="rate"
               type="number"
               step="0.001"
               required
             />
           </div>
-          <Field label="Reason" name="reason" required />
+          <Field label={t("reason")} name="reason" required />
           <p className={`dialog-message ${state.ok ? "success" : "error"}`}>
             {state.message}
           </p>
           <DialogFooter>
-            <Button type="submit">Save override</Button>
+            <Button type="submit">{t("saveOverride")}</Button>
           </DialogFooter>
         </PreservingActionForm>
       </DialogContent>

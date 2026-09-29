@@ -1,3 +1,9 @@
+"use client";
+
+import { useLocale, useTranslations } from "next-intl";
+import type { AppLocale } from "@/i18n/config";
+import { formatNumberLocale, formatVndLocale } from "@/i18n/format";
+
 import {
   Activity,
   AlertTriangle,
@@ -6,8 +12,6 @@ import {
   Layers3,
   Zap,
 } from "lucide-react";
-
-import { formatVnd } from "@/lib/presentation";
 
 import type { getUtilitiesOverview } from "../server/utility.queries";
 import {
@@ -18,6 +22,7 @@ import {
 import { BoundaryReadingDialog } from "./boundary-reading-dialog";
 import { WaterBreakdownDialog } from "./water-breakdown-dialog";
 import { ElectricityBreakdownDialog } from "./electricity-breakdown-dialog";
+import { translateUtilityWarning } from "./utility-presentation";
 
 type Overview = Awaited<ReturnType<typeof getUtilitiesOverview>>;
 
@@ -28,6 +33,8 @@ export function UtilitiesOverview({
   overview: Overview;
   month: string;
 }) {
+  const t = useTranslations("utilities");
+  const locale = useLocale() as AppLocale;
   const readingPercent = overview.monthlyClosingsRequired
     ? Math.round(
         (overview.monthlyClosingsRecorded / overview.monthlyClosingsRequired) *
@@ -47,67 +54,67 @@ export function UtilitiesOverview({
     <div className="utilities-content">
       <header className="utilities-header">
         <div className="utilities-header-copy">
-          <p className="utilities-eyebrow">PROPERTY UTILITIES</p>
-          <h1>Utilities</h1>
-          <p>Track monthly closings, physical usage, attribution, and utility charges.</p>
+          <p className="utilities-eyebrow">{t("eyebrow")}</p>
+          <h1>{t("title")}</h1>
+          <p>{t("subtitle")}</p>
         </div>
         <MonthSelector month={month} />
       </header>
       <section
         className="summary-grid utility-overview-summary"
-        aria-label="Monthly utility summary"
+        aria-label={t("monthlySummary")}
       >
         <SummaryCard
           icon={<Gauge />}
-          label="Monthly closings"
-          value={`${overview.monthlyClosingsRecorded} / ${overview.monthlyClosingsRequired} required recorded`}
+          label={t("monthlyClosings")}
+          value={t("closingsRecorded", { recorded: overview.monthlyClosingsRecorded, required: overview.monthlyClosingsRequired })}
           detail={
             overview.monthlyClosingsNeedsClosing
-              ? `${overview.monthlyClosingsNeedsClosing} needs closing · ${overview.monthlyClosingsOptional} optional`
-              : `${overview.monthlyClosingsOptional} optional`
+              ? t("closingDetail", { needs: overview.monthlyClosingsNeedsClosing, optional: overview.monthlyClosingsOptional })
+              : t("optionalCount", { count: overview.monthlyClosingsOptional })
           }
           progress={readingPercent}
         />
         <SummaryCard
           icon={<Layers3 />}
-          label="Attribution readiness"
-          value={`${overview.attributionReady} / ${overview.attributionRequired} ready`}
-          detail="Tenant and vacant usage"
+          label={t("attributionReadiness")}
+          value={t("readyCount", { ready: overview.attributionReady, required: overview.attributionRequired })}
+          detail={t("tenantVacantUsage")}
           progress={attributionPercent}
         />
         <SummaryCard
           icon={<Zap />}
-          label="Known physical usage"
+          label={t("knownPhysicalUsage")}
           value={
             totalPhysicalUsage
-              ? `${totalPhysicalUsage.toLocaleString()} kWh`
+              ? `${formatNumberLocale(totalPhysicalUsage, locale)} kWh`
               : "—"
           }
-          detail="Known so far across physical meter segments"
+          detail={t("knownPhysicalUsageDetail")}
         />
         <SummaryCard
           icon={<Droplets />}
-          label="Water"
-          value={`${overview.water.billablePeople} billable people`}
-          detail={`${overview.water.occupantDays} occupant-days${overview.water.calculatedPreviewAmount ? ` · ${formatVnd(overview.water.calculatedPreviewAmount)}` : ""}`}
+          label={t("water")}
+          value={t("billablePeople", { count: overview.water.billablePeople })}
+          detail={`${t("occupantDays", { count: overview.water.occupantDays })}${overview.water.calculatedPreviewAmount ? ` · ${formatVndLocale(overview.water.calculatedPreviewAmount, locale)}` : ""}`}
         />
         <SummaryCard
           icon={<Activity />}
-          label="Attention"
-          value={`${overview.warnings.length} item${overview.warnings.length === 1 ? "" : "s"}`}
+          label={t("attention")}
+          value={t("attentionItems", { count: overview.warnings.length })}
           detail={
             overview.warnings.length
-              ? "Readings or boundaries need action"
-              : "No utility warnings"
+              ? t("attentionNeedsAction")
+              : t("noWarnings")
           }
         />
       </section>
       <section className="utility-section">
         <div className="utility-section-header">
           <div>
-            <h2>Monthly room status</h2>
+            <h2>{t("monthlyRoomStatus")}</h2>
             <p>
-              Monthly closing status, known physical usage, and tenant attribution are tracked separately.
+              {t("monthlyRoomSubtitle")}
             </p>
           </div>
         </div>
@@ -116,14 +123,14 @@ export function UtilitiesOverview({
             <table className="utility-table">
               <thead>
                 <tr>
-                  <th>Room</th>
-                  <th>Meter</th>
-                  <th>Monthly closing</th>
-                  <th>Attribution</th>
-                  <th>Known usage</th>
-                  <th>Electricity estimate</th>
-                  <th>Water estimate</th>
-                  <th>Warning</th>
+                  <th>{t("room")}</th>
+                  <th>{t("meter")}</th>
+                  <th>{t("monthlyClosing")}</th>
+                  <th>{t("attribution")}</th>
+                  <th>{t("knownUsage")}</th>
+                  <th>{t("electricityEstimate")}</th>
+                  <th>{t("waterEstimate")}</th>
+                  <th>{t("warning")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -143,7 +150,7 @@ export function UtilitiesOverview({
                       <td>
                         <div className="utility-room">{row.room}</div>
                       </td>
-                      <td>{row.meterNumber || "No meter"}</td>
+                      <td>{row.meterNumber || t("noMeter")}</td>
                       <td>
                         <UtilityStatusBadge status={closingStatus} />
                       </td>
@@ -158,14 +165,14 @@ export function UtilitiesOverview({
                       </td>
                       <td>
                         {row.knownPhysicalUsage !== null
-                          ? `${Number(row.knownPhysicalUsage).toLocaleString()} kWh`
+                          ? `${formatNumberLocale(row.knownPhysicalUsage, locale)} kWh`
                           : "—"}
                         <div className="utility-subtle">
                           {row.monthlyPhysicalUsage !== null
-                            ? `Cycle usage ${Number(row.monthlyPhysicalUsage).toLocaleString()} kWh`
+                            ? t("cycleUsage", { value: formatNumberLocale(row.monthlyPhysicalUsage, locale) })
                             : row.closingRequired
-                              ? "Known so far · closing not ready"
-                              : "Known so far · closing optional"}
+                              ? t("knownClosingNotReady")
+                              : t("knownClosingOptional")}
                         </div>
                       </td>
                       <td>
@@ -173,7 +180,7 @@ export function UtilitiesOverview({
                           <div className="utility-estimate-primary">
                             <strong>
                               {row.preview.finalAmount
-                                ? formatVnd(row.preview.finalAmount)
+                                ? formatVndLocale(row.preview.finalAmount, locale)
                                 : "—"}
                             </strong>
                             <ElectricityBreakdownDialog
@@ -182,7 +189,7 @@ export function UtilitiesOverview({
                             />
                           </div>
                           <div className="utility-subtle">
-                            {row.preview.totalAttributableUsage ?? "0"} billable kWh
+                            {t("billableKwh", { value: row.preview.totalAttributableUsage ?? "0" })}
                           </div>
                         </div>
                       </td>
@@ -191,18 +198,18 @@ export function UtilitiesOverview({
                           <div className="utility-estimate-primary">
                             <strong>
                               {row.water.finalPreviewAmount !== null
-                                ? formatVnd(row.water.finalPreviewAmount)
+                                ? formatVndLocale(row.water.finalPreviewAmount, locale)
                                 : "—"}
                             </strong>
                             <WaterBreakdownDialog water={row.water} />
                           </div>
                           <div className="utility-subtle">
-                            {row.water.billablePeople} billable people
+                            {t("billablePeople", { count: row.water.billablePeople })}
                           </div>
                         </div>
                       </td>
                       <td className="utility-subtle">
-                        {row.warnings[0] ?? "—"}
+                        {row.warnings[0] ? translateUtilityWarning(row.warnings[0], t, locale) : "—"}
                       </td>
                     </tr>
                   );
@@ -212,16 +219,16 @@ export function UtilitiesOverview({
           </div>
         ) : (
           <EmptyUtilitiesState
-            title="No rental rooms"
-            description="Add rental rooms to begin utility tracking."
+            title={t("noRentalRooms")}
+            description={t("addRentalRooms")}
           />
         )}
       </section>
       <section className="utility-section">
         <div className="utility-section-header">
           <div>
-            <h2>Needs attention</h2>
-            <p>Missing required closings and tenancy boundaries appear here.</p>
+            <h2>{t("needsAttention")}</h2>
+            <p>{t("needsAttentionSubtitle")}</p>
           </div>
         </div>
         {overview.warnings.length ? (
@@ -233,7 +240,7 @@ export function UtilitiesOverview({
               >
                 <AlertTriangle />
                 <span>
-                  <strong>{warning.room}</strong> · {warning.message}
+                  <strong>{warning.room}</strong> · {translateUtilityWarning(warning.message, t, locale)}
                 </span>
                 {warning.boundary && (
                   <BoundaryReadingDialog
@@ -246,8 +253,8 @@ export function UtilitiesOverview({
           </div>
         ) : (
           <EmptyUtilitiesState
-            title="Everything is ready"
-            description="There are no utility readings or boundaries requiring attention."
+            title={t("everythingReady")}
+            description={t("everythingReadyDetail")}
           />
         )}
       </section>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Building2 } from "lucide-react";
 import type {
   BuildingTimeOfDay,
@@ -26,6 +27,7 @@ export function BuildingVisual({
   editing: boolean;
   onSelectSpace: (spaceId: string, target: HTMLButtonElement) => void;
 }) {
+  const t = useTranslations("building");
   const floors = orderFloors(projection.floors);
   const hasOpenRooftop = Boolean(
     floors[0]?.spaces.length && floors[0].spaces.every((space) => space.type === "ROOFTOP"),
@@ -35,8 +37,8 @@ export function BuildingVisual({
     return (
       <div className="building-v2-empty">
         <Building2 />
-        <strong>No floors configured</strong>
-        <span>Add a floor to start the building cutaway.</span>
+        <strong>{t("scene.noFloors")}</strong>
+        <span>{t("scene.addFloorHint")}</span>
       </div>
     );
   }

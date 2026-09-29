@@ -1,6 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { useLocale, useTranslations } from "next-intl";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale } from "@/i18n/format";
 import { Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PrivateAttachmentPicker } from "@/components/ui/private-attachment";
@@ -18,7 +21,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { emptyActionState, type ActionState } from "@/lib/action-state";
-import { formatDate } from "@/lib/presentation";
 import { recordMissingBoundaryAction } from "../actions";
 
 type Boundary = {
@@ -36,6 +38,8 @@ export function BoundaryReadingDialog({
   boundary: Boundary;
   room: string;
 }) {
+  const t = useTranslations("utilities");
+  const locale = useLocale() as AppLocale;
   const [open, setOpen] = React.useState(false);
   const [source, setSource] = React.useState<"MEASURED" | "ESTIMATED">(
     "MEASURED",
@@ -48,20 +52,19 @@ export function BoundaryReadingDialog({
     },
     emptyActionState,
   );
-  const label = boundary.boundaryType === "MOVE_IN" ? "Move-in" : "Move-out";
+  const label = boundary.boundaryType === "MOVE_IN" ? t("moveInBoundary") : t("moveOutBoundary");
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button type="button" size="sm" variant="outline">
-          <Gauge /> Record boundary
+          <Gauge /> {t("recordBoundary")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Record {label.toLowerCase()} boundary</DialogTitle>
+          <DialogTitle>{t("recordBoundaryTitle", { type: label })}</DialogTitle>
           <DialogDescription>
-            {room} · {boundary.tenantName}. The tenancy date and physical meter
-            are locked.
+            {t("boundaryLockedDescription", { room, tenant: boundary.tenantName })}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="dialog-form">
@@ -73,24 +76,24 @@ export function BoundaryReadingDialog({
           />
           <div className="dialog-grid">
             <Info
-              label="Boundary date"
-              value={formatDate(boundary.boundaryDate)}
+              label={t("boundaryDate")}
+              value={formatDateOnlyLocale(boundary.boundaryDate, locale)}
             />
             <Info
-              label="Physical meter"
-              value={boundary.meterNumber || "Unnumbered meter"}
+              label={t("physicalMeter")}
+              value={boundary.meterNumber || t("unnumberedMeter")}
             />
           </div>
           <div className="dialog-grid">
             <Field
-              label="Reading"
+              label={t("reading")}
               name="readingValue"
               type="number"
               step="0.001"
               required
             />
             <div className="field">
-              <Label htmlFor="boundary-source">Source</Label>
+              <Label htmlFor="boundary-source">{t("source")}</Label>
               <select
                 id="boundary-source"
                 name="source"
@@ -99,24 +102,24 @@ export function BoundaryReadingDialog({
                   setSource(event.target.value as "MEASURED" | "ESTIMATED")
                 }
               >
-                <option value="MEASURED">Measured</option>
-                <option value="ESTIMATED">Estimated</option>
+                <option value="MEASURED">{t("measured")}</option>
+                <option value="ESTIMATED">{t("estimated")}</option>
               </select>
             </div>
           </div>
           {source === "ESTIMATED" && (
-            <Field label="Estimate reason" name="reason" required />
+            <Field label={t("estimateReason")} name="reason" required />
           )}
           <PrivateAttachmentPicker
             name="photo"
             accept="image/jpeg,image/png,image/webp"
-            title="Boundary photo"
-            emptyText="No photo selected"
-            actionLabel="Add photo"
+            title={t("boundaryPhoto")}
+            emptyText={t("noPhoto")}
+            actionLabel={t("addPhoto")}
             kind="image"
           />
           <div className="field">
-            <Label htmlFor="boundary-notes">Notes</Label>
+            <Label htmlFor="boundary-notes">{t("notes")}</Label>
             <Textarea id="boundary-notes" name="notes" />
           </div>
           {state.message && (
@@ -125,7 +128,7 @@ export function BoundaryReadingDialog({
             </p>
           )}
           <DialogFooter>
-            <Button type="submit">Save boundary</Button>
+            <Button type="submit">{t("saveBoundary")}</Button>
           </DialogFooter>
         </PreservingActionForm>
       </DialogContent>

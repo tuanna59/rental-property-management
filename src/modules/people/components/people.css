@@ -97,7 +97,7 @@
 }
 
 .people-search:focus-within {
-  border-color: color-mix(in srgb, var(--app-brand) 52%, white);
+  border-color: color-mix(in srgb, var(--app-brand) 52%, var(--app-card-bg));
   box-shadow: 0 0 0 3px rgb(45 128 96 / 0.08);
 }
 

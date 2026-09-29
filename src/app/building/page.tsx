@@ -1,6 +1,7 @@
 import { Building2, DatabaseZap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { getServerTranslator } from "@/i18n/server";
 import "@/modules/assets/components/assets.css";
 import { getAssetInventoryPage, getDevicePage } from "@/modules/assets/server/assets.queries";
 import "@/modules/operations/components/operations.css";
@@ -18,6 +19,7 @@ export default async function Home({
 }: {
   searchParams: Promise<{ space?: string }>;
 }) {
+  const t = await getServerTranslator("building");
   let property;
   let people;
 
@@ -39,12 +41,12 @@ export default async function Home({
       <main className="flex min-h-screen items-center justify-center bg-[var(--app-page-bg)] px-4 text-[var(--app-text-primary)]">
         <section className="flex max-w-md flex-col items-center rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-8 text-center shadow-sm">
           <Building2 className="size-12 text-[var(--app-brand)]" />
-          <h1 className="mt-4 text-2xl font-semibold">No property found</h1>
+          <h1 className="mt-4 text-2xl font-semibold">{t("server.noProperty")}</h1>
           <p className="mt-2 text-sm text-[var(--app-text-secondary)]">
-            Run the development seed to create the initial configurable rental property.
+            {t("server.seedHint")}
           </p>
           <Button className="mt-5" asChild>
-            <a href="https://www.prisma.io/docs/orm/prisma-migrate/workflows/seeding">Seed workflow</a>
+            <a href="https://www.prisma.io/docs/orm/prisma-migrate/workflows/seeding">{t("server.seedWorkflow")}</a>
           </Button>
         </section>
       </main>
@@ -77,7 +79,8 @@ function isDatabaseUnavailable(error: unknown) {
   );
 }
 
-function DatabaseUnavailable() {
+async function DatabaseUnavailable() {
+  const t = await getServerTranslator("building");
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--app-page-bg)] px-4 text-[var(--app-text-primary)]">
       <section className="w-full max-w-2xl rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-8 shadow-sm">
@@ -86,18 +89,18 @@ function DatabaseUnavailable() {
             <DatabaseZap className="size-6" />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--app-danger)]">Setup needed</p>
-            <h1 className="mt-1 text-2xl font-semibold">Database is not running</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--app-danger)]">{t("server.setupNeeded")}</p>
+            <h1 className="mt-1 text-2xl font-semibold">{t("server.databaseNotRunning")}</h1>
             <p className="mt-2 text-sm leading-6 text-[var(--app-text-secondary)]">
-              The web server is reachable, but the dashboard needs PostgreSQL on port 5432 before it can load property data.
+              {t("server.databaseUnavailable")}
             </p>
           </div>
         </div>
         <div className="mt-6 grid gap-3 rounded-md bg-[var(--app-surface-subtle)] p-4 text-sm">
-          <p className="font-medium text-[var(--app-text-primary)]">Start the local database:</p>
-          <code className="overflow-x-auto rounded-md bg-[var(--app-text-primary)] px-3 py-2 text-white">docker compose up -d postgres</code>
-          <p className="font-medium text-[var(--app-text-primary)]">Then apply schema and seed data:</p>
-          <code className="overflow-x-auto rounded-md bg-[var(--app-text-primary)] px-3 py-2 text-white">pnpm db:migrate && pnpm db:seed</code>
+          <p className="font-medium text-[var(--app-text-primary)]">{t("server.startDatabase")}</p>
+          <code className="overflow-x-auto rounded-md border border-[var(--app-border)] bg-[var(--app-surface-elevated)] px-3 py-2 text-[var(--app-text-primary)]">docker compose up -d postgres</code>
+          <p className="font-medium text-[var(--app-text-primary)]">{t("server.applySchemaSeed")}</p>
+          <code className="overflow-x-auto rounded-md border border-[var(--app-border)] bg-[var(--app-surface-elevated)] px-3 py-2 text-[var(--app-text-primary)]">pnpm db:migrate && pnpm db:seed</code>
         </div>
       </section>
     </main>

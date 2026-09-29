@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import {
@@ -31,6 +32,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { emptyActionState, type ActionState } from "@/lib/action-state";
+import type { AppLocale } from "@/i18n/config";
+import { formatCompactDateLocale, formatMonthLocale, formatMonthShortLocale, formatNumberLocale } from "@/i18n/format";
 import {
   appendMeterReadingPhotoAction,
   installMeterAction,
@@ -55,6 +58,7 @@ export function MonthlyMeterEntry({
   month: string;
   propertyId: string;
 }) {
+  const t = useTranslations("utilities");
   const searchParams = useSearchParams();
   const urlMonth = searchParams.get("month");
   const selectedMonth = validMonth(urlMonth) ? urlMonth : month;
@@ -95,12 +99,9 @@ export function MonthlyMeterEntry({
     <div className="utilities-content">
       <header className="utilities-header meter-fast-header">
         <div className="utilities-header-copy">
-          <p className="utilities-eyebrow">METER READINGS</p>
-          <h1>Meter readings</h1>
-          <p>
-            Record physical readings and assign eligible manual readings as
-            monthly closings.
-          </p>
+          <p className="utilities-eyebrow">{t("meterReadingsEyebrow")}</p>
+          <h1>{t("meterReadingsTitle")}</h1>
+<p>{t("meterReadingsSubtitle")}</p>
         </div>
         <MonthSelector month={selectedMonth} />
       </header>
@@ -109,13 +110,13 @@ export function MonthlyMeterEntry({
           <div className="meter-toolbar-primary">
             <div
               className="meter-filter-group"
-              aria-label="Billing month editability filter"
+              aria-label={t("billingMonthFilter")}
             >
               {(
                 [
-                  ["ALL", "All", entries.length],
-                  ["OPEN", "Open", openRows.length],
-                  ["CLOSED", "Closed", closedRows.length],
+                  ["ALL", t("all"), entries.length],
+                  ["OPEN", t("open"), openRows.length],
+                  ["CLOSED", t("closed"), closedRows.length],
                 ] as const
               ).map(([value, label, count]) => (
               <button
@@ -142,14 +143,14 @@ export function MonthlyMeterEntry({
             <table className="utility-table meter-fast-grid">
               <thead>
                 <tr>
-                  <th>Room / meter</th>
-                  <th>Previous closing</th>
-                  <th>Latest reading</th>
-                  <th>New reading</th>
-                  <th>Reading date</th>
-                  <th>Known usage</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>{t("roomMeter")}</th>
+                  <th>{t("previousClosing")}</th>
+                  <th>{t("latestReading")}</th>
+                  <th>{t("newReading")}</th>
+                  <th>{t("readingDate")}</th>
+                  <th>{t("knownUsage")}</th>
+                  <th>{t("status")}</th>
+                  <th>{t("actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -169,14 +170,13 @@ export function MonthlyMeterEntry({
           </div>
         ) : (
           <EmptyUtilitiesState
-            title="No rooms in this view"
-            description="Choose another filter or billing month."
+            title={t("noRoomsInView")}
+            description={t("chooseAnotherFilter")}
           />
         )}
       </section>
       <p className="meter-grid-note">
-        <Gauge /> Monthly closing assignment, latest reading, and known physical
-        usage are tracked separately. Usage is never subtracted across meter IDs.
+        <Gauge /> {t("meterGridNote")}
       </p>
     </div>
   );
@@ -189,6 +189,8 @@ function MeterEntryRow({
   entry: Entries[number];
   month: string;
 }) {
+  const t = useTranslations("utilities");
+  const locale = useLocale() as AppLocale;
   const meter = entry.activeMeter;
   if (!meter) return null;
   const formId = React.useId();
@@ -219,14 +221,14 @@ function MeterEntryRow({
           <strong>{entry.room}</strong>
           <div className="meter-identity-meta">
             <span>
-              {entry.floorName} · {entry.meterNumber || "Unnumbered"}
+              {entry.floorName} · {entry.meterNumber || t("unnumbered")}
             </span>
             {entry.meterReplacementDuringMonth && (
               <span
                 className="meter-replacement-indicator"
                 tabIndex={0}
-                aria-label="Meter replaced this month"
-                data-tooltip="Meter replaced this month"
+                aria-label={t("meterReplacedThisMonth")}
+                data-tooltip={t("meterReplacedThisMonth")}
               >
                 <Info aria-hidden="true" />
               </span>
@@ -235,31 +237,31 @@ function MeterEntryRow({
         </div>
       </td>
       <td className="meter-col-previous">
-        <span className="meter-mobile-label">Previous closing</span>
+        <span className="meter-mobile-label">{t("previousClosing")}</span>
         {entry.previousClosingReading ? (
           <>
             <strong>
-              {number(entry.previousClosingReading.readingValue)} kWh
+              {formatNumberLocale(entry.previousClosingReading.readingValue, locale)} kWh
             </strong>
             <div className="utility-subtle">
-              {shortDate(entry.previousClosingReading.readingDate)}
+              {formatCompactDateLocale(entry.previousClosingReading.readingDate, locale)}
             </div>
           </>
         ) : (
           <>
             <strong>—</strong>
             {entry.activeMeterIsNewThisMonth && (
-              <div className="utility-subtle">New meter</div>
+              <div className="utility-subtle">{t("newMeter")}</div>
             )}
           </>
         )}
       </td>
       <td className="meter-col-latest">
-        <span className="meter-mobile-label">Latest reading</span>
+        <span className="meter-mobile-label">{t("latestReading")}</span>
         <LatestReading entry={entry} />
       </td>
       <td className="meter-col-new-reading">
-        <span className="meter-mobile-label">New reading</span>
+        <span className="meter-mobile-label">{t("newReading")}</span>
         {locked ? (
           <strong>—</strong>
         ) : (
@@ -286,7 +288,7 @@ function MeterEntryRow({
         )}
       </td>
       <td className="meter-col-reading-date">
-        <span className="meter-mobile-label">Reading date</span>
+        <span className="meter-mobile-label">{t("readingDate")}</span>
         {locked ? (
           <strong>—</strong>
         ) : (
@@ -302,17 +304,17 @@ function MeterEntryRow({
         )}
       </td>
       <td className="meter-col-usage">
-        <span className="meter-mobile-label">Known usage</span>
+        <span className="meter-mobile-label">{t("knownUsage")}</span>
         <strong>
           {entry.knownPhysicalUsage !== null
-            ? `${number(entry.knownPhysicalUsage)} kWh`
+            ? `${formatNumberLocale(entry.knownPhysicalUsage, locale)} kWh`
             : "—"}
         </strong>
         {entry.knownUsageMeterCount > 1 && (
-          <div className="utility-subtle">{entry.knownUsageMeterCount} meters</div>
+          <div className="utility-subtle">{t("metersCount", { count: entry.knownUsageMeterCount })}</div>
         )}
         {!locked && source === "ESTIMATED" && (
-          <div className="utility-status is-estimated">Estimated input</div>
+          <div className="utility-status is-estimated">{t("estimatedInput")}</div>
         )}
       </td>
       <td className="meter-col-status">
@@ -337,7 +339,7 @@ function MeterEntryRow({
               <OverflowMenu open={menuOpen} onOpenChange={setMenuOpen}>
                 <button type="button" onClick={() => openOverlay("MANAGE")}>
                   <Eye aria-hidden="true" />
-                  View details
+                  {t("viewDetails")}
                 </button>
                 {candidate && (
                   <ClosingAction
@@ -349,19 +351,19 @@ function MeterEntryRow({
                 )}
                 <button type="button" onClick={() => openOverlay("OPTIONS")}>
                   <SlidersHorizontal aria-hidden="true" />
-                  Reading options
+                  {t("readingOptions")}
                 </button>
                 {candidate ? (
                   <button type="button" onClick={() => openOverlay("PHOTO")}>
                     <ImageIcon aria-hidden="true" />
-                    {candidate.hasPhoto ? "Add / view photo" : "Add photo"}
+                    {candidate.hasPhoto ? t("addViewPhoto") : t("addPhoto")}
                   </button>
                 ) : (
-                  <span className="disabled-menu-item">Add photo after saving</span>
+                  <span className="disabled-menu-item">{t("addPhotoAfterSaving")}</span>
                 )}
                 <button type="button" onClick={() => openOverlay("HISTORY")}>
                   <History aria-hidden="true" />
-                  View reading history
+                  {t("viewReadingHistory")}
                 </button>
               </OverflowMenu>
             </>
@@ -410,13 +412,15 @@ function MeterEntryRow({
 }
 
 function LatestReading({ entry }: { entry: Entries[number] }) {
+  const t = useTranslations("utilities");
+  const locale = useLocale() as AppLocale;
   const latest = entry.latestReading;
-  if (!latest) return <span className="utility-subtle">No reading</span>;
+  if (!latest) return <span className="utility-subtle">{t("noReading")}</span>;
 
   return (
     <div className="meter-reading-plain">
-      <strong>{number(latest.readingValue)} kWh</strong>
-      <span>{shortDate(latest.readingDate)}</span>
+      <strong>{formatNumberLocale(latest.readingValue, locale)} kWh</strong>
+      <span>{formatCompactDateLocale(latest.readingDate, locale)}</span>
     </div>
   );
 }
@@ -428,30 +432,34 @@ function MeterWorkflowStatus({
   entry: Entries[number];
   month?: string;
 }) {
+  const t = useTranslations("utilities");
+  const locale = useLocale() as AppLocale;
   if (!entry.activeMeter) {
     return (
       <div className="meter-workflow-status">
-        <span className="utility-status is-estimated">No meter</span>
+        <span className="utility-status is-estimated">{t("noMeter")}</span>
       </div>
     );
   }
 
-  const closingMonth = month ? shortMonthLabel(month) : null;
+  const closingMonth = month ? formatMonthShortLocale(`${month}-01`, locale) : null;
   const qualityText =
     entry.closingDateQuality === "EARLY"
-      ? "Early"
+      ? t("early")
       : entry.closingDateQuality === "LATE" ||
           entry.closingDateQuality === "VERY_LATE"
-        ? `Late ${entry.closingDateOffsetDays}d`
+        ? entry.closingDateOffsetDays == null
+          ? t("lateClosing")
+          : t("lateDays", { days: entry.closingDateOffsetDays })
         : null;
 
   if (entry.closingLocked || entry.closingStatus === "LOCKED") {
     const detail = entry.monthlyReading && closingMonth
-      ? [ `${closingMonth} closing`, "Locked", qualityText ].filter(Boolean).join(" · ")
-      : "Billing period locked";
+      ? [t("closingForMonth", { month: closingMonth }), t("locked"), qualityText].filter(Boolean).join(" · ")
+      : t("billingPeriodLocked");
     return (
       <div className="meter-workflow-status">
-        <span className="utility-status is-complete">Closed</span>
+        <span className="utility-status is-complete">{t("closed")}</span>
         <span>{detail}</span>
       </div>
     );
@@ -460,19 +468,19 @@ function MeterWorkflowStatus({
   if (!entry.closingRequired || entry.closingStatus === "OPTIONAL") {
     return (
       <div className="meter-workflow-status">
-        <span className="utility-status is-estimated">Optional</span>
-        <span>Closing not required</span>
+        <span className="utility-status is-estimated">{t("optional")}</span>
+        <span>{t("closingNotRequired")}</span>
       </div>
     );
   }
 
   const detail = entry.monthlyReading && closingMonth
-    ? [ `${closingMonth} closing`, qualityText ].filter(Boolean).join(" · ")
-    : "Closing required";
+    ? [t("closingForMonth", { month: closingMonth }), qualityText].filter(Boolean).join(" · ")
+    : t("closingRequired");
 
   return (
     <div className="meter-workflow-status">
-      <span className="utility-status is-missing">Open</span>
+      <span className="utility-status is-missing">{t("open")}</span>
       <span>{detail}</span>
     </div>
   );
@@ -493,6 +501,8 @@ function BulkClosingDialog({
     readingDate: Date;
   }>;
 }) {
+  const t = useTranslations("utilities");
+  const locale = useLocale() as AppLocale;
   const [open, setOpen] = React.useState(false);
   const [state, action, pending] = React.useActionState(
     async (previous: ActionState, data: FormData) => {
@@ -510,25 +520,22 @@ function BulkClosingDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button type="button">
-          Set {rows.length} current reading{rows.length === 1 ? "" : "s"} as closing
+          {t("setCurrentReadingsAsClosing", { count: rows.length })}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            Set {rows.length} reading{rows.length === 1 ? "" : "s"} as {longMonthLabel(month)} closings?
+            {t("setReadingsAsClosingsTitle", { count: rows.length, month: formatMonthLocale(`${month}-01`, locale) })}
           </DialogTitle>
-          <DialogDescription>
-            Only eligible unlocked readings are included. Existing unlocked
-            closings will be replaced by the reading shown here.
-          </DialogDescription>
+          <DialogDescription>{t("setClosingsDescription")}</DialogDescription>
         </DialogHeader>
         <div className="bulk-closing-list">
           {rows.map((row) => (
             <div key={`${row.meterId}-${row.readingId}`}>
               <strong>{row.room}</strong>
               <span>
-                {number(row.readingValue)} kWh · {shortDate(row.readingDate)}
+                {formatNumberLocale(row.readingValue, locale)} kWh · {formatCompactDateLocale(row.readingDate, locale)}
               </span>
             </div>
           ))}
@@ -567,6 +574,7 @@ function OverflowMenu({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useTranslations("utilities");
   const [position, setPosition] = React.useState({ top: 0, left: 0 });
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -611,7 +619,7 @@ function OverflowMenu({
         ref={triggerRef}
         type="button"
         className="meter-overflow-trigger"
-        aria-label="More reading actions"
+        aria-label={t("moreReadingActions")}
         aria-expanded={open}
         onClick={() => onOpenChange(!open)}
       >
@@ -643,6 +651,8 @@ function ClosingAction({
   month: string;
   onSelect: () => void;
 }) {
+  const t = useTranslations("utilities");
+  const locale = useLocale() as AppLocale;
   const [, action] = React.useActionState(
     markReadingAsMonthlyClosingAction,
     emptyActionState,
@@ -654,7 +664,7 @@ function ClosingAction({
       <input type="hidden" name="billingMonth" value={`${month}-01`} />
       <button type="submit">
         <Gauge aria-hidden="true" />
-        Use as {monthLabel(`${month}-01`)} closing
+        {t("useAsClosing", { month: formatMonthLocale(`${month}-01`, locale) })}
       </button>
     </form>
   );
@@ -673,6 +683,7 @@ function ReadingOptions({
   reason: string;
   onChange: (source: "MEASURED" | "ESTIMATED", reason: string) => void;
 }) {
+  const t = useTranslations("utilities");
   const [draftSource, setDraftSource] = React.useState(source),
     [draftReason, setDraftReason] = React.useState(reason);
   React.useEffect(() => {
@@ -685,27 +696,25 @@ function ReadingOptions({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Reading options</DialogTitle>
-          <DialogDescription>
-            Measured is the default for quick entry.
-          </DialogDescription>
+          <DialogTitle>{t("readingOptions")}</DialogTitle>
+<DialogDescription>{t("readingOptionsDescription")}</DialogDescription>
         </DialogHeader>
         <div className="dialog-form">
           <div className="field">
-            <Label>Source</Label>
+            <Label>{t("source")}</Label>
             <select
               value={draftSource}
               onChange={(event) =>
                 setDraftSource(event.target.value as "MEASURED" | "ESTIMATED")
               }
             >
-              <option value="MEASURED">Measured</option>
-              <option value="ESTIMATED">Estimated</option>
+              <option value="MEASURED">{t("measured")}</option>
+              <option value="ESTIMATED">{t("estimated")}</option>
             </select>
           </div>
           {draftSource === "ESTIMATED" && (
             <div className="field">
-              <Label>Estimated reason</Label>
+              <Label>{t("estimatedReason")}</Label>
               <Input
                 value={draftReason}
                 onChange={(event) => setDraftReason(event.target.value)}
@@ -741,6 +750,7 @@ function PhotoAction({
   readingId: string;
   photoCount: number;
 }) {
+  const t = useTranslations("utilities");
   const [photoIndex, setPhotoIndex] = React.useState(0);
   const [state, action] = React.useActionState(
     appendMeterReadingPhotoAction,
@@ -756,10 +766,8 @@ function PhotoAction({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="media-preview-dialog">
         <DialogHeader>
-          <DialogTitle>Meter reading evidence</DialogTitle>
-          <DialogDescription>
-            New evidence is appended and existing evidence is preserved.
-          </DialogDescription>
+          <DialogTitle>{t("meterReadingEvidence")}</DialogTitle>
+<DialogDescription>{t("evidenceAppendDescription")}</DialogDescription>
         </DialogHeader>
         {photoCount > 0 && (
           <div className="meter-evidence-gallery">
@@ -767,16 +775,16 @@ function PhotoAction({
               <img
                 key={currentIndex}
                 src={`/api/meters/${meterId}/media/${readingId}?index=${currentIndex}`}
-                alt={`Meter reading evidence ${currentIndex + 1} of ${photoCount}`}
+                alt={t("evidenceAlt", { current: currentIndex + 1, count: photoCount })}
               />
             </div>
             {photoCount > 1 && (
-              <div className="meter-evidence-nav" aria-label="Evidence photo navigation">
+              <div className="meter-evidence-nav" aria-label={t("evidencePhotoNavigation")}>
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
-                  aria-label="Previous evidence photo"
+                  aria-label={t("previousEvidence")}
                   disabled={currentIndex === 0}
                   onClick={() => setPhotoIndex((value) => Math.max(0, value - 1))}
                 >
@@ -787,7 +795,7 @@ function PhotoAction({
                   type="button"
                   size="sm"
                   variant="outline"
-                  aria-label="Next evidence photo"
+                  aria-label={t("nextEvidence")}
                   disabled={currentIndex >= photoCount - 1}
                   onClick={() =>
                     setPhotoIndex((value) => Math.min(photoCount - 1, value + 1))
@@ -805,9 +813,9 @@ function PhotoAction({
             name="photo"
             accept="image/jpeg,image/png,image/webp"
             required
-            title="Evidence photo"
-            emptyText="No photo selected"
-            actionLabel="Choose photo"
+            title={t("evidencePhoto")}
+            emptyText={t("noPhoto")}
+            actionLabel={t("choosePhoto")}
             kind="image"
           />
           {state.message && (
@@ -815,7 +823,7 @@ function PhotoAction({
               {state.message}
             </p>
           )}
-          <Button type="submit">Add photo</Button>
+          <Button type="submit">{t("addPhoto")}</Button>
         </PreservingActionForm>
       </DialogContent>
     </Dialog>
@@ -823,6 +831,7 @@ function PhotoAction({
 }
 
 function NoMeterRow({ entry }: { entry: Entries[number] }) {
+  const t = useTranslations("utilities");
   return (
     <tr className="meter-no-meter-row">
       <td className="meter-col-room">
@@ -832,10 +841,8 @@ function NoMeterRow({ entry }: { entry: Entries[number] }) {
         </div>
       </td>
       <td className="meter-col-no-meter" colSpan={5}>
-        <strong>No meter installed</strong>
-        <div className="utility-subtle">
-          Configure a meter to start recording.
-        </div>
+        <strong>{t("noMeterInstalled")}</strong>
+<div className="utility-subtle">{t("configureMeterToStart")}</div>
       </td>
       <td className="meter-col-status">
         <MeterWorkflowStatus entry={entry} />
@@ -854,6 +861,7 @@ function InstallMeterDialog({
   spaceId: string;
   room: string;
 }) {
+  const t = useTranslations("utilities");
   const [open, setOpen] = React.useState(false);
   const [state, action] = React.useActionState(
     async (previous: ActionState, data: FormData) => {
@@ -867,34 +875,32 @@ function InstallMeterDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm">
-          <Plus /> Install meter
+          <Plus /> {t("installMeter")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Install electricity meter</DialogTitle>
-          <DialogDescription>
-            Configure the first meter for {room}.
-          </DialogDescription>
+          <DialogTitle>{t("installElectricityMeter")}</DialogTitle>
+<DialogDescription>{t("installMeterDescription", { room })}</DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="spaceId" value={spaceId} />
-          <Field label="Meter number" name="meterNumber" />
+          <Field label={t("meterNumber")} name="meterNumber" />
           <Field
-            label="Installed date"
+            label={t("installedDate")}
             name="installedAt"
             type="date"
             required
           />
           <Field
-            label="Initial reading"
+            label={t("initialReading")}
             name="initialReading"
             type="number"
             step="0.001"
             required
           />
           <div className="field">
-            <Label>Notes</Label>
+            <Label>{t("notes")}</Label>
             <Textarea name="notes" />
           </div>
           {state.message && (
@@ -902,7 +908,7 @@ function InstallMeterDialog({
               {state.message}
             </p>
           )}
-          <Button type="submit">Install meter</Button>
+          <Button type="submit">{t("installMeter")}</Button>
         </PreservingActionForm>
       </DialogContent>
     </Dialog>
@@ -921,43 +927,13 @@ function Field({
     </div>
   );
 }
-const number = (value: string) => Number(value).toLocaleString();
-
 const dateOnly = (value: Date) => value.toISOString().slice(0, 10);
-function shortMonthLabel(value: string) {
-  const [year, month] = value.split("-").map(Number);
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(year, month - 1, 1)));
-}
-function longMonthLabel(value: string) {
-  const [year, month] = value.split("-").map(Number);
-  return new Intl.DateTimeFormat("en", {
-    month: "long",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(year, month - 1, 1)));
-}
 const todayDate = () => {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
   return `${now.getFullYear()}-${month}-${day}`;
 };
-const shortDate = (value: Date) =>
-  new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(value);
-function monthLabel(value: string | Date) {
-  const parsed = value instanceof Date ? value : new Date(`${value}T00:00:00.000Z`);
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(parsed);
-}
 function validMonth(value: string | null): value is string {
   return Boolean(value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value));
 }

@@ -1,16 +1,40 @@
+"use client";
+
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { AlertTriangle } from "lucide-react";
 
 import type { BuildingVisualProjection } from "../../domain/types";
+import { SPACE_TYPE_KEYS } from "./building-copy";
 import { getRoomSizeClass, getRoomVisualVariant, getSpaceVisualWeight } from "./layout";
 import { SpaceInterior } from "./interiors/space-interior";
 
 export function MiniBuildingVisual({ projection }: { projection: BuildingVisualProjection }) {
+  const t = useTranslations("building");
   const floors = [...projection.floors].sort((a, b) => (b.level ?? b.sortOrder) - (a.level ?? a.sortOrder));
 
+  const occupancyText = (space: BuildingVisualProjection["floors"][number]["spaces"][number]) => {
+    if (space.occupancyState === "OCCUPIED") return t("spaceState.residents", { count: space.occupancy?.occupantCount ?? 0 });
+    if (space.occupancyState === "UPCOMING") return t("spaceState.upcoming");
+    return t("spaceState.vacant");
+  };
+
+  const shortType = (space: BuildingVisualProjection["floors"][number]["spaces"][number]) =>
+    t(`shortTypes.${SPACE_TYPE_KEYS[space.type]}`);
+
+  const tooltip = (space: BuildingVisualProjection["floors"][number]["spaces"][number]) => {
+    const messages = [space.type === "ROOM" ? occupancyText(space) : shortType(space)];
+    const active = space.maintenance.openCount + space.maintenance.inProgressCount;
+    if (active) messages.push(t("overlay.activeMaintenanceIssues", { count: active }));
+    if (space.utilities.missingBoundary) messages.push(t("overlay.boundaryAttention"));
+    else if (space.utilities.needsClosing) messages.push(t("overlay.monthlyClosingRequired"));
+    if (space.devices.offlineCount) messages.push(t("overlay.offlineDevices", { count: space.devices.offlineCount }));
+    return messages.join(" · ");
+  };
+
   return (
-    <div className="mini-building mini-building-v2" aria-label={`${projection.name} building overview`}>
+    <div className="mini-building mini-building-v2" aria-label={t("scene.overviewLabel", { property: projection.name })}>
       <div className="mini-building-sky" aria-hidden="true"><span /></div>
       <div className="mini-building-landscape" aria-hidden="true"><i /><i /><i /></div>
       <div className="mini-building-stack" style={{ "--mini-floor-count": Math.max(floors.length, 1) } as CSSProperties}>
@@ -29,14 +53,14 @@ export function MiniBuildingVisual({ projection }: { projection: BuildingVisualP
                       href={`/building?space=${space.id}`}
                       className={`mini-building-space type-${space.type.toLowerCase().replaceAll("_", "-")} is-${space.occupancyState.toLowerCase()}${attention ? " has-attention" : ""}`}
                       style={{ flexGrow: weight, flexBasis: `${Math.max(16, weight * 52)}px` }}
-                      aria-label={`${space.name}, ${space.occupancyState.toLowerCase().replaceAll("_", " ")}`}
-                      title={spaceTooltip(space)}
+                      aria-label={`${space.name}, ${space.type === "ROOM" ? occupancyText(space) : shortType(space)}`}
+                      title={tooltip(space)}
                     >
                       <SpaceInterior space={space} variant={getRoomVisualVariant(space)} roomSize={roomSize} />
                       <span className="mini-building-space-shade" aria-hidden="true" />
                       <span className="mini-building-space-label">
                         <strong>{space.name}</strong>
-                        <small>{space.type === "ROOM" ? occupancyText(space) : shortType(space.type)}</small>
+                        <small>{space.type === "ROOM" ? occupancyText(space) : shortType(space)}</small>
                       </span>
                       {attention && <span className="mini-building-attention" aria-hidden="true"><AlertTriangle /></span>}
                     </Link>
@@ -44,7 +68,7 @@ export function MiniBuildingVisual({ projection }: { projection: BuildingVisualP
                 })}
               </div>
             ) : (
-              <span className="mini-building-empty-floor">No spaces</span>
+              <span className="mini-building-empty-floor">{t("scene.noSpaces")}</span>
             )}
           </div>
         ))}
@@ -52,32 +76,4 @@ export function MiniBuildingVisual({ projection }: { projection: BuildingVisualP
       </div>
     </div>
   );
-}
-
-function occupancyText(space: BuildingVisualProjection["floors"][number]["spaces"][number]) {
-  if (space.occupancyState === "OCCUPIED") return `${space.occupancy?.occupantCount ?? 0} resident${space.occupancy?.occupantCount === 1 ? "" : "s"}`;
-  if (space.occupancyState === "UPCOMING") return "Upcoming";
-  return "Vacant";
-}
-
-function shortType(type: BuildingVisualProjection["floors"][number]["spaces"][number]["type"]) {
-  return {
-    ROOM: "Rental room",
-    OWNER_HOME: "Owner home",
-    GARAGE: "Garage",
-    ROOFTOP: "Rooftop",
-    COMMON_AREA: "Common area",
-    STORAGE: "Storage",
-    OTHER: "Space",
-  }[type];
-}
-
-function spaceTooltip(space: BuildingVisualProjection["floors"][number]["spaces"][number]) {
-  const messages = [space.type === "ROOM" ? occupancyText(space) : shortType(space.type)];
-  const active = space.maintenance.openCount + space.maintenance.inProgressCount;
-  if (active) messages.push(`${active} maintenance issue${active === 1 ? "" : "s"}`);
-  if (space.utilities.missingBoundary) messages.push("Utility boundary missing");
-  else if (space.utilities.needsClosing) messages.push("Monthly closing required");
-  if (space.devices.offlineCount) messages.push(`${space.devices.offlineCount} device${space.devices.offlineCount === 1 ? "" : "s"} offline`);
-  return messages.join(" · ");
 }

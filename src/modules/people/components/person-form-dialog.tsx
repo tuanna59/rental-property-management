@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { PreservingActionForm } from "@/components/ui/preserving-action-form";
@@ -31,6 +32,7 @@ export function PersonFormDialog({
   mode: "create" | "edit";
   person?: DirectoryPerson;
 }) {
+  const t = useTranslations("tenants");
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const action = mode === "create" ? createPersonAction : updatePersonAction;
@@ -51,38 +53,38 @@ export function PersonFormDialog({
         {mode === "create" ? (
           <Button>
             <Plus />
-            Add person
+            {t("addPerson")}
           </Button>
         ) : (
-          <Button variant="outline">Edit</Button>
+          <Button variant="outline">{t("edit")}</Button>
         )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {mode === "create" ? "Add person" : "Edit person"}
+            {mode === "create" ? t("addPerson") : t("editPerson")}
           </DialogTitle>
           <DialogDescription>
-            Identity is kept separately from room assignments.
+            {t("identitySeparate")}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={formAction} className="person-form">
           {person && <input type="hidden" name="personId" value={person.id} />}
           <PersonField
-            label="Full name"
+            label={t("fullName")}
             name="fullName"
             defaultValue={person?.fullName}
             required
             error={state.fieldErrors?.fullName?.[0]}
           />
           <PersonField
-            label="Phone"
+            label={t("phone")}
             name="phone"
             defaultValue={person?.phone ?? ""}
             error={state.fieldErrors?.phone?.[0]}
           />
           <PersonField
-            label="Date of birth"
+            label={t("dateOfBirth")}
             name="dateOfBirth"
             type="date"
             defaultValue={
@@ -91,13 +93,13 @@ export function PersonFormDialog({
             error={state.fieldErrors?.dateOfBirth?.[0]}
           />
           <PersonField
-            label={person?.hasCitizenId ? "Replace citizen ID" : "Citizen ID"}
+            label={person?.hasCitizenId ? t("replaceCitizenId") : t("citizenId")}
             name="citizenId"
             autoComplete="off"
             error={state.fieldErrors?.citizenId?.[0]}
           />
           <div className="grid gap-2">
-            <Label htmlFor={`${mode}-notes`}>Notes</Label>
+            <Label htmlFor={`${mode}-notes`}>{t("notes")}</Label>
             <Textarea
               id={`${mode}-notes`}
               name="notes"
@@ -111,7 +113,7 @@ export function PersonFormDialog({
           )}
           <DialogFooter>
             <Button type="submit">
-              {mode === "create" ? "Add person" : "Save changes"}
+              {mode === "create" ? t("addPerson") : t("saveChanges")}
             </Button>
           </DialogFooter>
         </PreservingActionForm>

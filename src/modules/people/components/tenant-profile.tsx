@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Archive,
   ArrowLeft,
@@ -46,7 +47,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { emptyActionState, type ActionState } from "@/lib/action-state";
-import { formatDate, formatVnd, toDateOnly } from "@/lib/presentation";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale, formatMonthShortLocale, formatVndLocale } from "@/i18n/format";
+import { toDateOnly } from "@/lib/presentation";
 import type { DashboardProperty } from "@/modules/property/domain/types";
 import {
   EndOccupancyDialog,
@@ -84,6 +87,8 @@ export function TenantProfile({
   backHref: string;
   renderedAt: string;
 }) {
+  const t = useTranslations("tenants");
+  const locale = useLocale() as AppLocale;
   const [tab, setTab] = React.useState<PersonTab>("history");
   const asOfDate = React.useMemo(() => businessDateFromRenderedAt(renderedAt), [renderedAt]);
   const rooms = property.floors.flatMap((floor) =>
@@ -114,7 +119,7 @@ export function TenantProfile({
     <div className="tenant-profile-workspace">
       <Link href={backHref} className="tenant-mobile-back">
         <ArrowLeft aria-hidden="true" />
-        Back to tenants
+        {t("backToTenants")}
       </Link>
 
       <TenantProfileHeader
@@ -134,36 +139,36 @@ export function TenantProfile({
 
       <TenantNotesCard person={person} />
 
-      <section className="tenant-financial-summary" aria-label="Tenant summary">
+      <section className="tenant-financial-summary" aria-label={t("summary")}>
         <SummaryCard
           icon={<ReceiptText />}
-          label="Invoices"
+          label={t("invoices")}
           value={String(financial.invoiceCount)}
-          detail={`${financial.outstandingCount} outstanding`}
+          detail={t("outstandingCount", { count: financial.outstandingCount })}
           onClick={() => setTab("invoices")}
         />
         <SummaryCard
           icon={<WalletCards />}
-          label="Payments"
-          value={formatVnd(financial.paymentTotal)}
+          label={t("payments")}
+          value={formatVndLocale(financial.paymentTotal, locale)}
           detail={
             financial.lastPayment
-              ? `Last paid ${formatDate(financial.lastPayment)}`
-              : "No payments yet"
+              ? t("lastPaid", { date: formatDateOnlyLocale(financial.lastPayment, locale) })
+              : t("noPaymentsYet")
           }
           onClick={() => setTab("payments")}
         />
         <SummaryCard
           icon={<CircleDollarSign />}
-          label="Deposit"
-          value={formatVnd(financial.depositHeld)}
-          detail={Number(financial.depositHeld) > 0 ? "Held" : "No deposit held"}
+          label={t("deposit")}
+          value={formatVndLocale(financial.depositHeld, locale)}
+          detail={Number(financial.depositHeld) > 0 ? t("held") : t("noDepositHeld")}
         />
         <SummaryCard
           icon={<Zap />}
-          label="Utilities"
-          value={formatVnd(financial.latestUtilityTotal)}
-          detail={financial.latestUtilityMonth ?? "No utility billing yet"}
+          label={t("utilities")}
+          value={formatVndLocale(financial.latestUtilityTotal, locale)}
+          detail={financial.latestUtilityMonth ? t("billingLabel", { month: formatMonthShortLocale(financial.latestUtilityMonth, locale) }) : t("noUtilityBilling")}
           onClick={() => setTab("utilities")}
         />
       </section>
@@ -195,10 +200,12 @@ function TenantProfileHeader({
   onOpenDocuments: () => void;
   asOfDate: Date;
 }) {
-  const duration = profileTenancyDuration(person, primaryTenancy, asOfDate);
+  const t = useTranslations("tenants");
+  const locale = useLocale() as AppLocale;
+  const duration = profileTenancyDuration(person, primaryTenancy, asOfDate, t);
 
   return (
-    <section className="tenant-profile-header" aria-label="Tenant profile">
+    <section className="tenant-profile-header" aria-label={t("tenantProfile")}>
       <ProfileAvatar person={person} />
 
       <div className="tenant-profile-main">
@@ -207,50 +214,50 @@ function TenantProfileHeader({
             <h2>{person.fullName}</h2>
             <LifecycleBadge person={person} />
           </div>
-          <div className="tenant-profile-context" aria-label="Tenant identity details">
+          <div className="tenant-profile-context" aria-label={t("identityDetails")}>
             <div className="tenant-profile-room-row">
               <span className="tenant-profile-context-item tenant-profile-room">
                 <House aria-hidden="true" />
-                <span>{profileContext(person)}</span>
+                <span>{profileContext(person, t)}</span>
               </span>
             </div>
             <div className="tenant-profile-contact-row">
               <span className="tenant-profile-context-item tenant-profile-contact">
                 <Phone aria-hidden="true" />
-                <span>{person.phone || "Phone not provided"}</span>
+                <span>{person.phone || t("phoneNotProvided")}</span>
               </span>
               <CitizenIdContextFact person={person} />
               <span className="tenant-profile-context-item tenant-profile-birthday">
                 <CalendarDays aria-hidden="true" />
-                <span>{person.dateOfBirth ? formatDate(person.dateOfBirth) : "Birthday not provided"}</span>
+                <span>{person.dateOfBirth ? formatDateOnlyLocale(person.dateOfBirth, locale) : t("birthdayNotProvided")}</span>
               </span>
             </div>
           </div>
         </div>
 
-        <div className="tenant-profile-metadata" aria-label="Tenant metadata">
+        <div className="tenant-profile-metadata" aria-label={t("metadata")}>
           <MetadataItem
             icon={<CalendarDays />}
-            label="Move-in date"
-            value={primaryTenancy ? formatDate(primaryTenancy.moveInDate) : "Not provided"}
+            label={t("moveInDate")}
+            value={primaryTenancy ? formatDateOnlyLocale(primaryTenancy.moveInDate, locale) : t("notProvided")}
             detail={duration ? `(${duration})` : null}
           />
           <MetadataItem
             icon={<CalendarClock />}
-            label="Move-out date"
+            label={t("moveOutDate")}
             value={
               primaryTenancy?.moveOutDate
-                ? formatDate(primaryTenancy.moveOutDate)
+                ? formatDateOnlyLocale(primaryTenancy.moveOutDate, locale)
                 : primaryTenancy
                   ? "—"
-                  : "Not provided"
+                  : t("notProvided")
             }
-            detail={primaryTenancy && !primaryTenancy.moveOutDate ? "Ongoing" : null}
+            detail={primaryTenancy && !primaryTenancy.moveOutDate ? t("ongoing") : null}
           />
           <MetadataItem
             icon={<UserRound />}
-            label="Tenant type"
-            value={primaryTenancy ? shortRoleLabel(primaryTenancy.role) : "Not provided"}
+            label={t("tenantType")}
+            value={primaryTenancy ? (primaryTenancy.role === "RESPONSIBLE" ? t("responsible") : t("additional")) : t("notProvided")}
             className="tenant-meta-role"
           />
         </div>
@@ -273,6 +280,7 @@ type TenantPayment = TenantInvoice["payments"][number] & {
 };
 
 function ProfileAvatar({ person }: { person: DirectoryPerson }) {
+  const t = useTranslations("tenants");
   const router = useRouter();
   const [state, action] = React.useActionState(
     async (previous: ActionState, data: FormData) => {
@@ -293,9 +301,9 @@ function ProfileAvatar({ person }: { person: DirectoryPerson }) {
             name="image"
             accept="image/jpeg,image/png,image/webp"
             required
-            title="Avatar"
-            emptyText="No avatar uploaded"
-            actionLabel={person.hasAvatar ? "Replace avatar" : "Upload avatar"}
+            title={t("avatar")}
+            emptyText={t("noAvatar")}
+            actionLabel={person.hasAvatar ? t("replaceAvatar") : t("uploadAvatar")}
             kind="image"
             variant="icon"
             autoSubmit
@@ -333,15 +341,16 @@ export function PersonAvatar({
 }
 
 function LifecycleBadge({ person }: { person: DirectoryPerson }) {
+  const t = useTranslations("tenants");
   const label = person.archivedAt
-    ? "Archived"
+    ? t("archived")
     : person.rentalState === "CURRENT"
-      ? "Current tenant"
+      ? t("currentTenant")
       : person.rentalState === "UPCOMING"
-        ? "Upcoming"
+        ? t("upcoming")
         : person.rentalState === "FORMER"
-          ? "Former"
-          : "No rental";
+          ? t("formerTenant")
+          : t("noRental");
   return (
     <span className={`tenant-state ${person.archivedAt ? "state-archived" : `state-${person.rentalState.toLowerCase()}`}`}>
       {label}
@@ -358,6 +367,7 @@ function PersonOverflow({
   rooms: Array<{ id: string; name: string }>;
   onOpenDocuments: () => void;
 }) {
+  const t = useTranslations("tenants");
   const router = useRouter();
   const serverAction = person.archivedAt ? restorePersonAction : archivePersonAction;
   const [state, action] = React.useActionState(
@@ -375,7 +385,7 @@ function PersonOverflow({
       : null;
   return (
     <details className="tenant-overflow">
-      <summary aria-label="More person actions">
+      <summary aria-label={t("morePersonActions")}>
         <MoreHorizontal aria-hidden="true" />
       </summary>
       <div className="tenant-overflow-menu">
@@ -395,7 +405,7 @@ function PersonOverflow({
         {!person.archivedAt && (
           <button type="button" onClick={onOpenDocuments}>
             <FilePlus2 aria-hidden="true" />
-            Add document
+            {t("addDocument")}
           </button>
         )}
         <div className="tenant-overflow-separator" />
@@ -403,7 +413,7 @@ function PersonOverflow({
           <input type="hidden" name="personId" value={person.id} />
           <button type="submit" className={!person.archivedAt ? "is-danger" : undefined}>
             {person.archivedAt ? <RotateCcw /> : <Archive />}
-            {person.archivedAt ? "Restore person" : "Archive person"}
+            {person.archivedAt ? t("restorePerson") : t("archivePerson")}
           </button>
         </form>
         {state.message && <small>{state.message}</small>}
@@ -440,12 +450,13 @@ function MetadataItem({
 }
 
 function CitizenIdContextFact({ person }: { person: DirectoryPerson }) {
+  const t = useTranslations("tenants");
   const [revealed, setRevealed] = React.useState<string | null>(null);
   const [message, setMessage] = React.useState<string | null>(null);
   const [pending, startTransition] = React.useTransition();
   const masked = person.hasCitizenId
     ? `••••${person.citizenIdLast4 ?? ""}`
-    : "Citizen ID not provided";
+    : t("citizenIdNotProvided");
   return (
     <span className="tenant-profile-context-item tenant-profile-citizen-id">
       <IdCard aria-hidden="true" />
@@ -455,7 +466,7 @@ function CitizenIdContextFact({ person }: { person: DirectoryPerson }) {
           <button
             type="button"
             disabled={pending}
-            aria-label={revealed ? "Hide citizen ID" : "Reveal citizen ID"}
+            aria-label={revealed ? t("hideCitizenId") : t("revealCitizenId")}
             onClick={() => {
               if (revealed) {
                 setRevealed(null);
@@ -483,38 +494,40 @@ function CitizenIdContextFact({ person }: { person: DirectoryPerson }) {
 }
 
 function CurrentRentalCard({ tenancy }: { tenancy: HistoryItem }) {
+  const t = useTranslations("tenants");
+  const locale = useLocale() as AppLocale;
   return (
     <section className="tenant-rental-card">
       <div className="tenant-rental-topline">
         <div className="tenant-rental-identity">
-          <span className="tenant-card-kicker">Current rental</span>
+          <span className="tenant-card-kicker">{t("currentRental")}</span>
           <strong>
             {tenancy.spaceName}
             <span> · {tenancy.floorName}</span>
           </strong>
           {tenancy.role === "RESPONSIBLE" && (
             <small className="tenant-rental-helper">
-              Move-out is managed from Building.
+              {t("moveOutManagedBuilding")}
             </small>
           )}
         </div>
         <Button variant="outline" size="sm" asChild>
-          <Link href="/building">Open building</Link>
+          <Link href="/building">{t("openBuilding")}</Link>
         </Button>
       </div>
       <div className="tenant-rental-metrics">
         <RentalMetric
-          label="Monthly rent"
-          value={`${formatVnd(tenancy.currentRent.monthlyRentVnd)} / month`}
+          label={t("monthlyRent")}
+          value={t("perMonth", { amount: formatVndLocale(tenancy.currentRent.monthlyRentVnd, locale) })}
         />
         <RentalMetric
-          label="Effective"
-          value={formatDate(tenancy.currentRent.effectiveFrom)}
+          label={t("effective")}
+          value={formatDateOnlyLocale(tenancy.currentRent.effectiveFrom, locale)}
         />
         <RentalMetric
-          label="Next rent"
-          value={tenancy.scheduledRent ? formatVnd(tenancy.scheduledRent.monthlyRentVnd) : "—"}
-          detail={tenancy.scheduledRent ? formatDate(tenancy.scheduledRent.effectiveFrom) : "No scheduled change"}
+          label={t("nextRent")}
+          value={tenancy.scheduledRent ? formatVndLocale(tenancy.scheduledRent.monthlyRentVnd, locale) : "—"}
+          detail={tenancy.scheduledRent ? formatDateOnlyLocale(tenancy.scheduledRent.effectiveFrom, locale) : t("noScheduledChange")}
         />
       </div>
     </section>
@@ -522,22 +535,24 @@ function CurrentRentalCard({ tenancy }: { tenancy: HistoryItem }) {
 }
 
 function UpcomingRentalCard({ tenancy }: { tenancy: HistoryItem }) {
+  const t = useTranslations("tenants");
+  const locale = useLocale() as AppLocale;
   return (
     <section className="tenant-rental-card is-upcoming">
       <div className="tenant-rental-topline">
         <div className="tenant-rental-identity">
-          <span className="tenant-card-kicker">Upcoming rental</span>
+          <span className="tenant-card-kicker">{t("upcomingRental")}</span>
           <strong>{tenancy.spaceName}</strong>
           <small>{tenancy.floorName}</small>
         </div>
       </div>
       <div className="tenant-rental-metrics">
-        <RentalMetric label="Moves in" value={formatDate(tenancy.moveInDate)} />
+        <RentalMetric label={t("movesIn")} value={formatDateOnlyLocale(tenancy.moveInDate, locale)} />
         <RentalMetric
-          label="Monthly rent"
-          value={`${formatVnd(tenancy.currentRent.monthlyRentVnd)} / month`}
+          label={t("monthlyRent")}
+          value={t("perMonth", { amount: formatVndLocale(tenancy.currentRent.monthlyRentVnd, locale) })}
         />
-        <RentalMetric label="Status" value="Scheduled" />
+        <RentalMetric label={t("status")} value={t("scheduled")} />
       </div>
     </section>
   );
@@ -562,6 +577,7 @@ function RentalMetric({
 }
 
 function TenantNotesCard({ person }: { person: DirectoryPerson }) {
+  const t = useTranslations("tenants");
   const router = useRouter();
   const [editing, setEditing] = React.useState(false);
   const [expanded, setExpanded] = React.useState(false);
@@ -582,11 +598,11 @@ function TenantNotesCard({ person }: { person: DirectoryPerson }) {
       <div className="tenant-notes-heading">
         <span>
           <NotebookPen aria-hidden="true" />
-          <strong>Notes</strong>
+          <strong>{t("notes")}</strong>
         </span>
         {!person.archivedAt && !editing && (
           <button type="button" onClick={() => setEditing(true)}>
-            {person.notes ? "Edit" : "Add note"}
+            {person.notes ? t("edit") : t("addNote")}
           </button>
         )}
       </div>
@@ -608,19 +624,19 @@ function TenantNotesCard({ person }: { person: DirectoryPerson }) {
           )}
           <div>
             <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
-              Cancel
+              {t("cancel")}
             </Button>
-            <Button type="submit" size="sm">Save</Button>
+            <Button type="submit" size="sm">{t("save")}</Button>
           </div>
         </form>
       ) : (
         <>
           <p className={!expanded && long ? "is-clamped" : ""}>
-            {person.notes || "No notes yet."}
+            {person.notes || t("noNotesYet")}
           </p>
           {long && (
             <button className="tenant-show-more" type="button" onClick={() => setExpanded((value) => !value)}>
-              {expanded ? "Show less" : "Show more"}
+              {expanded ? t("showLess") : t("showMore")}
             </button>
           )}
         </>
@@ -668,15 +684,16 @@ function TenantTabs({
   tab: PersonTab;
   setTab: (tab: PersonTab) => void;
 }) {
+  const t = useTranslations("tenants");
   const tabs: Array<[PersonTab, string]> = [
-    ["history", "Rental history"],
-    ["invoices", "Invoices"],
-    ["payments", "Payments"],
-    ["utilities", "Utilities"],
-    ["documents", "Documents"],
+    ["history", t("rentalHistory")],
+    ["invoices", t("invoices")],
+    ["payments", t("payments")],
+    ["utilities", t("utilities")],
+    ["documents", t("documents")],
   ];
   return (
-    <nav className="tenant-tabs" aria-label="Tenant details">
+    <nav className="tenant-tabs" aria-label={t("tenantDetails")}>
       {tabs.map(([value, label]) => (
         <button
           key={value}
@@ -692,11 +709,13 @@ function TenantTabs({
 }
 
 function RentalHistoryTimeline({ person, asOfDate }: { person: DirectoryPerson; asOfDate: Date }) {
+  const t = useTranslations("tenants");
+  const locale = useLocale() as AppLocale;
   if (!person.rentalHistory.length)
-    return <EmptyTab icon={<History />} text="No rental history yet." />;
+    return <EmptyTab icon={<History />} text={t("noRentalHistoryYet")} />;
   const history = [...person.rentalHistory].sort((left, right) => {
     const rank = (item: HistoryItem) =>
-      tenancyState(item, asOfDate) === "Current" ? 0 : tenancyState(item, asOfDate) === "Upcoming" ? 1 : 2;
+      tenancyState(item, asOfDate) === "CURRENT" ? 0 : tenancyState(item, asOfDate) === "UPCOMING" ? 1 : 2;
     return rank(left) - rank(right) || right.startDate.getTime() - left.startDate.getTime();
   });
   return (
@@ -709,21 +728,21 @@ function RentalHistoryTimeline({ person, asOfDate }: { person: DirectoryPerson; 
             <div className="tenant-timeline-main">
               <div className="tenant-timeline-title">
                 <strong>
-                  {formatDate(item.startDate)} — {item.endDate ? formatDate(item.endDate) : "Present"}
+                  {formatDateOnlyLocale(item.startDate, locale)} — {item.endDate ? formatDateOnlyLocale(item.endDate, locale) : t("present")}
                 </strong>
                 <span className="tenant-timeline-state">
-                  <span className={`tenant-state state-${state.toLowerCase()}`}>{state}</span>
-                  <em>{tenancyDuration(item.startDate, item.endDate ?? asOfDate)}</em>
+                  <span className={`tenant-state state-${state.toLowerCase()}`}>{state === "CURRENT" ? t("currentState") : state === "UPCOMING" ? t("upcomingState") : t("formerState")}</span>
+                  <em>{tenancyDuration(item.startDate, item.endDate ?? asOfDate, t)}</em>
                 </span>
               </div>
-              <p>{item.spaceName} · {roleLabel(item.role)}</p>
-              <small>{formatVnd(item.currentRent.monthlyRentVnd)} / month</small>
-              {item.scheduledRent && state === "Current" && (
+              <p>{item.spaceName} · {item.role === "RESPONSIBLE" ? t("responsibleRenter") : t("additionalRenter")}</p>
+              <small>{t("perMonth", { amount: formatVndLocale(item.currentRent.monthlyRentVnd, locale) })}</small>
+              {item.scheduledRent && state === "CURRENT" && (
                 <small className="tenant-timeline-scheduled">
-                  Next {formatVnd(item.scheduledRent.monthlyRentVnd)} · {formatDate(item.scheduledRent.effectiveFrom)}
+                  {t("nextRentValue", { amount: formatVndLocale(item.scheduledRent.monthlyRentVnd, locale), date: formatDateOnlyLocale(item.scheduledRent.effectiveFrom, locale) })}
                 </small>
               )}
-              {state === "Current" && (
+              {state === "CURRENT" && (
                 <div className="tenant-timeline-actions">
                   <ChangeRentDialog tenancy={item} />
                   <RentHistoryDialog tenancy={item} />
@@ -738,20 +757,23 @@ function RentalHistoryTimeline({ person, asOfDate }: { person: DirectoryPerson; 
 }
 
 function InvoicesTab({ invoices }: { invoices: TenantInvoice[] }) {
-  if (!invoices.length) return <EmptyTab icon={<ReceiptText />} text="No invoices yet." />;
+  const t = useTranslations("tenants");
+  const tb = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
+  if (!invoices.length) return <EmptyTab icon={<ReceiptText />} text={t("noInvoices")} />;
   return (
     <div className="tenant-table-list">
       <div className="tenant-table-head">
-        <span>Billing month</span><span>Room</span><span>Status</span><span>Total</span><span>Payment</span><span>Balance</span>
+        <span>{t("billingMonth")}</span><span>{t("room")}</span><span>{t("status")}</span><span>{t("total")}</span><span>{t("payment")}</span><span>{t("balance")}</span>
       </div>
       {invoices.map((invoice) => (
         <Link href={`/billing/invoices/${invoice.id}`} className="tenant-table-row" key={invoice.id}>
-          <span>{invoice.type === "REGULAR" ? monthLabel(invoice.billingPeriod) : formatDate(invoice.invoiceDate)}</span>
+          <span>{invoice.type === "REGULAR" ? formatMonthShortLocale(invoice.billingPeriod, locale) : formatDateOnlyLocale(invoice.invoiceDate, locale)}</span>
           <span>{invoice.roomName}</span>
-          <span>{invoice.status === "FINALIZED" ? "Finalized" : "Draft"}</span>
-          <span>{formatVnd(invoice.amount)}</span>
-          <span>{invoice.displayStatus}</span>
-          <span>{formatVnd(invoice.balance)}</span>
+          <span>{invoice.status === "FINALIZED" ? tb("finalized") : tb("draft")}</span>
+          <span>{formatVndLocale(invoice.amount, locale)}</span>
+          <span>{invoice.displayStatus === "Paid" ? tb("paid") : invoice.displayStatus === "Partial" ? tb("partial") : invoice.displayStatus === "Unpaid" ? tb("unpaid") : invoice.displayStatus}</span>
+          <span>{formatVndLocale(invoice.balance, locale)}</span>
         </Link>
       ))}
     </div>
@@ -759,18 +781,20 @@ function InvoicesTab({ invoices }: { invoices: TenantInvoice[] }) {
 }
 
 function PaymentsTab({ payments }: { payments: TenantPayment[] }) {
-  if (!payments.length) return <EmptyTab icon={<WalletCards />} text="No payments yet." />;
+  const t = useTranslations("tenants");
+  const locale = useLocale() as AppLocale;
+  if (!payments.length) return <EmptyTab icon={<WalletCards />} text={t("noPayments")} />;
   return (
     <div className="tenant-table-list payments-table">
       <div className="tenant-table-head">
-        <span>Date</span><span>Invoice</span><span>Method</span><span>Amount</span><span>Reference</span>
+        <span>{t("date")}</span><span>{t("invoice")}</span><span>{t("method")}</span><span>{t("amount")}</span><span>{t("reference")}</span>
       </div>
       {payments.map((payment) => (
         <Link href={`/billing/invoices/${payment.invoice.id}`} className="tenant-table-row" key={payment.id}>
-          <span>{formatDate(payment.paymentDate)}</span>
-          <span>{payment.invoice.type === "REGULAR" ? monthLabel(payment.invoice.billingPeriod) : "Final settlement"}</span>
-          <span>{payment.isDepositApplication ? "Deposit applied" : paymentMethod(payment.method)}</span>
-          <span>{formatVnd(payment.amount)}</span>
+          <span>{formatDateOnlyLocale(payment.paymentDate, locale)}</span>
+          <span>{payment.invoice.type === "REGULAR" ? formatMonthShortLocale(payment.invoice.billingPeriod, locale) : t("finalSettlement")}</span>
+          <span>{payment.isDepositApplication ? t("depositApplied") : payment.method === "BANK_TRANSFER" ? t("bankTransfer") : payment.method === "CASH" ? t("cash") : t("other")}</span>
+          <span>{formatVndLocale(payment.amount, locale)}</span>
           <span>{payment.reference || "—"}</span>
         </Link>
       ))}
@@ -779,33 +803,36 @@ function PaymentsTab({ payments }: { payments: TenantPayment[] }) {
 }
 
 function UtilitiesTab({ invoices }: { invoices: TenantInvoice[] }) {
+  const t = useTranslations("tenants");
+  const locale = useLocale() as AppLocale;
   const utilityInvoices = invoices.filter((invoice) => Number(invoice.utilities.total) > 0);
-  if (!utilityInvoices.length) return <EmptyTab icon={<Gauge />} text="No utility billing yet." />;
+  if (!utilityInvoices.length) return <EmptyTab icon={<Gauge />} text={t("noUtilities")} />;
   return (
     <div className="tenant-table-list utilities-table">
       <div className="tenant-table-head">
-        <span>Billing month</span><span>Room</span><span>Electricity</span><span>Water</span><span>Total</span>
+        <span>{t("billingMonth")}</span><span>{t("room")}</span><span>{t("electricity")}</span><span>{t("water")}</span><span>{t("total")}</span>
       </div>
       {utilityInvoices.map((invoice) => (
         <Link href={`/billing/invoices/${invoice.id}`} className="tenant-table-row" key={invoice.id}>
-          <span>{monthLabel(invoice.billingPeriod)}</span>
+          <span>{formatMonthShortLocale(invoice.billingPeriod, locale)}</span>
           <span>{invoice.roomName}</span>
           <span>
             {invoice.utilities.electricityUsage ? `${invoice.utilities.electricityUsage} kWh · ` : ""}
-            {formatVnd(invoice.utilities.electricityCharge)}
+            {formatVndLocale(invoice.utilities.electricityCharge, locale)}
           </span>
-          <span>{formatVnd(invoice.utilities.waterCharge)}</span>
-          <span>{formatVnd(invoice.utilities.total)}</span>
+          <span>{formatVndLocale(invoice.utilities.waterCharge, locale)}</span>
+          <span>{formatVndLocale(invoice.utilities.total, locale)}</span>
         </Link>
       ))}
       <div className="tenant-tab-link-row">
-        <Button variant="outline" size="sm" asChild><Link href="/utilities">Open Utilities</Link></Button>
+        <Button variant="outline" size="sm" asChild><Link href="/utilities">{t("openUtilities")}</Link></Button>
       </div>
     </div>
   );
 }
 
 function DocumentsTab({ person }: { person: DirectoryPerson }) {
+  const t = useTranslations("tenants");
   const contracts = person.documents.filter((document) => document.type === "RENTAL_CONTRACT");
   const custom = person.documents.filter((document) => document.type === "CUSTOM");
   return (
@@ -814,8 +841,8 @@ function DocumentsTab({ person }: { person: DirectoryPerson }) {
         <span>
           <FileText aria-hidden="true" />
           <span>
-            <strong>Private documents</strong>
-            <small>Contracts, identity documents, and supporting files.</small>
+            <strong>{t("privateDocuments")}</strong>
+            <small>{t("privateDocumentsHelp")}</small>
           </span>
         </span>
         {!person.archivedAt && <AddDocumentDialog person={person} />}
@@ -830,13 +857,13 @@ function DocumentsTab({ person }: { person: DirectoryPerson }) {
           <article className="tenant-document-card is-empty">
             <div className="tenant-document-preview"><FileText aria-hidden="true" /></div>
             <div>
-              <strong>Rental contract</strong>
-              <small>{person.currentTenancy ? `No contract uploaded for ${person.currentTenancy.spaceName}` : "Not uploaded"}</small>
+              <strong>{t("rentalContract")}</strong>
+              <small>{person.currentTenancy ? t("noContractForRoom", { room: person.currentTenancy.spaceName }) : t("notUploaded")}</small>
             </div>
           </article>
         )}
-        <MediaSlot person={person} kind="citizen-front" label="ID front" present={person.hasCitizenIdFront} />
-        <MediaSlot person={person} kind="citizen-back" label="ID back" present={person.hasCitizenIdBack} />
+        <MediaSlot person={person} kind="citizen-front" label={t("idFront")} present={person.hasCitizenIdFront} />
+        <MediaSlot person={person} kind="citizen-back" label={t("idBack")} present={person.hasCitizenIdBack} />
         {custom.map((document) => (
           <StoredDocumentCard key={document.id} person={person} document={document} />
         ))}
@@ -846,6 +873,7 @@ function DocumentsTab({ person }: { person: DirectoryPerson }) {
 }
 
 function AddDocumentDialog({ person }: { person: DirectoryPerson }) {
+  const t = useTranslations("tenants");
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [type, setType] = React.useState<"RENTAL_CONTRACT" | "CUSTOM">("RENTAL_CONTRACT");
@@ -864,12 +892,12 @@ function AddDocumentDialog({ person }: { person: DirectoryPerson }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm"><Plus />Add document</Button>
+        <Button size="sm"><Plus />{t("addDocument")}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add document</DialogTitle>
-          <DialogDescription>Upload a private PDF or image for {person.fullName}.</DialogDescription>
+          <DialogTitle>{t("addDocument")}</DialogTitle>
+          <DialogDescription>{t("addDocumentDescription", { person: person.fullName })}</DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="person-form">
           <input type="hidden" name="personId" value={person.id} />
@@ -877,34 +905,34 @@ function AddDocumentDialog({ person }: { person: DirectoryPerson }) {
             <input type="hidden" name="tenancyId" value={tenancyId} />
           )}
           <div className="grid gap-2">
-            <Label>Type</Label>
+            <Label>{t("type")}</Label>
             <select name="type" value={type} onChange={(event) => setType(event.target.value as typeof type)}>
-              <option value="RENTAL_CONTRACT">Rental contract</option>
-              <option value="CUSTOM">Custom</option>
+              <option value="RENTAL_CONTRACT">{t("rentalContractOption")}</option>
+              <option value="CUSTOM">{t("customOption")}</option>
             </select>
           </div>
           {type === "CUSTOM" && (
             <div className="grid gap-2">
-              <Label>Title</Label>
-              <input className="tenant-native-input" name="title" required placeholder="e.g. Parking agreement" />
+              <Label>{t("titleLabel")}</Label>
+              <input className="tenant-native-input" name="title" required placeholder={t("customTitlePlaceholder")} />
             </div>
           )}
           <div className="grid gap-2">
-            <Label>Note <span className="tenant-optional-label">Optional</span></Label>
+            <Label>{t("note")} <span className="tenant-optional-label">{t("optional")}</span></Label>
             <input className="tenant-native-input" name="note" />
           </div>
           <PrivateAttachmentPicker
             name="file"
             accept="application/pdf,image/jpeg,image/png,image/webp"
             required
-            title="Document"
-            emptyText="No file selected"
-            actionLabel="Choose document"
+            title={t("document")}
+            emptyText={t("noFileSelected")}
+            actionLabel={t("chooseDocument")}
             kind="file"
-            helperText="PDF, JPEG, PNG, or WebP · up to 16 MB"
+            helperText={t("documentFileHelp")}
           />
           {state.message && <p className={state.ok ? "form-success" : "form-error"}>{state.message}</p>}
-          <DialogFooter><Button type="submit">Upload document</Button></DialogFooter>
+          <DialogFooter><Button type="submit">{t("uploadDocument")}</Button></DialogFooter>
         </PreservingActionForm>
       </DialogContent>
     </Dialog>
@@ -918,6 +946,8 @@ function StoredDocumentCard({
   person: DirectoryPerson;
   document: PersonDocumentView;
 }) {
+  const t = useTranslations("tenants");
+  const locale = useLocale() as AppLocale;
   const router = useRouter();
   const [replaceState, replaceAction] = React.useActionState(
     async (previous: ActionState, data: FormData) => {
@@ -943,18 +973,18 @@ function StoredDocumentCard({
       <div className="tenant-document-copy">
         <strong>{document.title}</strong>
         <small>
-          {document.type === "RENTAL_CONTRACT" ? "Rental contract" : "Custom"}
+          {document.type === "RENTAL_CONTRACT" ? t("rentalContract") : t("custom")}
           {tenancy ? ` · ${tenancy.spaceName}` : ""}
         </small>
-        <em>Uploaded {formatDate(document.uploadedAt)}</em>
+        <em>{t("uploaded", { date: formatDateOnlyLocale(document.uploadedAt, locale) })}</em>
         {document.note && <p>{document.note}</p>}
       </div>
       <div className="tenant-document-actions">
         <Button variant="outline" size="sm" asChild>
-          <a href={url} target="_blank" rel="noreferrer"><Eye />View</a>
+          <a href={url} target="_blank" rel="noreferrer"><Eye />{t("view")}</a>
         </Button>
         <Button variant="ghost" size="sm" asChild>
-          <a href={`${url}?download=1`}><Download />Download</a>
+          <a href={`${url}?download=1`}><Download />{t("download")}</a>
         </Button>
         {!person.archivedAt && (
           <>
@@ -965,9 +995,9 @@ function StoredDocumentCard({
                 name="file"
                 accept="application/pdf,image/jpeg,image/png,image/webp"
                 required
-                title="Replacement document"
-                emptyText="No replacement selected"
-                actionLabel="Replace"
+                title={t("replacementDocument")}
+                emptyText={t("noReplacement")}
+                actionLabel={t("replace")}
                 kind="file"
                 variant="inline"
                 autoSubmit
@@ -976,7 +1006,7 @@ function StoredDocumentCard({
             <form action={deleteAction}>
               <input type="hidden" name="personId" value={person.id} />
               <input type="hidden" name="documentId" value={document.id} />
-              <button type="submit" className="tenant-document-delete"><Trash2 aria-hidden="true" />Delete</button>
+              <button type="submit" className="tenant-document-delete"><Trash2 aria-hidden="true" />{t("delete")}</button>
             </form>
           </>
         )}
@@ -1001,6 +1031,7 @@ function MediaSlot({
   label: string;
   present: boolean;
 }) {
+  const t = useTranslations("tenants");
   const router = useRouter();
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [imageFailed, setImageFailed] = React.useState(false);
@@ -1039,21 +1070,21 @@ function MediaSlot({
       </div>
       <div className="tenant-document-copy">
         <strong>{label}</strong>
-        <small>Identity document</small>
-        <em>{present && !imageFailed ? "Stored privately" : present ? "Preview unavailable" : "Not uploaded"}</em>
+        <small>{t("identityDocument")}</small>
+        <em>{present && !imageFailed ? t("storedPrivately") : present ? t("previewUnavailable") : t("notUploaded")}</em>
       </div>
       <div className="tenant-document-actions">
         {present && !imageFailed && (
           <>
             <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-              <DialogTrigger asChild><Button variant="outline" size="sm"><Eye />View</Button></DialogTrigger>
+              <DialogTrigger asChild><Button variant="outline" size="sm"><Eye />{t("view")}</Button></DialogTrigger>
               <DialogContent className="media-preview-dialog">
-                <DialogHeader><DialogTitle>{label}</DialogTitle><DialogDescription>Private identity document</DialogDescription></DialogHeader>
+                <DialogHeader><DialogTitle>{label}</DialogTitle><DialogDescription>{t("privateIdentityDocument")}</DialogDescription></DialogHeader>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={mediaUrl} alt={label} />
               </DialogContent>
             </Dialog>
-            <Button variant="ghost" size="sm" asChild><a href={`${mediaUrl}?download=1`}><Download />Download</a></Button>
+            <Button variant="ghost" size="sm" asChild><a href={`${mediaUrl}?download=1`}><Download />{t("download")}</a></Button>
           </>
         )}
         {!person.archivedAt && (
@@ -1066,8 +1097,8 @@ function MediaSlot({
                 accept="image/jpeg,image/png,image/webp"
                 required
                 title={label}
-                emptyText="No image selected"
-                actionLabel={present ? "Replace" : "Upload"}
+                emptyText={t("noImageSelected")}
+                actionLabel={present ? t("replace") : t("upload")}
                 kind="image"
                 variant="inline"
                 autoSubmit
@@ -1077,7 +1108,7 @@ function MediaSlot({
               <form action={deleteAction}>
                 <input type="hidden" name="personId" value={person.id} />
                 <input type="hidden" name="kind" value={kind} />
-                <button type="submit" className="tenant-document-delete"><Trash2 aria-hidden="true" />Delete</button>
+                <button type="submit" className="tenant-document-delete"><Trash2 aria-hidden="true" />{t("delete")}</button>
               </form>
             )}
           </>
@@ -1091,6 +1122,8 @@ function MediaSlot({
 }
 
 function ChangeRentDialog({ tenancy }: { tenancy: HistoryItem }) {
+  const t = useTranslations("tenants");
+  const locale = useLocale() as AppLocale;
   const [open, setOpen] = React.useState(false);
   const [state, action] = React.useActionState(
     async (previous: ActionState, data: FormData) => {
@@ -1102,16 +1135,16 @@ function ChangeRentDialog({ tenancy }: { tenancy: HistoryItem }) {
   );
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button size="sm" variant="outline">Change rent</Button></DialogTrigger>
+      <DialogTrigger asChild><Button size="sm" variant="outline">{t("changeRent")}</Button></DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>Change monthly rent</DialogTitle><DialogDescription>Current rent: {formatVnd(tenancy.currentRent.monthlyRentVnd)} / month</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>{t("changeMonthlyRent")}</DialogTitle><DialogDescription>{t("currentRent", { amount: formatVndLocale(tenancy.currentRent.monthlyRentVnd, locale) })}</DialogDescription></DialogHeader>
         <PreservingActionForm action={action} className="person-form">
           <input type="hidden" name="tenancyId" value={tenancy.tenancyId} />
-          <div className="grid gap-2"><Label>New monthly rent</Label><input className="tenant-native-input" name="monthlyRentVnd" type="number" step="10" required /></div>
-          <div className="grid gap-2"><Label>Effective from</Label><input className="tenant-native-input" name="effectiveFrom" type="date" required /></div>
-          <div className="grid gap-2"><Label>Reason</Label><input className="tenant-native-input" name="reason" required /></div>
+          <div className="grid gap-2"><Label>{t("newMonthlyRent")}</Label><input className="tenant-native-input" name="monthlyRentVnd" type="number" step="10" required /></div>
+          <div className="grid gap-2"><Label>{t("effectiveFrom")}</Label><input className="tenant-native-input" name="effectiveFrom" type="date" required /></div>
+          <div className="grid gap-2"><Label>{t("reason")}</Label><input className="tenant-native-input" name="reason" required /></div>
           {state.message && <p className={state.ok ? "form-success" : "form-error"}>{state.message}</p>}
-          <DialogFooter><Button type="submit">Save new rate</Button></DialogFooter>
+          <DialogFooter><Button type="submit">{t("saveNewRate")}</Button></DialogFooter>
         </PreservingActionForm>
       </DialogContent>
     </Dialog>
@@ -1119,14 +1152,16 @@ function ChangeRentDialog({ tenancy }: { tenancy: HistoryItem }) {
 }
 
 function RentHistoryDialog({ tenancy }: { tenancy: HistoryItem }) {
+  const t = useTranslations("tenants");
+  const locale = useLocale() as AppLocale;
   return (
     <Dialog>
-      <DialogTrigger asChild><Button size="sm" variant="ghost">View rent history</Button></DialogTrigger>
+      <DialogTrigger asChild><Button size="sm" variant="ghost">{t("viewRentHistory")}</Button></DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>Rent history</DialogTitle><DialogDescription>{tenancy.spaceName}</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>{t("rentHistory")}</DialogTitle><DialogDescription>{tenancy.spaceName}</DialogDescription></DialogHeader>
         <div className="tenant-simple-list">
           {tenancy.rentHistory.map((rate) => (
-            <div key={rate.id}><span><strong>{formatDate(rate.effectiveFrom)}</strong><small>{rate.reason}</small></span><strong>{formatVnd(rate.monthlyRentVnd)}</strong></div>
+            <div key={rate.id}><span><strong>{formatDateOnlyLocale(rate.effectiveFrom, locale)}</strong><small>{rate.reason}</small></span><strong>{formatVndLocale(rate.monthlyRentVnd, locale)}</strong></div>
           ))}
         </div>
       </DialogContent>
@@ -1153,33 +1188,34 @@ function financialSummary(
     lastPayment: normalPayments[0]?.paymentDate ?? null,
     depositHeld: primary?.depositHeld ?? "0",
     latestUtilityTotal: utilityInvoice?.utilities.total ?? "0",
-    latestUtilityMonth: utilityInvoice ? `${monthLabel(utilityInvoice.billingPeriod)} billing` : null,
+    latestUtilityMonth: utilityInvoice?.billingPeriod ?? null,
   };
 }
 
-function profileContext(person: DirectoryPerson) {
+function profileContext(person: DirectoryPerson, t: ReturnType<typeof useTranslations>) {
   if (person.currentTenancy) return `${person.currentTenancy.spaceName} · ${person.currentTenancy.floorName}`;
   if (person.upcomingTenancy) return `${person.upcomingTenancy.spaceName} · ${person.upcomingTenancy.floorName}`;
-  if (person.lastTenancy) return `Last rented ${person.lastTenancy.spaceName}`;
-  return "No rental history";
+  if (person.lastTenancy) return t("lastRented", { room: person.lastTenancy.spaceName });
+  return t("noRentalHistory");
 }
 
 function profileTenancyDuration(
   person: DirectoryPerson,
   tenancy: HistoryItem | null,
   asOfDate: Date,
+  t: ReturnType<typeof useTranslations>,
 ) {
   if (!tenancy || person.rentalState === "UPCOMING") return null;
   const end = person.rentalState === "CURRENT"
     ? asOfDate
     : tenancy.endDate ?? tenancy.moveOutDate ?? asOfDate;
-  return tenancyDuration(tenancy.moveInDate, end);
+  return tenancyDuration(tenancy.moveInDate, end, t);
 }
 
-function tenancyDuration(start: Date, end: Date) {
+function tenancyDuration(start: Date, end: Date, t: ReturnType<typeof useTranslations>) {
   const from = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
   const to = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
-  if (to <= from) return "Less than a day";
+  if (to <= from) return t("lessThanDay");
 
   let years = to.getUTCFullYear() - from.getUTCFullYear();
   let months = to.getUTCMonth() - from.getUTCMonth();
@@ -1194,31 +1230,18 @@ function tenancyDuration(start: Date, end: Date) {
     months += 12;
   }
   const parts: string[] = [];
-  if (years) parts.push(`${years} ${years === 1 ? "year" : "years"}`);
-  if (months) parts.push(`${months} ${months === 1 ? "month" : "months"}`);
-  if (days || !parts.length) parts.push(`${days} ${days === 1 ? "day" : "days"}`);
+  if (years) parts.push(t("years", { count: years }));
+  if (months) parts.push(t("months", { count: months }));
+  if (days || !parts.length) parts.push(t("days", { count: days }));
   return parts.join(" ");
 }
 
-function tenancyState(item: HistoryItem, today: Date) {
-  return item.startDate > today ? "Upcoming" : item.endDate && item.endDate <= today ? "Former" : "Current";
+function tenancyState(item: HistoryItem, today: Date): "CURRENT" | "UPCOMING" | "FORMER" {
+  return item.startDate > today ? "UPCOMING" : item.endDate && item.endDate <= today ? "FORMER" : "CURRENT";
 }
 function businessDateFromRenderedAt(renderedAt: string) {
   const value = new Date(renderedAt);
   return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
-}
-function monthLabel(value: Date) {
-  return new Intl.DateTimeFormat("en", { month: "short", year: "numeric", timeZone: "UTC" }).format(value);
-}
-function paymentMethod(value: TenantPayment["method"]) {
-  return value === "BANK_TRANSFER" ? "Bank transfer" : value === "CASH" ? "Cash" : "Other";
-}
-function shortRoleLabel(role: HistoryItem["role"]) {
-  return role === "RESPONSIBLE" ? "Responsible" : "Additional";
-}
-
-function roleLabel(role: HistoryItem["role"]) {
-  return role === "RESPONSIBLE" ? "Responsible renter" : "Additional renter";
 }
 function formatCitizenId(value: string) {
   return value.replace(/\D/g, "").replace(/(.{4})/g, "$1 ").trim();

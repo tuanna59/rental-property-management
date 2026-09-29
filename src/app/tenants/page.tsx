@@ -4,6 +4,7 @@ import {
   getPeopleDirectoryStats,
 } from "@/modules/people/server/people.queries";
 import { getPrimaryPropertyDashboard } from "@/modules/property/server/property.queries";
+import { getServerTranslator } from "@/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -25,12 +26,13 @@ export default async function TenantsPage({
     ? params.scope!
     : "all";
   const renderedAt = new Date().toISOString();
-  const [property, directory, stats] = await Promise.all([
+  const [property, directory, stats, t] = await Promise.all([
     getPrimaryPropertyDashboard(),
     getPeopleDirectory(query),
     getPeopleDirectoryStats(),
+    getServerTranslator("tenants"),
   ]);
-  if (!property) return <main className="p-8">No property found.</main>;
+  if (!property) return <main className="p-8">{t("noPropertyFound")}</main>;
   const showArchived = params.archived === "1";
   const people = directory.filter((person) => {
     if (Boolean(person.archivedAt) !== showArchived) return false;

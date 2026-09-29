@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { AnimatePresence, MotionConfig } from "motion/react";
 import {
   Building2,
@@ -45,6 +46,7 @@ export function PropertyDashboard({
   inspectorData: BuildingInspectorData;
   initialSpaceId?: string | null;
 }) {
+  const t = useTranslations("building");
   const [selectedId, setSelectedId] = React.useState<string | null>(initialSpaceId);
   const [mode, setMode] = React.useState<BuildingVisualMode>("OCCUPANCY");
   const [timeOfDay, setTimeOfDay] = React.useState<BuildingTimeOfDay>("DAY");
@@ -103,7 +105,7 @@ export function PropertyDashboard({
           <div className="property-heading building-v2-heading">
             <div className="building-v2-heading-title">
               <h1>{property.name}</h1>
-              <span>Digital twin</span>
+              <span>{t("digitalTwin")}</span>
             </div>
             <div className="building-v2-header-meta">
               <MapPin aria-hidden="true" />
@@ -113,11 +115,11 @@ export function PropertyDashboard({
                   .join(", ") || property.description}
               </span>
               <i />
-              <span>{floors.length} floors</span>
+              <span>{t("counts.floors", { count: floors.length })}</span>
               <i />
-              <span>{spaces.length} spaces</span>
+              <span>{t("counts.spaces", { count: spaces.length })}</span>
               <i />
-              <span>{spaces.filter((item) => item.type === "ROOM").length} rooms</span>
+              <span>{t("counts.rooms", { count: spaces.filter((item) => item.type === "ROOM").length })}</span>
             </div>
           </div>
           <div className="property-controls building-v2-header-actions">
@@ -128,7 +130,7 @@ export function PropertyDashboard({
               onClick={() => setEditing(!editing)}
             >
               <Pencil />
-              {editing ? "Done" : "Edit"}
+              {editing ? t("header.done") : t("header.edit")}
             </Button>
             <AddMenu propertyId={property.id} floors={floors} />
           </div>
@@ -148,7 +150,7 @@ export function PropertyDashboard({
 
         <div className="property-scene building-v2-workspace">
           <div className="building-v2-stage">
-            <section aria-label="Interactive architectural building cutaway" className="canvas-region building-v2-canvas-region">
+            <section aria-label={t("scene.interactiveLabel")} className="canvas-region building-v2-canvas-region">
               <BuildingVisual
                 projection={property}
                 mode={mode}
@@ -185,16 +187,17 @@ export function PropertyDashboard({
 }
 
 function VisualLegend({ mode }: { mode: BuildingVisualMode }) {
+  const t = useTranslations("building");
   const copy = {
-    OCCUPANCY: "Occupancy state is summarized directly on rental rooms.",
-    MAINTENANCE: "Active maintenance attention is summarized by space.",
-    UTILITIES: "Meter and utility attention is summarized by space.",
-    ASSETS: "Asset counts and device warnings are summarized by space.",
+    OCCUPANCY: t("legend.occupancy"),
+    MAINTENANCE: t("legend.maintenance"),
+    UTILITIES: t("legend.utilities"),
+    ASSETS: t("legend.assets"),
   }[mode];
   return (
     <footer className="building-v2-legend">
       <span>{copy}</span>
-      <small>Click a space for full details.</small>
+      <small>{t("legend.detailsHint")}</small>
     </footer>
   );
 }
@@ -235,29 +238,30 @@ function AddMenu({
   propertyId: string;
   floors: DashboardFloor[];
 }) {
+  const t = useTranslations("building");
   return (
     <details className="add-menu">
       <summary>
         <Plus />
-        Add
+        {t("header.add")}
         <ChevronDown className="add-menu-chevron" />
       </summary>
       <div className="add-menu-content">
-        <p>Add to building</p>
+        <p>{t("header.addToBuilding")}</p>
         <FloorFormDialog
           mode="create"
           propertyId={propertyId}
           trigger={
             <button type="button" className="add-menu-item">
               <Building2 />
-              Floor
+              {t("floor")}
             </button>
           }
         />
         {floors.length > 0 && (
           <>
             <div className="add-menu-separator" />
-            <p>Space on floor</p>
+            <p>{t("header.spaceOnFloor")}</p>
             {floors.map((floor) => (
               <SpaceFormDialog
                 key={floor.id}

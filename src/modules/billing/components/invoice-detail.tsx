@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -32,7 +33,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { emptyActionState } from "@/lib/action-state";
-import { formatDate, formatVnd } from "@/lib/presentation";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale, formatMonthLocale, formatNumberLocale, formatPercentLocale, formatVndLocale } from "@/i18n/format";
 import {
   addInvoiceAdjustmentAction,
   deleteInvoiceAdjustmentAction,
@@ -47,13 +49,14 @@ import { BillingStatusBadge } from "./billing-status";
 import {
   exportInvoicePng,
   invoicePresentation,
-  monthLabel,
 } from "./invoice-export";
 
 type Invoice = NonNullable<Awaited<ReturnType<typeof getInvoice>>>;
 type Tab = "charges" | "services" | "electricity" | "payments" | "history";
 
 export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
+  const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
   const [tab, setTab] = React.useState<Tab>("charges");
   return (
     <div className="utilities-content invoice-detail-page">
@@ -63,23 +66,23 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
             className="billing-back-link"
             href={`/billing/invoices?month=${invoice.billingPeriod.toISOString().slice(0, 7)}`}
           >
-            <ArrowLeft /> Back to invoices
+            <ArrowLeft /> {t("backToInvoices")}
           </Link>
           <p className="utilities-eyebrow">
             {invoice.type === "REGULAR"
-              ? "REGULAR INVOICE"
-              : "FINAL SETTLEMENT"}{" "}
+              ? t("regularInvoiceEyebrow")
+              : t("finalSettlementEyebrow")}{" "}
             · {invoice.room}
           </p>
           <h1>
             {invoice.type === "REGULAR"
-              ? monthLabel(invoice.billingPeriod)
-              : "Final settlement"}
+              ? formatMonthLocale(invoice.billingPeriod, locale)
+              : t("finalSettlement")}
           </h1>
           <p>
             {invoice.type === "REGULAR"
-              ? "Regular invoice"
-              : `${formatDate(invoice.invoiceDate)} · Move-out · ${invoice.room}`}
+              ? t("regularInvoice")
+              : `${formatDateOnlyLocale(invoice.invoiceDate, locale)} · ${t("moveOut")} · ${invoice.room}`}
           </p>
         </div>
         <div className="invoice-header-actions">
@@ -91,8 +94,8 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
           {invoice.status === "DRAFT" ? (
             <FinalizeButton invoiceId={invoice.id} />
           ) : (
-            <Button onClick={() => exportInvoicePng(invoice)}>
-              <Download /> Export PNG
+            <Button onClick={() => exportInvoicePng(invoice, locale)}>
+              <Download /> {t("exportPng")}
             </Button>
           )}
           {invoice.status === "FINALIZED" &&
@@ -104,40 +107,40 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
 
       <section className="invoice-context-grid">
         <ContextCard
-          label="Room"
+          label={t("room")}
           value={invoice.room}
           detail={invoice.propertyName}
           icon={<Home />}
         />
         <ContextCard
-          label="Responsible renter"
+          label={t("responsibleRenter")}
           value={invoice.renterName}
-          detail="Invoice snapshot"
+          detail={t("invoiceSnapshot")}
           icon={<User />}
         />
         <ContextCard
-          label="Invoice month"
-          value={monthLabel(invoice.billingPeriod)}
+          label={t("invoiceMonthLabel")}
+          value={formatMonthLocale(invoice.billingPeriod, locale)}
           detail={
             invoice.type === "REGULAR"
-              ? "Regular billing cycle"
-              : formatDate(invoice.invoiceDate)
+              ? t("regularBillingCycle")
+              : formatDateOnlyLocale(invoice.invoiceDate, locale)
           }
           icon={<Calendar />}
         />
         <ContextCard
-          label="Total"
-          value={formatVnd(invoice.total)}
+          label={t("total")}
+          value={formatVndLocale(invoice.total, locale)}
           detail={
             invoice.status === "FINALIZED"
-              ? `Paid ${formatVnd(invoice.totalPaid)} · Balance ${formatVnd(invoice.balance)}`
-              : "Draft total · payment available after finalization"
+              ? t("paidBalance", { paid: formatVndLocale(invoice.totalPaid, locale), balance: formatVndLocale(invoice.balance, locale) })
+              : t("draftPaymentHelp")
           }
           icon={<FileText />}
         />
       </section>
 
-      <nav className="invoice-tabs" aria-label="Invoice detail sections">
+      <nav className="invoice-tabs" aria-label={t("invoiceDetailSections")}>
         {(
           ["charges", "electricity", "services", "payments", "history"] as Tab[]
         ).map((item) => (
@@ -147,7 +150,7 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
             className={tab === item ? "is-active" : ""}
             onClick={() => setTab(item)}
           >
-            {title(item)}
+            {tabLabel(item, t)}
           </button>
         ))}
       </nav>
@@ -164,14 +167,14 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
 }
 
 function ChargesTab({ invoice }: { invoice: Invoice }) {
+  const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
   return (
     <>
       <div className="section-heading-row">
         <div>
-          <h3>Charges</h3>
-          <p className="utility-subtle">
-            Source periods and final billed values.
-          </p>
+          <h3>{t("charges")}</h3>
+<p className="utility-subtle">{t("chargesSubtitle")}</p>
         </div>
         {invoice.status === "DRAFT" && (
           <AdjustmentDialog invoiceId={invoice.id} />
@@ -181,43 +184,43 @@ function ChargesTab({ invoice }: { invoice: Invoice }) {
         <table className="utility-table invoice-charge-table">
           <thead>
             <tr>
-              <th>Type</th>
-              <th>Period</th>
-              <th>Details</th>
-              <th>Calculated</th>
-              <th>Final</th>
-              <th>Status</th>
-              <th>Action</th>
+              <th>{t("type")}</th>
+              <th>{t("period")}</th>
+              <th>{t("details")}</th>
+              <th>{t("calculated")}</th>
+              <th>{t("final")}</th>
+              <th>{t("status")}</th>
+              <th>{t("action")}</th>
             </tr>
           </thead>
           <tbody>
             {invoice.lines.map((line) => (
               <tr key={line.id}>
                 <td>
-                  <strong>{title(line.type)}</strong>
+                  <strong>{chargeTypeLabel(line.type, t)}</strong>
                 </td>
                 <td>
                   {line.sourceBillingMonth
-                    ? monthLabel(line.sourceBillingMonth)
+                    ? formatMonthLocale(line.sourceBillingMonth, locale)
                     : "—"}
                 </td>
-                <td>{chargeDetail(line.type, line.metadata)}</td>
-                <td>{formatVnd(line.calculatedAmount)}</td>
+                <td>{chargeDetail(line.type, line.metadata, t, locale)}</td>
+                <td>{formatVndLocale(line.calculatedAmount, locale)}</td>
                 <td>
-                  <strong>{formatVnd(line.finalAmount)}</strong>
+                  <strong>{formatVndLocale(line.finalAmount, locale)}</strong>
                 </td>
                 <td>
                   {line.isOverridden ? (
                     <BillingStatusBadge status="OVERRIDDEN" />
                   ) : (
-                    <span className="utility-subtle">Rounded</span>
+                    <span className="utility-subtle">{t("rounded")}</span>
                   )}
                 </td>
                 <td>
                   {invoice.status === "DRAFT" ? (
                     <OverrideDialog invoiceId={invoice.id} line={line} />
                   ) : (
-                    <span className="utility-subtle">Read only</span>
+                    <span className="utility-subtle">{t("readOnly")}</span>
                   )}
                 </td>
               </tr>
@@ -225,7 +228,7 @@ function ChargesTab({ invoice }: { invoice: Invoice }) {
             {invoice.adjustments.map((adjustment) => (
               <tr key={adjustment.id}>
                 <td>
-                  <strong>Adjustment</strong>
+                  <strong>{t("adjustment")}</strong>
                 </td>
                 <td>—</td>
                 <td>
@@ -242,13 +245,13 @@ function ChargesTab({ invoice }: { invoice: Invoice }) {
                     }
                   >
                     {adjustment.type === "CREDIT" ? "−" : ""}
-                    {formatVnd(adjustment.amount)}
+                    {formatVndLocale(adjustment.amount, locale)}
                   </strong>
                 </td>
                 <td>
                   {adjustment.type === "CHARGE"
-                    ? "Additional charge"
-                    : "Credit / discount"}
+                    ? t("additionalCharge")
+                    : t("creditDiscount")}
                 </td>
                 <td>
                   {invoice.status === "DRAFT" ? (
@@ -263,7 +266,7 @@ function ChargesTab({ invoice }: { invoice: Invoice }) {
                       />
                     </div>
                   ) : (
-                    <span className="utility-subtle">Read only</span>
+                    <span className="utility-subtle">{t("readOnly")}</span>
                   )}
                 </td>
               </tr>
@@ -271,9 +274,9 @@ function ChargesTab({ invoice }: { invoice: Invoice }) {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={4}>Invoice total</td>
+              <td colSpan={4}>{t("invoiceTotal")}</td>
               <td>
-                <strong>{formatVnd(invoice.total)}</strong>
+                <strong>{formatVndLocale(invoice.total, locale)}</strong>
               </td>
               <td colSpan={2} />
             </tr>
@@ -285,6 +288,8 @@ function ChargesTab({ invoice }: { invoice: Invoice }) {
 }
 
 function ServicesTab({ invoice }: { invoice: Invoice }) {
+  const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
   const water = invoice.lines.find((line) => line.type === "WATER");
   const metadata = (water?.metadata ?? {}) as Record<string, unknown>;
   const occupants = Array.isArray(metadata.occupants)
@@ -293,81 +298,79 @@ function ServicesTab({ invoice }: { invoice: Invoice }) {
   if (!occupants.length)
     return (
       <Empty
-        title="No service charges"
-        description="No non-electric utility or service charges are included on this invoice."
+        title={t("noServiceCharges")}
+        description={t("noServiceChargesDetail")}
       />
     );
   return (
     <>
       <div className="service-tab-heading">
-        <h3>Services</h3>
-        <p>Non-electric utility and service charges for this invoice.</p>
+        <h3>{t("services")}</h3>
+        <p>{t("servicesSubtitle")}</p>
         {water?.sourceBillingMonth && (
           <p>
-            <strong>Utility billing month</strong> ·{" "}
-            {monthLabel(water.sourceBillingMonth)}
+            <strong>{t("utilityBillingMonth")}</strong> ·{" "}
+            {formatMonthLocale(water.sourceBillingMonth, locale)}
           </p>
         )}
         {water?.sourceBillingMonth &&
           water.sourceBillingMonth.getTime() !==
             invoice.billingPeriod.getTime() && (
             <small>
-              These services are based on the utility period shown, which may
-              differ from the invoice month.
+              {t("servicesDifferenceNote")}
             </small>
           )}
       </div>
       <section className="service-charge-section">
         <header>
           <div>
-            <h3>Water</h3>
-            <span>Per person</span>
+            <h3>{t("water")}</h3>
+            <span>{t("perPerson")}</span>
           </div>
           <small>
             {water?.sourceBillingMonth
-              ? monthLabel(water.sourceBillingMonth)
-              : "Utility period"}
+              ? formatMonthLocale(water.sourceBillingMonth, locale)
+              : t("utilityPeriod")}
           </small>
         </header>
         <div className="evidence-summary service-summary">
           <ContextCard
-            label="Rate"
-            value={`${formatVnd(String(metadata.applicableRate ?? 0))} / person / month`}
-            detail="Fixed rate"
+            label={t("rate")}
+            value={t("ratePerPersonMonth", { rate: formatVndLocale(String(metadata.applicableRate ?? 0), locale) })}
+            detail={t("fixedRate")}
             icon={<Coins />}
           />
           <ContextCard
-            label="Calculated amount"
-            value={formatVnd(water?.calculatedAmount ?? "0")}
-            detail={`Based on ${metadata.totalOccupantDays ?? 0} occupant-days`}
+            label={t("calculatedAmount")}
+            value={formatVndLocale(water?.calculatedAmount ?? "0", locale)}
+            detail={t("basedOnOccupantDays", { count: Number(metadata.totalOccupantDays ?? 0) })}
             icon={<FileText />}
           />
           <ContextCard
-            label="Final billed amount"
-            value={formatVnd(water?.finalAmount ?? "0")}
+            label={t("finalBilledAmount")}
+            value={formatVndLocale(water?.finalAmount ?? "0", locale)}
             detail={
               water?.isOverridden
-                ? "Manual override"
-                : "Same snapshot calculation"
+                ? t("manualOverride")
+                : t("sameSnapshotCalculation")
             }
             icon={<Receipt />}
           />
         </div>
-        <h4>Occupant allocation</h4>
+        <h4>{t("occupantAllocation")}</h4>
         <p className="utility-subtle">
-          Water charges are allocated by occupant based on length of stay during
-          the utility period.
+          {t("waterAllocationHelp")}
         </p>
         <div className="utility-table-wrap">
           <table className="utility-table">
             <thead>
               <tr>
-                <th>Occupant</th>
-                <th>Role</th>
-                <th>Service period</th>
-                <th>Billable days</th>
-                <th>Share</th>
-                <th>Amount</th>
+                <th>{t("occupant")}</th>
+                <th>{t("role")}</th>
+                <th>{t("servicePeriod")}</th>
+                <th>{t("billableDays")}</th>
+                <th>{t("share")}</th>
+                <th>{t("amount")}</th>
               </tr>
             </thead>
             <tbody>
@@ -376,28 +379,28 @@ function ServicesTab({ invoice }: { invoice: Invoice }) {
                   <td>
                     <strong>{String(occupant.personName)}</strong>
                   </td>
-                  <td>{title(String(occupant.role ?? "occupant"))}</td>
+                  <td>{roleLabel(String(occupant.role ?? "occupant"), t)}</td>
                   <td>
-                    {formatDate(String(occupant.serviceStart))} →{" "}
-                    {formatDate(String(occupant.serviceEnd))}
+                    {formatDateOnlyLocale(String(occupant.serviceStart), locale)} →{" "}
+                    {formatDateOnlyLocale(String(occupant.serviceEnd), locale)}
                   </td>
-                  <td>{String(occupant.billableDays ?? 0)} days</td>
-                  <td>{String(occupant.share ?? 0)}%</td>
+                  <td>{t("daysCount", { count: Number(occupant.billableDays ?? 0) })}</td>
+                  <td>{formatPercentLocale(Number(occupant.share ?? 0), locale)}</td>
                   <td>
                     {water?.isOverridden
-                      ? "Included in line override"
-                      : formatVnd(String(occupant.finalContribution ?? 0))}
+                      ? t("includedInLineOverride")
+                      : formatVndLocale(String(occupant.finalContribution ?? 0), locale)}
                   </td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={3}>Total</td>
-                <td>{String(metadata.totalOccupantDays ?? 0)} occupant-days</td>
+                <td colSpan={3}>{t("total")}</td>
+                <td>{t("occupantDays", { count: Number(metadata.totalOccupantDays ?? 0) })}</td>
                 <td>100%</td>
                 <td>
-                  <strong>{formatVnd(water?.finalAmount ?? "0")}</strong>
+                  <strong>{formatVndLocale(water?.finalAmount ?? "0", locale)}</strong>
                 </td>
               </tr>
             </tfoot>
@@ -409,12 +412,14 @@ function ServicesTab({ invoice }: { invoice: Invoice }) {
 }
 
 function ElectricityTab({ invoice }: { invoice: Invoice }) {
+  const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
   const line = invoice.lines.find((item) => item.type === "ELECTRICITY");
   if (!line)
     return (
       <Empty
-        title="No electricity charge"
-        description="This invoice contains no electricity obligation for the source period."
+        title={t("noElectricityCharge")}
+        description={t("noElectricityDetail")}
       />
     );
   const metadata = (line?.metadata ?? {}) as Record<string, unknown>;
@@ -424,97 +429,98 @@ function ElectricityTab({ invoice }: { invoice: Invoice }) {
   return (
     <>
       <div className="service-tab-heading">
-        <h3>Electricity</h3>
+        <h3>{t("electricity")}</h3>
         <p>
-          <strong>Utility billing month</strong> ·{" "}
-          {line.sourceBillingMonth ? monthLabel(line.sourceBillingMonth) : "—"}
+          <strong>{t("utilityBillingMonth")}</strong> ·{" "}
+          {line.sourceBillingMonth ? formatMonthLocale(line.sourceBillingMonth, locale) : "—"}
         </p>
         {line.sourceBillingMonth &&
           line.sourceBillingMonth.getTime() !==
             invoice.billingPeriod.getTime() && (
             <small>
-              This charge comes from a utility period that differs from the
-              invoice month.
+              {t("electricityPeriodDifference")}
             </small>
           )}
       </div>
       <div className="evidence-summary electricity-primary-summary">
         <ContextCard
-          label="Invoice usage"
+          label={t("invoiceUsage")}
           value={`${metadata.tenantKwh ?? 0} kWh`}
-          detail="Tenant-attributed to this invoice"
+          detail={t("tenantAttributed")}
           icon={<Zap />}
         />
         <ContextCard
-          label={metadata.rateOverridden ? "Override rate" : "Applicable rate"}
-          value={`${formatVnd(String(metadata.applicableRate ?? 0))} / kWh`}
+          label={metadata.rateOverridden ? t("overrideRate") : t("applicableRate")}
+          value={`${formatVndLocale(String(metadata.applicableRate ?? 0), locale)} / kWh`}
           detail={
             metadata.rateOverridden
-              ? String(metadata.overrideReason ?? "Room/month override")
-              : `${line.sourceBillingMonth ? monthLabel(line.sourceBillingMonth) : "Utility period"} rate`
+              ? String(metadata.overrideReason ?? t("roomMonthOverride"))
+              : t("rateForPeriod", {
+                  period: line.sourceBillingMonth
+                    ? formatMonthLocale(line.sourceBillingMonth, locale)
+                    : t("utilityPeriod"),
+                })
           }
           icon={<Coins />}
         />
         <ContextCard
-          label="Invoice amount"
-          value={formatVnd(line?.finalAmount ?? "0")}
-          detail={`${metadata.tenantKwh ?? 0} kWh × ${formatVnd(String(metadata.applicableRate ?? 0))} / kWh`}
+          label={t("invoiceAmount")}
+          value={formatVndLocale(line?.finalAmount ?? "0", locale)}
+          detail={`${formatNumberLocale(Number(metadata.tenantKwh ?? 0), locale)} kWh × ${formatVndLocale(String(metadata.applicableRate ?? 0), locale)} / kWh`}
           icon={<Receipt />}
         />
       </div>
       <section className="invoice-calculation-block">
-        <h3>Calculation</h3>
+        <h3>{t("calculation")}</h3>
         <p>
-          {String(metadata.tenantKwh ?? 0)} kWh ×{" "}
-          {formatVnd(String(metadata.applicableRate ?? 0))}/kWh
+          {formatNumberLocale(Number(metadata.tenantKwh ?? 0), locale)} kWh ×{" "}
+          {formatVndLocale(String(metadata.applicableRate ?? 0), locale)}/kWh
         </p>
         <div>
-          <span>Calculated amount</span>
-          <strong>{formatVnd(line.calculatedAmount)}</strong>
+          <span>{t("calculatedAmount")}</span>
+          <strong>{formatVndLocale(line.calculatedAmount, locale)}</strong>
         </div>
         <div>
-          <span>Final billed amount</span>
-          <strong>{formatVnd(line.finalAmount)}</strong>
+          <span>{t("finalBilledAmount")}</span>
+          <strong>{formatVndLocale(line.finalAmount, locale)}</strong>
         </div>
         {line.isOverridden && (
           <div>
-            <span>Override reason</span>
+            <span>{t("overrideReason")}</span>
             <strong>{line.overrideReason ?? "—"}</strong>
           </div>
         )}
       </section>
       <section className="attribution-inline">
-        <h3>Usage attribution</h3>
+        <h3>{t("usageAttribution")}</h3>
         <div>
-          <span>This invoice</span>
-          <strong>{String(metadata.tenantKwh ?? "Unknown")} kWh</strong>
+          <span>{t("thisInvoice")}</span>
+          <strong>{metadata.tenantKwh == null ? t("unknown") : `${formatNumberLocale(Number(metadata.tenantKwh), locale)} kWh`}</strong>
         </div>
         <div>
-          <span>Other tenancy</span>
-          <strong>{String(metadata.otherTenancyUsage ?? "Unknown")} kWh</strong>
+          <span>{t("otherTenancy")}</span>
+          <strong>{metadata.otherTenancyUsage == null ? t("unknown") : `${formatNumberLocale(Number(metadata.otherTenancyUsage), locale)} kWh`}</strong>
         </div>
         <div>
-          <span>Vacant / property</span>
-          <strong>{String(metadata.vacantUsage ?? "Unknown")} kWh</strong>
+          <span>{t("vacantProperty")}</span>
+          <strong>{metadata.vacantUsage == null ? t("unknown") : `${formatNumberLocale(Number(metadata.vacantUsage), locale)} kWh`}</strong>
         </div>
       </section>
       <p className="billing-explainer">
-        Physical meter usage is allocated across this invoice tenant, other
-        tenancies, and vacant/property time. Only this invoice&apos;s
-        attributable usage is billed here.
+        {t("physicalAllocationExplainer")}
       </p>
-      <h3>Physical meter evidence</h3>
+      <h3>{t("physicalMeterEvidence")}</h3>
       <div className="utility-table-wrap">
         <table className="utility-table">
           <thead>
             <tr>
-              <th>Meter</th>
-              <th>Previous anchor</th>
-              <th>Monthly closing</th>
-              <th>Billing end / boundary</th>
-              <th>Closing usage</th>
-              <th>Known usage</th>
-              <th>Evidence</th>
+              <th>{t("physicalMeter")}</th>
+              <th>{t("previousAnchor")}</th>
+              <th>{t("monthlyClosing")}</th>
+              <th>{t("billingEndBoundary")}</th>
+              <th>{t("closingUsage")}</th>
+              <th>{t("knownUsage")}</th>
+              <th>{t("evidence")}</th>
             </tr>
           </thead>
           <tbody>
@@ -534,21 +540,21 @@ function ElectricityTab({ invoice }: { invoice: Invoice }) {
               return (
                 <tr key={`${meter.meterNumber}-${index}`}>
                   <td>
-                    <strong>{String(meter.meterNumber ?? "Unnumbered")}</strong>
+                    <strong>{String(meter.meterNumber ?? t("unnumbered"))}</strong>
                   </td>
                   <td>
                     {opening
-                      ? `${opening.value} kWh · ${formatDate(String(opening.date))} · ${readingLabel(opening)}`
+                      ? `${opening.value} kWh · ${formatDateOnlyLocale(String(opening.date), locale)} · ${readingLabel(opening, t)}`
                       : "—"}
                   </td>
                   <td>
                     {monthlyClosing
-                      ? `${monthlyClosing.value} kWh · ${formatDate(String(monthlyClosing.date))}`
+                      ? `${monthlyClosing.value} kWh · ${formatDateOnlyLocale(String(monthlyClosing.date), locale)}`
                       : "—"}
                   </td>
                   <td>
                     {closing
-                      ? `${closing.value} kWh · ${formatDate(String(closing.date))} · ${readingLabel(closing)}`
+                      ? `${closing.value} kWh · ${formatDateOnlyLocale(String(closing.date), locale)} · ${readingLabel(closing, t)}`
                       : "—"}
                   </td>
                   <td>{String(meter.usage ?? 0)} kWh</td>
@@ -557,7 +563,7 @@ function ElectricityTab({ invoice }: { invoice: Invoice }) {
                     {meter.hasEstimatedReading ? (
                       <BillingStatusBadge status="ESTIMATED" />
                     ) : (
-                      "Measured"
+                      t("measured")
                     )}
                   </td>
                 </tr>
@@ -571,37 +577,39 @@ function ElectricityTab({ invoice }: { invoice: Invoice }) {
 }
 
 function PaymentsTab({ invoice }: { invoice: Invoice }) {
+  const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
   if (invoice.status === "DRAFT")
     return (
       <Empty
-        title="Payments unavailable for drafts"
-        description="Finalize the invoice before recording a payment."
+        title={t("paymentsUnavailableDraft")}
+        description={t("finalizeBeforePayment")}
       />
     );
   return (
     <>
       <div className="evidence-summary service-summary">
         <ContextCard
-          label="Invoice total"
-          value={formatVnd(invoice.total)}
-          detail="Final billed value"
+          label={t("invoiceTotal")}
+          value={formatVndLocale(invoice.total, locale)}
+          detail={t("finalBilledValue")}
         />
         <ContextCard
-          label="Paid"
-          value={formatVnd(invoice.totalPaid)}
-          detail={`${invoice.payments.length} payment records`}
+          label={t("paid")}
+          value={formatVndLocale(invoice.totalPaid, locale)}
+          detail={t("paymentRecords", { count: invoice.payments.length })}
         />
         <ContextCard
-          label="Balance"
-          value={formatVnd(invoice.balance)}
-          detail={invoice.paymentStatus.toLowerCase()}
+          label={t("balance")}
+          value={formatVndLocale(invoice.balance, locale)}
+          detail={paymentStatusLabel(invoice.paymentStatus, t)}
         />
       </div>
       <div className="section-heading-row">
         <div>
-          <h3>Payment history</h3>
+          <h3>{t("paymentHistory")}</h3>
           <p className="utility-subtle">
-            Payments and explicit deposit settlements.
+            {t("paymentsHistorySubtitle")}
           </p>
         </div>
         {invoice.paymentStatus !== "PAID" && (
@@ -613,34 +621,34 @@ function PaymentsTab({ invoice }: { invoice: Invoice }) {
           <table className="utility-table">
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Method</th>
-                <th>Amount</th>
-                <th>Reference</th>
-                <th>Action</th>
+                <th>{t("date")}</th>
+                <th>{t("method")}</th>
+                <th>{t("amount")}</th>
+                <th>{t("reference")}</th>
+                <th>{t("action")}</th>
               </tr>
             </thead>
             <tbody>
               {invoice.payments.map((payment) => (
                 <tr key={payment.id}>
-                  <td>{formatDate(payment.paymentDate)}</td>
+                  <td>{formatDateOnlyLocale(payment.paymentDate, locale)}</td>
                   <td>
                     {payment.isDepositApplication
-                      ? "Deposit applied"
-                      : title(payment.method)}
+                      ? t("depositApplied")
+                      : paymentMethodLabel(payment.method, t)}
                   </td>
                   <td>
-                    <strong>{formatVnd(payment.amount)}</strong>
+                    <strong>{formatVndLocale(payment.amount, locale)}</strong>
                   </td>
                   <td>
                     {payment.isDepositApplication
-                      ? "Applied from tenant deposit"
+                      ? t("depositAppliedDetail")
                       : (payment.reference ?? "—")}
                   </td>
                   <td>
                     {payment.isDepositApplication ? (
                       <Button asChild size="sm" variant="ghost">
-                        <Link href="/billing/deposits">View deposit</Link>
+                        <Link href="/billing/deposits">{t("viewDeposit")}</Link>
                       </Button>
                     ) : (
                       <EditPaymentDialog payment={payment} />
@@ -653,8 +661,8 @@ function PaymentsTab({ invoice }: { invoice: Invoice }) {
         </div>
       ) : (
         <Empty
-          title="No payments"
-          description="No payments have been recorded for this invoice."
+          title={t("noPaymentInvoice")}
+          description={t("noPaymentInvoiceDetail")}
         />
       )}
     </>
@@ -662,24 +670,26 @@ function PaymentsTab({ invoice }: { invoice: Invoice }) {
 }
 
 function HistoryTab({ invoice }: { invoice: Invoice }) {
+  const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
   const events = [
     {
       date: invoice.createdAt,
       title:
         invoice.type === "FINAL_SETTLEMENT"
-          ? "Final settlement generated"
-          : "Draft created",
+          ? t("finalSettlementGenerated")
+          : t("draftCreated"),
       detail:
         invoice.type === "FINAL_SETTLEMENT"
-          ? "Move-out obligations captured"
-          : "Invoice snapshot generated",
+          ? t("moveOutObligationsCaptured")
+          : t("invoiceSnapshot"),
     },
     ...(invoice.type === "FINAL_SETTLEMENT"
       ? [
           {
             date: invoice.createdAt,
-            title: "Move-out boundary used",
-            detail: formatDate(invoice.invoiceDate),
+            title: t("moveOutBoundaryUsed"),
+            detail: formatDateOnlyLocale(invoice.invoiceDate, locale),
           },
         ]
       : []),
@@ -687,29 +697,29 @@ function HistoryTab({ invoice }: { invoice: Invoice }) {
       .filter((line) => line.isOverridden)
       .map((line) => ({
         date: line.updatedAt,
-        title: `${title(line.type)} overridden`,
-        detail: line.overrideReason ?? "Final amount changed",
+        title: t("lineOverridden", { type: chargeTypeLabel(line.type, t) }),
+        detail: line.overrideReason ?? t("finalAmountChanged"),
       })),
     ...invoice.adjustments.map((adjustment) => ({
       date: adjustment.createdAt,
-      title: "Adjustment added",
-      detail: `${adjustment.description} · ${adjustment.type === "CREDIT" ? "−" : ""}${formatVnd(adjustment.amount)}`,
+      title: t("adjustmentAdded"),
+      detail: `${adjustment.description} · ${adjustment.type === "CREDIT" ? "−" : ""}${formatVndLocale(adjustment.amount, locale)}`,
     })),
     ...(invoice.finalizedAt
       ? [
           {
             date: invoice.finalizedAt,
-            title: "Invoice finalized",
-            detail: "Snapshot became immutable",
+            title: t("invoiceFinalized"),
+            detail: t("snapshotImmutable"),
           },
         ]
       : []),
     ...invoice.payments.map((payment) => ({
       date: payment.createdAt,
       title: payment.isDepositApplication
-        ? "Deposit applied"
-        : "Payment recorded",
-      detail: `${formatVnd(payment.amount)} · ${payment.reference ?? title(payment.method)}`,
+        ? t("depositApplied")
+        : t("paymentRecorded"),
+      detail: `${formatVndLocale(payment.amount, locale)} · ${payment.reference ?? paymentMethodLabel(payment.method, t)}`,
     })),
   ].sort((left, right) => left.date.getTime() - right.date.getTime());
   return (
@@ -717,7 +727,7 @@ function HistoryTab({ invoice }: { invoice: Invoice }) {
       {events.map((event, index) => (
         <div key={`${event.title}-${index}`}>
           <span />
-          <time>{formatDate(event.date)}</time>
+          <time>{formatDateOnlyLocale(event.date, locale)}</time>
           <strong>{event.title}</strong>
           <p>{event.detail}</p>
         </div>
@@ -727,21 +737,23 @@ function HistoryTab({ invoice }: { invoice: Invoice }) {
 }
 
 function InvoicePreviewDialog({ invoice }: { invoice: Invoice }) {
-  const presentation = invoicePresentation(invoice);
+  const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
+  const presentation = invoicePresentation(invoice, locale);
   return (
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline">
-          <Eye /> Preview invoice
+          <Eye /> {t("previewInvoice")}
         </Button>
       </DialogTrigger>
       <DialogContent className="invoice-preview-dialog">
         <DialogHeader>
-          <DialogTitle>Invoice preview</DialogTitle>
+          <DialogTitle>{t("invoicePreview")}</DialogTitle>
           <DialogDescription>
             {invoice.status === "DRAFT"
-              ? "Draft preview · not finalized"
-              : "Finalized canonical invoice"}
+              ? t("draftPreview")
+              : t("finalizedCanonicalInvoice")}
           </DialogDescription>
         </DialogHeader>
         <article className="invoice-paper">
@@ -752,25 +764,25 @@ function InvoicePreviewDialog({ invoice }: { invoice: Invoice }) {
               </span>
               <div>
                 <strong>{presentation.propertyName}</strong>
-                <span>Quản lý tiền thuê và tiện ích</span>
+                <span>{t("rentalUtilitiesManagement")}</span>
               </div>
             </div>
             <div className="invoice-paper-heading">
               <h2>{presentation.documentTitle}</h2>
               <p>#{presentation.invoiceNumber}</p>
               {presentation.isDraft && (
-                <span className="invoice-paper-draft">BẢN NHÁP</span>
+                <span className="invoice-paper-draft">{t("draftWatermark")}</span>
               )}
             </div>
           </header>
 
           <dl className="invoice-paper-details">
             <div>
-              <dt>NGƯỜI THUÊ</dt>
+              <dt>{t("billTo")}</dt>
               <dd>{presentation.billTo}</dd>
             </div>
             <div>
-              <dt>PHÒNG</dt>
+              <dt>{t("invoicePaperRoom")}</dt>
               <dd>{presentation.room}</dd>
             </div>
             <div>
@@ -780,11 +792,11 @@ function InvoicePreviewDialog({ invoice }: { invoice: Invoice }) {
           </dl>
 
           <div className="invoice-paper-table-heading">
-            <span>Hạng mục</span>
-            <span>Chi tiết / Cách tính</span>
-            <span>Số lượng / Sử dụng</span>
-            <span>Đơn giá</span>
-            <span>Thành tiền</span>
+            <span>{t("lineItem")}</span>
+            <span>{t("detailCalculation")}</span>
+            <span>{t("quantityUsage")}</span>
+            <span>{t("rate")}</span>
+            <span>{t("lineAmount")}</span>
           </div>
           <div className="invoice-paper-lines">
             {presentation.lines.map((line) => (
@@ -816,8 +828,8 @@ function InvoicePreviewDialog({ invoice }: { invoice: Invoice }) {
 
           <div className="invoice-paper-total-row">
             <div className="invoice-paper-total">
-              <span>Tổng thanh toán</span>
-              <strong>{formatVnd(presentation.total)}</strong>
+              <span>{t("totalPayment")}</span>
+              <strong>{formatVndLocale(presentation.total, locale)}</strong>
             </div>
           </div>
 
@@ -826,21 +838,21 @@ function InvoicePreviewDialog({ invoice }: { invoice: Invoice }) {
               <strong>{presentation.propertyName}</strong>
               <span>
                 {presentation.isDraft
-                  ? "Bản xem trước · chưa chốt"
-                  : "Hóa đơn đã chốt"}
+                  ? t("draftPreviewFooter")
+                  : t("finalizedInvoiceFooter")}
               </span>
             </div>
             <p>
-              Hóa đơn điện tử được tạo bởi hệ thống.
+              {t("electronicInvoiceCreated")}
               <br />
-              Cảm ơn bạn đã thanh toán đúng hạn.
+              {t("thankYouOnTime")}
             </p>
           </footer>
         </article>
         {invoice.status === "FINALIZED" && (
           <DialogFooter>
-            <Button onClick={() => exportInvoicePng(invoice)}>
-              <Download /> Tải PNG
+            <Button onClick={() => exportInvoicePng(invoice, locale)}>
+              <Download /> {t("downloadPng")}
             </Button>
           </DialogFooter>
         )}
@@ -856,6 +868,8 @@ function OverrideDialog({
   invoiceId: string;
   line: Invoice["lines"][number];
 }) {
+  const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
   const [state, action] = React.useActionState(
     overrideInvoiceLineAction,
     emptyActionState,
@@ -864,14 +878,14 @@ function OverrideDialog({
     <Dialog>
       <DialogTrigger asChild>
         <Button size="sm" variant="ghost">
-          <Pencil /> Edit
+          <Pencil /> {t("edit")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit charge · {title(line.type)}</DialogTitle>
+          <DialogTitle>{t("editCharge", { type: chargeTypeLabel(line.type, t) })}</DialogTitle>
           <DialogDescription>
-            Calculated {formatVnd(line.calculatedAmount)}. The original
+            Calculated {formatVndLocale(line.calculatedAmount, locale)}. The original
             calculation remains preserved.
           </DialogDescription>
         </DialogHeader>
@@ -879,7 +893,7 @@ function OverrideDialog({
           <input type="hidden" name="invoiceId" value={invoiceId} />
           <input type="hidden" name="lineId" value={line.id} />
           <Field
-            label="Final amount"
+            label={t("finalAmount")}
             name="finalAmount"
             type="number"
             step="10"
@@ -887,7 +901,7 @@ function OverrideDialog({
             required
           />
           <Field
-            label="Override reason"
+            label={t("overrideReason")}
             name="overrideReason"
             defaultValue={line.overrideReason ?? ""}
             required
@@ -898,7 +912,7 @@ function OverrideDialog({
             </p>
           )}
           <DialogFooter>
-            <Button type="submit">Save charge</Button>
+            <Button type="submit">{t("saveCharge")}</Button>
           </DialogFooter>
         </PreservingActionForm>
       </DialogContent>
@@ -913,6 +927,7 @@ function AdjustmentDialog({
   invoiceId: string;
   adjustment?: Invoice["adjustments"][number];
 }) {
+  const t = useTranslations("billing");
   const [state, action] = React.useActionState(
     adjustment ? updateInvoiceAdjustmentAction : addInvoiceAdjustmentAction,
     emptyActionState,
@@ -922,16 +937,16 @@ function AdjustmentDialog({
       <DialogTrigger asChild>
         <Button size="sm" variant={adjustment ? "ghost" : "outline"}>
           {adjustment ? <Pencil /> : <Plus />}
-          {adjustment ? "Edit" : "Add adjustment"}
+          {adjustment ? t("edit") : t("addAdjustment")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {adjustment ? "Edit adjustment" : "Add adjustment"}
+            {adjustment ? t("editAdjustment") : t("addAdjustment")}
           </DialogTitle>
           <DialogDescription>
-            Add an independent charge or credit without changing a service line.
+            {t("addAdjustmentDescription")}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="dialog-form">
@@ -940,20 +955,20 @@ function AdjustmentDialog({
             <input type="hidden" name="adjustmentId" value={adjustment.id} />
           )}
           <div className="field">
-            <Label>Type</Label>
+            <Label>{t("type")}</Label>
             <select name="type" defaultValue={adjustment?.type ?? "CHARGE"}>
-              <option value="CHARGE">Additional charge</option>
-              <option value="CREDIT">Credit / discount</option>
+              <option value="CHARGE">{t("additionalCharge")}</option>
+              <option value="CREDIT">{t("creditDiscount")}</option>
             </select>
           </div>
           <Field
-            label="Description"
+            label={t("description")}
             name="description"
             defaultValue={adjustment?.description ?? ""}
             required
           />
           <Field
-            label="Amount"
+            label={t("amount")}
             name="amount"
             type="number"
             min="1"
@@ -962,7 +977,7 @@ function AdjustmentDialog({
             required
           />
           <Field
-            label="Reason (optional)"
+            label={t("reasonOptional")}
             name="reason"
             defaultValue={adjustment?.reason ?? ""}
           />
@@ -973,7 +988,7 @@ function AdjustmentDialog({
           )}
           <DialogFooter>
             <Button type="submit">
-              {adjustment ? "Save adjustment" : "Add adjustment"}
+              {adjustment ? t("saveAdjustment") : t("addAdjustment")}
             </Button>
           </DialogFooter>
         </PreservingActionForm>
@@ -989,6 +1004,7 @@ function DeleteAdjustmentButton({
   invoiceId: string;
   adjustmentId: string;
 }) {
+  const t = useTranslations("billing");
   const [state, action] = React.useActionState(
     deleteInvoiceAdjustmentAction,
     emptyActionState,
@@ -997,7 +1013,7 @@ function DeleteAdjustmentButton({
     <form action={action} className="billing-inline-form">
       <input type="hidden" name="invoiceId" value={invoiceId} />
       <input type="hidden" name="adjustmentId" value={adjustmentId} />
-      <Button size="sm" variant="ghost" aria-label="Remove adjustment">
+      <Button size="sm" variant="ghost" aria-label={t("removeAdjustment")}>
         <Trash2 />
       </Button>
       {state.message && (
@@ -1010,6 +1026,8 @@ function DeleteAdjustmentButton({
 }
 
 function PaymentDialog({ invoice }: { invoice: Invoice }) {
+  const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
   const [state, action] = React.useActionState(
     recordPaymentAction,
     emptyActionState,
@@ -1018,27 +1036,27 @@ function PaymentDialog({ invoice }: { invoice: Invoice }) {
     <Dialog>
       <DialogTrigger asChild>
         <Button>
-          <Plus /> Record payment
+          <Plus /> {t("recordPayment")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Record payment</DialogTitle>
+          <DialogTitle>{t("recordPayment")}</DialogTitle>
           <DialogDescription>
-            {invoice.room} · {monthLabel(invoice.billingPeriod)} ·{" "}
+            {invoice.room} · {formatMonthLocale(invoice.billingPeriod, locale)} ·{" "}
             {invoice.renterName}
           </DialogDescription>
         </DialogHeader>
         <div className="payment-dialog-summary">
-          <Info label="Invoice total" value={formatVnd(invoice.total)} />
-          <Info label="Paid" value={formatVnd(invoice.totalPaid)} />
-          <Info label="Remaining" value={formatVnd(invoice.balance)} />
+          <Info label={t("invoiceTotal")} value={formatVndLocale(invoice.total, locale)} />
+          <Info label={t("paid")} value={formatVndLocale(invoice.totalPaid, locale)} />
+          <Info label={t("remaining")} value={formatVndLocale(invoice.balance, locale)} />
         </div>
         <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="invoiceId" value={invoice.id} />
           <div className="dialog-grid">
             <Field
-              label="Amount"
+              label={t("amount")}
               name="amount"
               type="number"
               step="1"
@@ -1047,7 +1065,7 @@ function PaymentDialog({ invoice }: { invoice: Invoice }) {
               required
             />
             <Field
-              label="Date"
+              label={t("date")}
               name="paymentDate"
               type="date"
               defaultValue={new Date().toISOString().slice(0, 10)}
@@ -1055,14 +1073,14 @@ function PaymentDialog({ invoice }: { invoice: Invoice }) {
             />
           </div>
           <SelectMethod defaultValue="CASH" />
-          <Field label="Reference" name="reference" />
-          <Field label="Notes" name="notes" />
+          <Field label={t("reference")} name="reference" />
+          <Field label={t("notes")} name="notes" />
           {state.message && (
             <p className={state.ok ? "form-success" : "form-error"}>
               {state.message}
             </p>
           )}
-          <Button type="submit">Record payment</Button>
+          <Button type="submit">{t("recordPayment")}</Button>
         </PreservingActionForm>
       </DialogContent>
     </Dialog>
@@ -1074,6 +1092,7 @@ function EditPaymentDialog({
 }: {
   payment: Invoice["payments"][number];
 }) {
+  const t = useTranslations("billing");
   const [state, action] = React.useActionState(
     updatePaymentAction,
     emptyActionState,
@@ -1082,21 +1101,21 @@ function EditPaymentDialog({
     <Dialog>
       <DialogTrigger asChild>
         <Button size="sm" variant="ghost">
-          <Pencil /> Edit
+          <Pencil /> {t("edit")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit payment</DialogTitle>
+          <DialogTitle>{t("editPayment")}</DialogTitle>
           <DialogDescription>
-            Update this recorded transaction.
+            {t("updatePaymentDescription")}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="paymentId" value={payment.id} />
           <div className="dialog-grid">
             <Field
-              label="Amount"
+              label={t("amount")}
               name="amount"
               type="number"
               step="1"
@@ -1104,7 +1123,7 @@ function EditPaymentDialog({
               required
             />
             <Field
-              label="Date"
+              label={t("date")}
               name="paymentDate"
               type="date"
               defaultValue={payment.paymentDate.toISOString().slice(0, 10)}
@@ -1113,12 +1132,12 @@ function EditPaymentDialog({
           </div>
           <SelectMethod defaultValue={payment.method} />
           <Field
-            label="Reference"
+            label={t("reference")}
             name="reference"
             defaultValue={payment.reference ?? ""}
           />
           <Field
-            label="Notes"
+            label={t("notes")}
             name="notes"
             defaultValue={payment.notes ?? ""}
           />
@@ -1127,7 +1146,7 @@ function EditPaymentDialog({
               {state.message}
             </p>
           )}
-          <Button type="submit">Save payment</Button>
+          <Button type="submit">{t("savePayment")}</Button>
         </PreservingActionForm>
       </DialogContent>
     </Dialog>
@@ -1135,6 +1154,7 @@ function EditPaymentDialog({
 }
 
 function FinalizeButton({ invoiceId }: { invoiceId: string }) {
+  const t = useTranslations("billing");
   const [state, action] = React.useActionState(
     finalizeInvoiceAction,
     emptyActionState,
@@ -1142,7 +1162,7 @@ function FinalizeButton({ invoiceId }: { invoiceId: string }) {
   return (
     <form action={action}>
       <input type="hidden" name="invoiceId" value={invoiceId} />
-      <Button>Finalize</Button>
+      <Button>{t("finalize")}</Button>
       {state.message && (
         <small className={state.ok ? "form-success" : "form-error"}>
           {state.message}
@@ -1208,52 +1228,65 @@ function Field({
   );
 }
 function SelectMethod({ defaultValue }: { defaultValue: string }) {
+  const t = useTranslations("billing");
   return (
     <div className="field">
-      <Label>Method</Label>
+      <Label>{t("method")}</Label>
       <select name="method" defaultValue={defaultValue}>
-        <option value="CASH">Cash</option>
-        <option value="BANK_TRANSFER">Bank transfer</option>
-        <option value="OTHER">Other</option>
+        <option value="CASH">{t("cash")}</option>
+        <option value="BANK_TRANSFER">{t("bankTransfer")}</option>
+        <option value="OTHER">{t("other")}</option>
       </select>
     </div>
   );
 }
-function title(value: string) {
-  return value
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replace(/^./, (character) => character.toUpperCase());
+function tabLabel(value: Tab, t: ReturnType<typeof useTranslations<"billing">>) {
+  return ({ charges: t("charges"), services: t("services"), electricity: t("electricity"), payments: t("payments"), history: t("history") })[value];
 }
-function chargeDetail(type: string, metadata: unknown) {
+function chargeTypeLabel(value: string, t: ReturnType<typeof useTranslations<"billing">>) {
+  return ({ RENT: t("rent"), ELECTRICITY: t("electricity"), WATER: t("water"), ADJUSTMENT: t("adjustmentLabel") } as Record<string,string>)[value] ?? value.toLowerCase().replaceAll("_", " ");
+}
+function roleLabel(value: string, t: ReturnType<typeof useTranslations<"billing">>) {
+  if (value === "RESPONSIBLE") return t("responsibleRenter");
+  return value.toLowerCase().replaceAll("_", " ");
+}
+function paymentStatusLabel(value: string, t: ReturnType<typeof useTranslations<"billing">>) {
+  return ({ PAID: t("paid"), PARTIAL: t("partial"), UNPAID: t("unpaid") } as Record<string,string>)[value] ?? value.toLowerCase();
+}
+function paymentMethodLabel(value: string, t: ReturnType<typeof useTranslations<"billing">>) {
+  if (value === "CASH") return t("cash");
+  if (value === "BANK_TRANSFER") return t("bankTransfer");
+  return t("other");
+}
+function chargeDetail(
+  type: string,
+  metadata: unknown,
+  t: ReturnType<typeof useTranslations<"billing">>,
+  locale: AppLocale,
+) {
   const item = metadata as Record<string, unknown>;
   if (type === "RENT")
     return item.fullMonth
-      ? `Monthly rent · ${formatVnd(String(item.monthlyRentVnd ?? 0))}`
-      : `${formatVnd(String(item.monthlyRentVnd ?? 0))} × ${item.billableDays} / 30`;
+      ? t("rentDetail", { amount: formatVndLocale(String(item.monthlyRentVnd ?? 0), locale) })
+      : t("rentProratedDetail", { amount: formatVndLocale(String(item.monthlyRentVnd ?? 0), locale), days: Number(item.billableDays ?? 0) });
   if (type === "ELECTRICITY")
-    return `${item.tenantKwh ?? 0} kWh × ${formatVnd(String(item.applicableRate ?? 0))}`;
+    return t("electricityDetail", { kwh: formatNumberLocale(Number(item.tenantKwh ?? 0), locale), rate: formatVndLocale(String(item.applicableRate ?? 0), locale) });
   const occupants = Array.isArray(item.occupants)
     ? (item.occupants as Array<Record<string, unknown>>)
     : [];
-  return (
-    occupants
-      .map(
-        (person) =>
-          `${person.personName} · ${person.fullMonth ? "full month" : `${person.billableDays} days`}`,
-      )
-      .join(" · ") || "No billable occupants"
-  );
+  return occupants.map((person) => t("personStay", {
+    name: String(person.personName ?? ""),
+    duration: person.fullMonth ? t("fullMonth") : t("daysCount", { count: Number(person.billableDays ?? 0) }),
+  })).join(" · ") || t("noBillableOccupants");
 }
-
-function readingLabel(reading: Record<string, unknown>) {
+function readingLabel(reading: Record<string, unknown>, t: ReturnType<typeof useTranslations<"billing">>) {
   const labels: Record<string, string> = {
-    MANUAL: "Manual reading",
-    MONTHLY: "Legacy monthly reading",
-    MOVE_IN: "Move-in",
-    MOVE_OUT: "Move-out",
-    METER_INSTALL: "Meter installed",
-    METER_REMOVAL: "Meter removed",
+    MANUAL: t("manualReading"),
+    MONTHLY: t("legacyMonthlyReading"),
+    MOVE_IN: t("moveIn"),
+    MOVE_OUT: t("moveOut"),
+    METER_INSTALL: t("meterInstalled"),
+    METER_REMOVAL: t("meterRemoved"),
   };
-  return labels[String(reading.type ?? "")] ?? title(String(reading.type ?? "reading"));
+  return labels[String(reading.type ?? "")] ?? String(reading.type ?? "reading").toLowerCase().replaceAll("_", " ");
 }

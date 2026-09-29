@@ -316,7 +316,7 @@
 
 .billing-timeline > div > span {
   background: var(--app-brand);
-  border: 3px solid #edf3ef;
+  border: 3px solid var(--app-surface-subtle);
   border-radius: 50%;
   height: 0.75rem;
   left: -0.45rem;
@@ -346,9 +346,9 @@
 }
 
 .invoice-paper {
-  background: #fbf9f4;
+  background: var(--app-surface-elevated);
   border: 1px solid var(--app-border);
-  box-shadow: 0 14px 34px rgb(38 50 43 / 10%);
+  box-shadow: var(--app-shadow-elevated);
   color: var(--app-text-primary);
   min-width: 0;
   padding: clamp(1.25rem, 2.4vw, 2rem);
@@ -555,7 +555,7 @@
 .invoice-paper-total {
   align-items: center;
   background: var(--app-brand-hover);
-  color: white;
+  color: var(--app-primary-foreground);
   display: flex;
   gap: 2rem;
   justify-content: space-between;
@@ -811,7 +811,7 @@
 .invoice-calculation-block > div,
 .attribution-inline > div {
   align-items: center;
-  border-top: 1px solid #e2e6e2;
+  border-top: 1px solid var(--app-border);
   display: flex;
   justify-content: space-between;
   padding: 0.55rem 0;

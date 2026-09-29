@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { Repeat2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import { emptyActionState, type ActionState } from "@/lib/action-state";
 import { replaceMeterAction } from "../actions";
 
 export function ReplaceMeterDialog({ spaceId }: { spaceId: string }) {
+  const t = useTranslations("utilities");
   const [open, setOpen] = React.useState(false);
   const [source, setSource] = React.useState<"MEASURED" | "ESTIMATED">(
     "MEASURED",
@@ -39,37 +41,36 @@ export function ReplaceMeterDialog({ spaceId }: { spaceId: string }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
-          <Repeat2 /> Replace meter
+          <Repeat2 /> {t("replaceMeter")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Replace electricity meter</DialogTitle>
+          <DialogTitle>{t("replaceMeter")}</DialogTitle>
           <DialogDescription>
-            Close the old physical meter and install its replacement in one
-            operation.
+            {t("replaceMeterDescription")}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="spaceId" value={spaceId} />
           <Field
-            label="Replacement date"
+            label={t("replacementDate")}
             name="replacementDate"
             type="date"
             required
           />
           <div className="dialog-section">
-            <h3>Old meter</h3>
+            <h3>{t("oldMeter")}</h3>
             <div className="dialog-grid">
               <Field
-                label="Final reading"
+                label={t("finalReading")}
                 name="oldMeterFinalReading"
                 type="number"
                 step="0.001"
-                placeholder="Optional"
+                placeholder={t("optional")}
               />
               <div className="field">
-                <Label>Source</Label>
+                <Label>{t("source")}</Label>
                 <select
                   name="oldMeterFinalReadingSource"
                   value={source}
@@ -77,36 +78,35 @@ export function ReplaceMeterDialog({ spaceId }: { spaceId: string }) {
                     setSource(event.target.value as "MEASURED" | "ESTIMATED")
                   }
                 >
-                  <option value="MEASURED">Measured</option>
-                  <option value="ESTIMATED">Estimated</option>
+                  <option value="MEASURED">{t("measured")}</option>
+                  <option value="ESTIMATED">{t("estimated")}</option>
                 </select>
               </div>
             </div>
             <PrivateAttachmentPicker
               name="oldMeterPhoto"
               accept="image/jpeg,image/png,image/webp"
-              title="Old meter photo"
-              emptyText="No photo selected"
-              actionLabel="Add photo"
+              title={t("oldMeterPhoto")}
+              emptyText={t("noPhoto")}
+              actionLabel={t("addPhoto")}
               kind="image"
             />
           </div>
           {source === "ESTIMATED" && (
             <p className="text-xs text-[var(--app-warning)]">
-              The replacement reason below also explains the estimated final
-              reading.
+              {t("replacementReasonHelp")}
             </p>
           )}
           <div className="dialog-section">
-            <h3>New meter</h3>
+            <h3>{t("newMeter")}</h3>
             <div className="dialog-grid">
               <Field
-                label="Meter number"
+                label={t("meterNumber")}
                 name="newMeterNumber"
-                placeholder="Optional"
+                placeholder={t("optional")}
               />
               <Field
-                label="Initial reading"
+                label={t("initialReading")}
                 name="newMeterInitialReading"
                 type="number"
                 step="0.001"
@@ -116,15 +116,15 @@ export function ReplaceMeterDialog({ spaceId }: { spaceId: string }) {
             <PrivateAttachmentPicker
               name="newMeterPhoto"
               accept="image/jpeg,image/png,image/webp"
-              title="New meter photo"
-              emptyText="No photo selected"
-              actionLabel="Add photo"
+              title={t("newMeterPhoto")}
+              emptyText={t("noPhoto")}
+              actionLabel={t("addPhoto")}
               kind="image"
             />
           </div>
-          <Field label="Reason" name="reason" required />
+          <Field label={t("reason")} name="reason" required />
           <div className="field">
-            <Label>Notes</Label>
+            <Label>{t("notes")}</Label>
             <Textarea name="notes" />
           </div>
           {state.message && (
@@ -134,7 +134,7 @@ export function ReplaceMeterDialog({ spaceId }: { spaceId: string }) {
           )}
           <DialogFooter>
             <Button type="submit">
-              <Repeat2 /> Replace meter
+              <Repeat2 /> {t("replaceMeter")}
             </Button>
           </DialogFooter>
         </PreservingActionForm>

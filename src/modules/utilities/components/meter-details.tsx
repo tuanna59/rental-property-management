@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { Gauge, History, Layers3 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -12,20 +13,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { formatDate } from "@/lib/presentation";
+import type { AppLocale } from "@/i18n/config";
+import { formatCompactDateLocale, formatDateOnlyLocale, formatMonthLocale, formatNumberLocale } from "@/i18n/format";
 
 import type { getMonthlyMeterEntries } from "../server/utility.queries";
 import { MeterHistory } from "./meter-history";
 import { MeterReadingDialog } from "./meter-reading-dialog";
 import { ReplaceMeterDialog } from "./replace-meter-dialog";
 import { BoundaryReadingDialog } from "./boundary-reading-dialog";
+import { translateUtilityWarning } from "./utility-presentation";
 
 type Entry = Awaited<ReturnType<typeof getMonthlyMeterEntries>>[number];
 type Tab = "breakdown" | "history";
 
 export function MeterDetails({
   entry,
-  triggerLabel = "Manage",
+  triggerLabel,
   initialTab = "breakdown",
   open,
   onOpenChange,
@@ -40,6 +43,8 @@ export function MeterDetails({
   hideTrigger?: boolean;
   readOnly?: boolean;
 }) {
+  const t = useTranslations("utilities");
+  const locale = useLocale() as AppLocale;
   const [tab, setTab] = React.useState<Tab>(initialTab);
   if (!entry.activeMeter) return null;
   const currentMeter = entry.history.find((meter) => !meter.removedAt) ?? null;
@@ -49,41 +54,38 @@ export function MeterDetails({
       {!hideTrigger && (
         <DialogTrigger asChild>
           <Button size="sm" variant="ghost">
-            <Gauge /> {triggerLabel}
+            <Gauge /> {triggerLabel ?? t("manage")}
           </Button>
         </DialogTrigger>
       )}
       <DialogContent className="meter-details-dialog">
         <DialogHeader>
-          <DialogTitle>{entry.room} · Electricity meter</DialogTitle>
-          <DialogDescription>
-            Current meter context, selected-cycle calculation, attribution, and
-            complete reading history.
-          </DialogDescription>
+          <DialogTitle>{entry.room} · {t("electricityMeter")}</DialogTitle>
+<DialogDescription>{t("meterDetailsDescription")}</DialogDescription>
         </DialogHeader>
 
         <section className="meter-current-summary">
           <div>
-            <span>Current meter</span>
-            <strong>{currentMeter?.meterNumber || "No active meter"}</strong>
+            <span>{t("currentMeter")}</span>
+            <strong>{currentMeter?.meterNumber || t("noActiveMeter")}</strong>
             <small>
               {currentMeter
-                ? `Installed ${formatDate(currentMeter.installedAt)}`
-                : "No physical meter is currently active"}
+                ? t("installed", { date: formatDateOnlyLocale(currentMeter.installedAt, locale) })
+                : t("noPhysicalMeterActive")}
             </small>
           </div>
-          {currentMeter && <span className="utility-status is-complete">Active</span>}
+          {currentMeter && <span className="utility-status is-complete">{t("active")}</span>}
           <div>
-            <span>Latest reading</span>
+            <span>{t("latestReading")}</span>
             <strong>
               {currentMeter?.latestReading
-                ? `${Number(currentMeter.latestReading.readingValue).toLocaleString()} kWh`
+                ? `${formatNumberLocale(currentMeter.latestReading.readingValue, locale)} kWh`
                 : "—"}
             </strong>
             <small>
               {currentMeter?.latestReading
-                ? formatDate(currentMeter.latestReading.readingDate)
-                : "No readings"}
+                ? formatDateOnlyLocale(currentMeter.latestReading.readingDate, locale)
+                : t("noReadings")}
             </small>
           </div>
         </section>
@@ -95,25 +97,25 @@ export function MeterDetails({
           </div>
         )}
 
-        <nav className="meter-detail-tabs" aria-label="Meter details sections">
+        <nav className="meter-detail-tabs" aria-label={t("meterDetailsSections")}>
           <button
             type="button"
             className={tab === "breakdown" ? "is-active" : ""}
             onClick={() => setTab("breakdown")}
           >
-            <Layers3 /> Monthly breakdown
+            <Layers3 /> {t("monthlyBreakdown")}
           </button>
           <button
             type="button"
             className={tab === "history" ? "is-active" : ""}
             onClick={() => setTab("history")}
           >
-            <History /> Reading history
+            <History /> {t("readingHistory")}
           </button>
         </nav>
 
         {tab === "breakdown" && (
-          <MonthlyBreakdown entry={entry} readOnly={readOnly} />
+          <MonthlyBreakdown entry={entry} readOnly={readOnly} locale={locale} />
         )}
         {tab === "history" && (
           <MeterHistory history={entry.history} readOnly={readOnly} />
@@ -126,10 +128,13 @@ export function MeterDetails({
 function MonthlyBreakdown({
   entry,
   readOnly = false,
+  locale,
 }: {
   entry: Entry;
   readOnly?: boolean;
+  locale: AppLocale;
 }) {
+  const t = useTranslations("utilities");
   const allSegments = entry.tenancySegments;
   const total = allSegments.reduce(
     (sum, segment) => sum + Number(segment.usage),
@@ -149,20 +154,21 @@ function MonthlyBreakdown({
     entry.previousClosingReading;
   const cycleStatus =
     entry.closingStatus === "LOCKED"
-      ? "Locked"
+      ? t("locked")
       : entry.closingStatus === "CLOSING_SET"
-        ? "Closed"
+        ? t("closed")
         : entry.closingStatus === "NEEDS_CLOSING"
-          ? "Open"
+          ? t("open")
           : entry.closingStatus === "OPTIONAL"
-            ? "Optional"
-            : "No meter";
+            ? t("optional")
+            : t("noMeter");
   const closingQuality =
     entry.closingDateQuality === "EARLY"
-      ? "Early"
-      : entry.closingDateQuality === "LATE" ||
-          entry.closingDateQuality === "VERY_LATE"
-        ? `Late ${entry.closingDateOffsetDays}d`
+      ? t("early")
+      : entry.closingDateQuality === "LATE" || entry.closingDateQuality === "VERY_LATE"
+        ? entry.closingDateOffsetDays == null
+          ? t("lateClosing")
+          : t("lateDays", { days: entry.closingDateOffsetDays })
         : null;
   const blockingWarnings = entry.warnings.filter(
     (warning) =>
@@ -177,82 +183,82 @@ function MonthlyBreakdown({
   return (
     <section className="meter-breakdown">
       <section className="meter-cycle-summary-card">
-        <strong className="meter-cycle-month">{monthName(entry.billingMonth)}</strong>
+        <strong className="meter-cycle-month">{formatMonthLocale(entry.billingMonth, locale)}</strong>
         <div className="meter-cycle-summary-grid">
           <div>
-            <span>Opening reading</span>
+            <span>{t("openingReading")}</span>
             <strong>
               {openingReading
-                ? `${Number(openingReading.readingValue).toLocaleString()} kWh`
+                ? `${formatNumberLocale(openingReading.readingValue, locale)} kWh`
                 : "—"}
             </strong>
-            {openingReading && <small>{shortDate(openingReading.readingDate)}</small>}
+            {openingReading && <small>{formatCompactDateLocale(openingReading.readingDate, locale)}</small>}
           </div>
           <div>
-            <span>Monthly closing</span>
+            <span>{t("monthlyClosing")}</span>
             <strong>
               {entry.monthlyReading
-                ? `${Number(entry.monthlyReading.readingValue).toLocaleString()} kWh`
+                ? `${formatNumberLocale(entry.monthlyReading.readingValue, locale)} kWh`
                 : entry.closingRequired
-                  ? "Not assigned"
-                  : "Optional"}
+                  ? t("notAssigned")
+                  : t("optional")}
             </strong>
             {entry.monthlyReading && (
               <small>
-                {shortDate(entry.monthlyReading.readingDate)}
+                {formatCompactDateLocale(entry.monthlyReading.readingDate, locale)}
                 {closingQuality ? ` · ${closingQuality}` : ""}
               </small>
             )}
           </div>
           <div>
-            <span>Cycle usage</span>
+            <span>{t("cycleUsageLabel")}</span>
             <strong>
               {cycleUsage === null
-                ? "Incomplete"
-                : `${cycleUsage.toLocaleString()} kWh`}
+                ? t("incomplete")
+                : `${formatNumberLocale(cycleUsage, locale)} kWh`}
             </strong>
           </div>
           <div>
-            <span>Status</span>
+            <span>{t("status")}</span>
             <strong>{cycleStatus}</strong>
             {entry.closingStatus === "LOCKED" && entry.lockInvoice && (
-              <small>Used by finalized invoice</small>
+              <small>{t("usedByFinalizedInvoice")}</small>
             )}
           </div>
         </div>
         {showKnownUsage && knownUsage !== null && (
           <div className="meter-known-usage-note">
             <span>
-              Known usage
               {entry.latestReading
-                ? ` through ${shortDate(entry.latestReading.readingDate)}`
-                : ""}
+                ? t("knownThrough", { date: formatCompactDateLocale(entry.latestReading.readingDate, locale) })
+                : t("knownUsage")}
             </span>
-            <strong>{knownUsage.toLocaleString()} kWh</strong>
+            <strong>{formatNumberLocale(knownUsage, locale)} kWh</strong>
           </div>
         )}
       </section>
 
       {entry.monthlyReading && closingQuality && (
         <p className="meter-inline-warning">
-          ⚠ {closingQuality.startsWith("Late") ? "Late closing" : "Early closing"}
-          {closingQuality.startsWith("Late")
-            ? ` · Reading was taken ${entry.closingDateOffsetDays} day${entry.closingDateOffsetDays === 1 ? "" : "s"} after month end.`
-            : " · Reading was taken before month end."}
+          ⚠ {entry.closingDateQuality === "EARLY" ? t("earlyClosing") : t("lateClosing")}
+          {" · "}
+          {entry.closingDateQuality === "EARLY"
+            ? t("earlyClosingDetail")
+            : entry.closingDateOffsetDays == null
+              ? t("lateClosing")
+              : t("lateClosingDetail", { days: entry.closingDateOffsetDays })}
         </p>
       )}
 
       {!entry.closingRequired && entry.isVacantEntireMonth && (
-        <p className="utility-subtle">
-          Vacant for the selected month · monthly closing optional.
-        </p>
+<p className="utility-subtle">{t("vacantMonthOptional")}</p>
       )}
 
       {entry.meterSegments.length > 1 && (
         <details className="meter-segment-disclosure">
           <summary>
-            <span>Cycle spans {entry.meterSegments.length} physical meters</span>
-            <strong>View meter segments</strong>
+            <span>{t("cycleSpansMeters", { count: entry.meterSegments.length })}</span>
+            <strong>{t("viewMeterSegments")}</strong>
           </summary>
           <section className="meter-physical-segments">
             {entry.meterSegments.map((segment) => {
@@ -266,26 +272,26 @@ function MonthlyBreakdown({
                 segment.physicalUsage ?? segment.knownPhysicalUsage;
               return (
                 <div key={segment.meterId}>
-                  <span>{segment.meterNumber || "Unnumbered meter"}</span>
+                  <span>{segment.meterNumber || t("unnumberedMeter")}</span>
                   <small>
-                    {formatDate(start)} → {finish ? formatDate(finish) : "ongoing"}
+                    {formatDateOnlyLocale(start, locale)} → {finish ? formatDateOnlyLocale(finish, locale) : t("ongoing")}
                   </small>
                   <strong>
                     {segmentUsage === null
-                      ? "Usage unavailable"
-                      : `${Number(segmentUsage).toLocaleString()} kWh`}
+                      ? t("usageUnavailable")
+                      : `${formatNumberLocale(segmentUsage, locale)} kWh`}
                   </strong>
                 </div>
               );
             })}
             <div className="meter-segment-total">
-              <span>Total</span>
+              <span>{t("total")}</span>
               <strong>
                 {cycleUsage !== null
-                  ? `${cycleUsage.toLocaleString()} kWh`
+                  ? `${formatNumberLocale(cycleUsage, locale)} kWh`
                   : knownUsage !== null
-                    ? `${knownUsage.toLocaleString()} kWh known`
-                    : "Unavailable"}
+                    ? `${formatNumberLocale(knownUsage, locale)} kWh ${t("knownSuffix")}`
+                    : t("unavailable")}
               </strong>
             </div>
           </section>
@@ -295,7 +301,7 @@ function MonthlyBreakdown({
       {total > 0 && (
         <div
           className="usage-timeline"
-          aria-label="Known tenant and vacant electricity usage"
+          aria-label={t("knownTenantVacantUsage")}
         >
           {allSegments
             .filter((segment) => Number(segment.usage) > 0)
@@ -308,10 +314,10 @@ function MonthlyBreakdown({
                     segment.kind === "VACANT" ? "is-vacant" : "is-tenant"
                   }
                   style={{ width: `${Math.max((amount / total) * 100, 5)}%` }}
-                  title={`${segment.label}: ${amount.toLocaleString()} kWh`}
+                  title={`${segment.label}: ${formatNumberLocale(amount, locale)} kWh`}
                 >
                   <span>{segment.label}</span>
-                  <strong>{amount.toLocaleString()}</strong>
+                  <strong>{formatNumberLocale(amount, locale)}</strong>
                 </div>
               );
             })}
@@ -328,11 +334,11 @@ function MonthlyBreakdown({
               <strong>{segment.label}</strong>
               <small>
                 {segment.usageKnown
-                  ? `${Number(segment.usage).toLocaleString()} kWh`
-                  : `${Number(segment.usage).toLocaleString()} kWh known so far`}
+                  ? `${formatNumberLocale(segment.usage, locale)} kWh`
+                  : `${formatNumberLocale(segment.usage, locale)} kWh ${t("knownSoFarSuffix")}`}
                 {" · "}
-                {formatDate(segment.startDate)} →{" "}
-                {segment.isOpen ? "ongoing" : formatDate(segment.endDate)}
+                {formatDateOnlyLocale(segment.startDate, locale)} →{" "}
+                {segment.isOpen ? t("ongoing") : formatDateOnlyLocale(segment.endDate, locale)}
               </small>
             </div>
           </div>
@@ -341,8 +347,8 @@ function MonthlyBreakdown({
 
       {blockingWarnings.length > 0 && (
         <div className="meter-breakdown-empty">
-          <strong>Utility data needs attention</strong>
-          <p>{blockingWarnings[0]}</p>
+          <strong>{t("utilityDataAttention")}</strong>
+          <p>{translateUtilityWarning(blockingWarnings[0], t, locale)}</p>
           {!readOnly &&
             entry.missingBoundary.map((boundary) => (
               <BoundaryReadingDialog
@@ -355,24 +361,9 @@ function MonthlyBreakdown({
       )}
 
       {blockingWarnings.length === 0 && nonBlockingWarnings.length > 0 && (
-        <p className="meter-inline-note">{nonBlockingWarnings[0]}</p>
+        <p className="meter-inline-note">{translateUtilityWarning(nonBlockingWarnings[0], t, locale)}</p>
       )}
     </section>
   );
 }
 
-function monthName(value: Date) {
-  return new Intl.DateTimeFormat("en", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(value);
-}
-
-function shortDate(value: Date) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(value);
-}

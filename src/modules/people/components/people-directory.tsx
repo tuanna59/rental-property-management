@@ -2,6 +2,9 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale } from "@/i18n/format";
 import { CalendarDays, House, MoreHorizontal, Phone, Search, UserRound, Users } from "lucide-react";
 
 import type { DashboardProperty } from "@/modules/property/domain/types";
@@ -34,6 +37,7 @@ export function PeopleDirectory({
   mobileDetail: boolean;
   renderedAt: string;
 }) {
+  const t = useTranslations("tenants");
   const baseParams = new URLSearchParams();
   if (scope !== "all") baseParams.set("scope", scope);
   if (showArchived) baseParams.set("archived", "1");
@@ -45,37 +49,37 @@ export function PeopleDirectory({
       <div className="people-workspace">
         <header className="people-header">
           <div className="people-header-copy">
-            <p className="people-eyebrow">PEOPLE</p>
-            <h1>Tenants</h1>
+            <p className="people-eyebrow">{t("eyebrow")}</p>
+            <h1>{t("title")}</h1>
             <p className="people-description">
-              People, rentals, billing, utilities, and private documents.
+              {t("subtitle")}
             </p>
           </div>
           <PersonFormDialog mode="create" />
         </header>
 
-        <TenantKpis stats={stats} />
+        <TenantKpis stats={stats} t={t} />
 
         <div className="people-layout">
-          <section className="people-directory" aria-label="Tenant directory">
+          <section className="people-directory" aria-label={t("directory")}>
             <div className="people-directory-toolbar">
               <form className="people-search" action="/tenants">
                 <Search aria-hidden="true" />
                 <input
                   name="q"
                   defaultValue={query}
-                  placeholder="Search by name or phone"
+                  placeholder={t("searchPlaceholder")}
                 />
                 <input type="hidden" name="scope" value={scope} />
                 {showArchived && <input type="hidden" name="archived" value="1" />}
               </form>
               <div className="people-filter-row">
-                <nav className="people-filters" aria-label="Directory filters">
+                <nav className="people-filters" aria-label={t("filtersLabel")}>
                   {[
-                    ["all", "All"],
-                    ["current", "Current"],
-                    ["upcoming", "Upcoming"],
-                    ["former", "Former"],
+                    ["all", t("all")],
+                    ["current", t("current")],
+                    ["upcoming", t("upcoming")],
+                    ["former", t("former")],
                   ].map(([value, label]) => (
                     <Link
                       key={value}
@@ -87,7 +91,7 @@ export function PeopleDirectory({
                   ))}
                 </nav>
                 <details className="people-archive-menu">
-                  <summary aria-label="More directory options">
+                  <summary aria-label={t("moreDirectoryOptions")}>
                     <MoreHorizontal aria-hidden="true" />
                   </summary>
                   <div>
@@ -97,7 +101,7 @@ export function PeopleDirectory({
                         event.currentTarget.closest("details")?.removeAttribute("open");
                       }}
                     >
-                      {showArchived ? "View active people" : "View archived people"}
+                      {showArchived ? t("viewActivePeople") : t("viewArchivedPeople")}
                     </Link>
                   </div>
                 </details>
@@ -106,7 +110,7 @@ export function PeopleDirectory({
 
             {showArchived && (
               <div className="people-archive-banner">
-                Archived people · read-only unless restored
+                {t("archivedBanner")}
               </div>
             )}
 
@@ -126,7 +130,7 @@ export function PeopleDirectory({
                         <DirectoryRoom person={person} />
                         <span className="person-row-phone">
                           <Phone aria-hidden="true" />
-                          {person.phone || "No contact details"}
+                          {person.phone || t("noContact")}
                         </span>
                       </span>
 
@@ -142,13 +146,13 @@ export function PeopleDirectory({
               ) : (
                 <div className="people-empty">
                   <UserRound aria-hidden="true" />
-                  <p>No people match this view.</p>
+                  <p>{t("noPeople")}</p>
                 </div>
               )}
             </div>
           </section>
 
-          <section className="person-profile" aria-label="Person details">
+          <section className="person-profile" aria-label={t("personDetails")}>
             {selected ? (
               <TenantProfile
                 key={selected.id}
@@ -158,7 +162,7 @@ export function PeopleDirectory({
                 renderedAt={renderedAt}
               />
             ) : (
-              <ProfileEmpty />
+              <ProfileEmpty t={t} />
             )}
           </section>
         </div>
@@ -167,36 +171,36 @@ export function PeopleDirectory({
   );
 }
 
-function TenantKpis({ stats }: { stats: TenantStats }) {
+function TenantKpis({ stats, t }: { stats: TenantStats; t: ReturnType<typeof useTranslations> }) {
   return (
-    <section className="tenant-kpis" aria-label="Tenant summary">
+    <section className="tenant-kpis" aria-label={t("summary")}>
       <Kpi
         icon={<Users />}
-        label="Total people"
+        label={t("totalPeople")}
         value={stats.total}
-        detail={`${stats.withRentalHistory} have rental history`}
+        detail={t("rentalHistoryCount", { count: stats.withRentalHistory })}
       />
       <Kpi
         icon={<House />}
-        label="Current renters"
+        label={t("currentRenters")}
         value={stats.current}
         detail={
           stats.currentRooms
-            ? `Across ${stats.currentRooms} occupied ${stats.currentRooms === 1 ? "room" : "rooms"}`
-            : "No occupied rooms"
+            ? t("occupiedRooms", { count: stats.currentRooms })
+            : t("noOccupiedRooms")
         }
       />
       <Kpi
         icon={<CalendarDays />}
-        label="Upcoming"
+        label={t("upcoming")}
         value={stats.upcoming}
-        detail={stats.upcoming ? "Scheduled move-ins" : "No scheduled move-ins"}
+        detail={stats.upcoming ? t("scheduledMoveIns") : t("noScheduledMoveIns")}
       />
       <Kpi
         icon={<UserRound />}
-        label="No rental history"
+        label={t("noRentalHistory")}
         value={stats.noRentalHistory}
-        detail={stats.noRentalHistory ? "Need rental assignment" : "Everyone has rental history"}
+        detail={stats.noRentalHistory ? t("needRentalAssignment") : t("everyoneHasRentalHistory")}
       />
     </section>
   );
@@ -226,12 +230,13 @@ function Kpi({
 }
 
 function LifecycleBadge({ person }: { person: DirectoryPerson }) {
+  const t = useTranslations("tenants");
   const label = person.archivedAt
-    ? "Archived"
+    ? t("archived")
     : person.rentalState === "NO_RENTAL"
-      ? "No rental"
+      ? t("noRental")
       : person.rentalState === "UPCOMING"
-        ? "Future"
+        ? t("future")
         : titleCase(person.rentalState);
   return (
     <span className={`tenant-list-state ${person.archivedAt ? "state-archived" : `state-${person.rentalState.toLowerCase()}`}`}>
@@ -240,12 +245,12 @@ function LifecycleBadge({ person }: { person: DirectoryPerson }) {
   );
 }
 
-function ProfileEmpty() {
+function ProfileEmpty({ t }: { t: ReturnType<typeof useTranslations> }) {
   return (
     <div className="profile-empty">
       <UserRound aria-hidden="true" />
-      <h2>Tenant workspace</h2>
-      <p>Select someone from the directory.</p>
+      <h2>{t("workspace")}</h2>
+      <p>{t("selectPerson")}</p>
     </div>
   );
 }
@@ -273,19 +278,21 @@ function personHref(
 }
 
 function DirectoryRoom({ person }: { person: DirectoryPerson }) {
+  const t = useTranslations("tenants");
   const tenancy = person.currentTenancy ?? person.upcomingTenancy;
   if (tenancy) return <span className="person-row-room">{tenancy.spaceName}</span>;
   if (person.lastTenancy) {
-    return <span className="person-row-room is-muted">Last rented {person.lastTenancy.spaceName}</span>;
+    return <span className="person-row-room is-muted">{t("formerTenant")} · {person.lastTenancy.spaceName}</span>;
   }
-  return <span className="person-row-room is-muted">No rental history</span>;
+  return <span className="person-row-room is-muted">{t("noRentalHistory")}</span>;
 }
 
 function DirectoryRole({ person }: { person: DirectoryPerson }) {
   const tenancy = person.currentTenancy ?? person.upcomingTenancy;
   if (!tenancy) return <span className="person-row-role-spacer" aria-hidden="true" />;
 
-  const role = shortRole(tenancy.role);
+  const t = useTranslations("tenants");
+  const role = tenancy.role === "RESPONSIBLE" ? t("responsible") : t("additional");
   return (
     <span className={`person-role-badge role-${tenancy.role.toLowerCase()}`}>
       <UserRound aria-hidden="true" />
@@ -295,29 +302,19 @@ function DirectoryRole({ person }: { person: DirectoryPerson }) {
 }
 
 function DirectoryLifecycleContext({ person }: { person: DirectoryPerson }) {
+  const t = useTranslations("tenants");
+  const locale = useLocale() as AppLocale;
   if (person.upcomingTenancy) {
     return (
-      <small>Moves in {shortFullDate(person.upcomingTenancy.moveInDate)}</small>
+      <small>{t("movesIn")} {formatDateOnlyLocale(person.upcomingTenancy.moveInDate, locale)}</small>
     );
   }
   if (person.lastTenancy?.moveOutDate && person.rentalState === "FORMER") {
-    return <small>Moved out {shortFullDate(person.lastTenancy.moveOutDate)}</small>;
+    return <small>{t("moveOut")} · {formatDateOnlyLocale(person.lastTenancy.moveOutDate, locale)}</small>;
   }
   return null;
 }
 
-function shortRole(role: "RESPONSIBLE" | "ADDITIONAL") {
-  return role === "RESPONSIBLE" ? "Responsible" : "Additional";
-}
-
-function shortFullDate(value: Date) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(value);
-}
 
 function titleCase(value: string) {
   return value.toLowerCase().replace(/^./, (letter) => letter.toUpperCase());

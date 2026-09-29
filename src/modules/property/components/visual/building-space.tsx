@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { motion } from "motion/react";
 import {
   AlertTriangle,
@@ -9,13 +10,16 @@ import {
   WifiOff,
   Wrench,
 } from "lucide-react";
+
+import type { AppLocale } from "@/i18n/config";
+import { formatCompactDateLocale } from "@/i18n/format";
 import { cn } from "@/lib/utils";
-import { formatCompactDate } from "@/lib/presentation";
 import type {
   BuildingTimeOfDay,
   BuildingVisualMode,
   BuildingVisualSpaceProjection,
 } from "../../domain/types";
+import { SPACE_TYPE_KEYS } from "./building-copy";
 import { SpaceInterior } from "./interiors/space-interior";
 import { StatusMarker } from "./indicators/status-marker";
 import { getRoomVisualVariant, type RoomSizeClass } from "./layout";
@@ -37,17 +41,48 @@ export function BuildingSpace({
   roomSize: RoomSizeClass;
   onSelect: (spaceId: string, target: HTMLButtonElement) => void;
 }) {
+  const t = useTranslations("building");
+  const locale = useLocale() as AppLocale;
   const variant = getRoomVisualVariant(space);
   const room = space.type === "ROOM";
   const rooftop = space.type === "ROOFTOP";
   const occupancyLabel =
     space.occupancyState === "OCCUPIED"
-      ? `${space.occupancy?.occupantCount ?? 0} resident${space.occupancy?.occupantCount === 1 ? "" : "s"}`
+      ? t("spaceState.residents", { count: space.occupancy?.occupantCount ?? 0 })
       : space.occupancyState === "UPCOMING"
-        ? `Move-in ${space.upcomingOccupancy?.moveInDate ? formatCompactDate(space.upcomingOccupancy.moveInDate) : "scheduled"}`
+        ? space.upcomingOccupancy?.moveInDate
+          ? t("spaceState.moveIn", { date: formatCompactDateLocale(space.upcomingOccupancy.moveInDate, locale) })
+          : t("spaceState.moveInScheduled")
         : space.occupancyState === "VACANT"
-          ? "Vacant"
-          : "Active space";
+          ? t("spaceState.vacant")
+          : t("spaceState.activeSpace");
+
+  const accessibleOverlayLabel = (() => {
+    if (mode === "MAINTENANCE") {
+      const total = space.maintenance.openCount + space.maintenance.inProgressCount;
+      return total
+        ? t("spaceState.activeMaintenanceIssues", { count: total })
+        : t("spaceState.noActiveMaintenance");
+    }
+    if (mode === "UTILITIES") {
+      if (!space.utilities.hasElectricityMeter) return t("spaceState.noElectricityMeterLower");
+      if (space.utilities.missingBoundary) return t("spaceState.utilityBoundaryMissingLower");
+      if (space.utilities.needsClosing) return t("spaceState.monthlyClosingRequiredLower");
+      return t("spaceState.utilitiesReady");
+    }
+    if (mode === "ASSETS") {
+      return t("spaceState.assetsDevicesAccessible", {
+        assets: space.assets.activeCount,
+        devices: space.devices.totalCount,
+      });
+    }
+    if (space.occupancyState === "OCCUPIED") {
+      return t("spaceState.residents", { count: space.occupancy?.occupantCount ?? 0 });
+    }
+    if (space.occupancyState === "UPCOMING") return t("spaceState.upcoming");
+    if (space.occupancyState === "VACANT") return t("spaceState.vacant");
+    return t("spaceState.activeSpace");
+  })();
 
   return (
     <motion.button
@@ -64,7 +99,7 @@ export function BuildingSpace({
       data-room-size={room ? roomSize : undefined}
       whileHover={{ y: -3 }}
       transition={{ duration: 0.18 }}
-      aria-label={`${space.name}, ${overlayAccessibleLabel(space, mode)}`}
+      aria-label={`${space.name}, ${accessibleOverlayLabel}`}
       aria-pressed={selected}
       onClick={(event) => onSelect(space.id, event.currentTarget)}
       data-space-id={space.id}
@@ -79,7 +114,7 @@ export function BuildingSpace({
       <SpaceInterior space={space} variant={variant} roomSize={roomSize} />
       <span className="building-v2-space-label">
         <strong>{space.name}</strong>
-        <small>{room ? occupancyLabel : shortType(space.type)}</small>
+        <small>{room ? occupancyLabel : t(`shortTypes.${SPACE_TYPE_KEYS[space.type]}`)}</small>
       </span>
       <span className="building-v2-overlay" aria-hidden="true">
         <ModeOverlay space={space} mode={mode} />
@@ -95,6 +130,8 @@ function ModeOverlay({
   space: BuildingVisualSpaceProjection;
   mode: BuildingVisualMode;
 }) {
+  const t = useTranslations("building");
+
   if (mode === "OCCUPANCY") {
     if (space.type !== "ROOM") return null;
     if (space.occupancyState === "OCCUPIED") {
@@ -102,13 +139,13 @@ function ModeOverlay({
         <StatusMarker
           icon={Users}
           count={space.occupancy?.occupantCount ?? 0}
-          label={`${space.occupancy?.occupantCount ?? 0} current residents`}
+          label={t("spaceState.currentResidents", { count: space.occupancy?.occupantCount ?? 0 })}
           tone="success"
         />
       );
     }
     if (space.occupancyState === "UPCOMING") {
-      return <StatusMarker icon={Users} label="Upcoming occupancy" tone="info" />;
+      return <StatusMarker icon={Users} label={t("spaceState.upcomingOccupancy")} tone="info" />;
     }
     return null;
   }
@@ -120,7 +157,7 @@ function ModeOverlay({
       <StatusMarker
         icon={space.maintenance.urgentCount ? AlertTriangle : Wrench}
         count={active}
-        label={`${active} active maintenance issue${active === 1 ? "" : "s"}`}
+        label={t("overlay.activeMaintenanceIssues", { count: active })}
         tone={space.maintenance.urgentCount ? "danger" : "warning"}
       />
     );
@@ -129,7 +166,7 @@ function ModeOverlay({
   if (mode === "UTILITIES") {
     if (!space.utilities.hasElectricityMeter) {
       return space.type === "ROOM"
-        ? <StatusMarker icon={Gauge} label="No electricity meter" tone="neutral" />
+        ? <StatusMarker icon={Gauge} label={t("overlay.noElectricityMeter")} tone="neutral" />
         : null;
     }
     if (space.utilities.missingBoundary || space.utilities.needsClosing) {
@@ -137,12 +174,12 @@ function ModeOverlay({
         <StatusMarker
           icon={AlertTriangle}
           count={space.utilities.attentionCount || undefined}
-          label={space.utilities.missingBoundary ? "Utility boundary attention required" : "Monthly closing required"}
+          label={space.utilities.missingBoundary ? t("overlay.boundaryAttention") : t("overlay.monthlyClosingRequired")}
           tone="warning"
         />
       );
     }
-    return <StatusMarker icon={Gauge} label="Electricity meter ready" tone="success" />;
+    return <StatusMarker icon={Gauge} label={t("overlay.meterReady")} tone="success" />;
   }
 
   const assetAttention = space.assets.underMaintenanceCount;
@@ -154,7 +191,7 @@ function ModeOverlay({
         <StatusMarker
           icon={Box}
           count={space.assets.activeCount}
-          label={`${space.assets.activeCount} active asset${space.assets.activeCount === 1 ? "" : "s"}`}
+          label={t("overlay.activeAssets", { count: space.assets.activeCount })}
           tone={assetAttention ? "warning" : "success"}
         />
       )}
@@ -162,42 +199,10 @@ function ModeOverlay({
         <StatusMarker
           icon={WifiOff}
           count={offline}
-          label={`${offline} offline device${offline === 1 ? "" : "s"}`}
+          label={t("overlay.offlineDevices", { count: offline })}
           tone="danger"
         />
       )}
     </span>
   );
-}
-
-function overlayAccessibleLabel(space: BuildingVisualSpaceProjection, mode: BuildingVisualMode) {
-  if (mode === "MAINTENANCE") {
-    const total = space.maintenance.openCount + space.maintenance.inProgressCount;
-    return total ? `${total} active maintenance issues` : "no active maintenance";
-  }
-  if (mode === "UTILITIES") {
-    if (!space.utilities.hasElectricityMeter) return "no electricity meter";
-    if (space.utilities.missingBoundary) return "utility boundary missing";
-    if (space.utilities.needsClosing) return "monthly closing required";
-    return "utilities ready";
-  }
-  if (mode === "ASSETS") {
-    return `${space.assets.activeCount} active assets, ${space.devices.totalCount} devices`;
-  }
-  if (space.occupancyState === "OCCUPIED") {
-    return `${space.occupancy?.occupantCount ?? 0} residents`;
-  }
-  return space.occupancyState.toLowerCase().replaceAll("_", " ");
-}
-
-function shortType(type: BuildingVisualSpaceProjection["type"]) {
-  return {
-    ROOM: "Room",
-    OWNER_HOME: "Owner home",
-    GARAGE: "Garage",
-    ROOFTOP: "Rooftop",
-    COMMON_AREA: "Common area",
-    STORAGE: "Storage",
-    OTHER: "Space",
-  }[type];
 }

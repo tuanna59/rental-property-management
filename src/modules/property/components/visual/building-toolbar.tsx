@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   Box,
   Gauge,
@@ -14,11 +15,11 @@ import type {
   BuildingVisualMode,
 } from "../../domain/types";
 
-const modes: Array<{ value: BuildingVisualMode; label: string; icon: typeof Users }> = [
-  { value: "OCCUPANCY", label: "Occupancy", icon: Users },
-  { value: "MAINTENANCE", label: "Maintenance", icon: Wrench },
-  { value: "UTILITIES", label: "Utilities", icon: Gauge },
-  { value: "ASSETS", label: "Assets", icon: Box },
+const modes: Array<{ value: BuildingVisualMode; key: "occupancy" | "maintenance" | "utilities" | "assets"; icon: typeof Users }> = [
+  { value: "OCCUPANCY", key: "occupancy", icon: Users },
+  { value: "MAINTENANCE", key: "maintenance", icon: Wrench },
+  { value: "UTILITIES", key: "utilities", icon: Gauge },
+  { value: "ASSETS", key: "assets", icon: Box },
 ];
 
 export function BuildingToolbar({
@@ -38,11 +39,13 @@ export function BuildingToolbar({
   onTimeOfDayChange: (time: BuildingTimeOfDay) => void;
   onFloorChange: (floorId: string | null) => void;
 }) {
+  const t = useTranslations("building");
   const ordered = [...floors].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
   return (
-    <div className="building-v2-toolbar" aria-label="Building visual controls">
-      <div className="building-v2-mode-tabs" role="group" aria-label="Building mode">
-        {modes.map(({ value, label, icon: Icon }) => (
+    <div className="building-v2-toolbar" aria-label={t("toolbar.controls")}>
+      <div className="building-v2-mode-tabs" role="group" aria-label={t("toolbar.mode")}>
+        {modes.map(({ value, key, icon: Icon }) => (
           <button
             key={value}
             type="button"
@@ -51,12 +54,12 @@ export function BuildingToolbar({
             onClick={() => onModeChange(value)}
           >
             <Icon aria-hidden="true" />
-            <span>{label}</span>
+            <span>{t(`toolbar.${key}`)}</span>
           </button>
         ))}
       </div>
 
-      <div className="building-v2-time-toggle" role="group" aria-label="Building time of day">
+      <div className="building-v2-time-toggle" role="group" aria-label={t("toolbar.timeOfDay")}>
         <button
           type="button"
           className={timeOfDay === "DAY" ? "is-active" : ""}
@@ -64,7 +67,7 @@ export function BuildingToolbar({
           onClick={() => onTimeOfDayChange("DAY")}
         >
           <Sun aria-hidden="true" />
-          <span>Day</span>
+          <span>{t("toolbar.day")}</span>
         </button>
         <button
           type="button"
@@ -73,17 +76,17 @@ export function BuildingToolbar({
           onClick={() => onTimeOfDayChange("NIGHT")}
         >
           <Moon aria-hidden="true" />
-          <span>Night</span>
+          <span>{t("toolbar.night")}</span>
         </button>
       </div>
 
       <label className="building-v2-floor-select">
-        <span>Floor</span>
+        <span>{t("toolbar.floorSelector")}</span>
         <select
           value={focusedFloorId ?? "all"}
           onChange={(event) => onFloorChange(event.target.value === "all" ? null : event.target.value)}
         >
-          <option value="all">All floors</option>
+          <option value="all">{t("toolbar.allFloors")}</option>
           {ordered.map((floor) => (
             <option key={floor.id} value={floor.id}>{floor.name}</option>
           ))}

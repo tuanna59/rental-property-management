@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { CircleDollarSign, HandCoins, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,63 +18,61 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { emptyActionState } from "@/lib/action-state";
-import { formatDate, formatVnd } from "@/lib/presentation";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale, formatMonthLocale, formatVndLocale } from "@/i18n/format";
 import { depositTransactionAction } from "../actions";
 import type { getDepositOverview } from "../server/deposit.queries";
 import { BillingStatusBadge } from "./billing-status";
-import { monthLabel } from "./invoice-export";
+
 
 type Overview = Awaited<ReturnType<typeof getDepositOverview>>;
 type Deposit = Overview["items"][number];
 type Kind = "RECEIPT" | "DEDUCTION" | "REFUND" | "APPLIED_TO_INVOICE";
 
 export function DepositsDashboard({ overview }: { overview: Overview }) {
+  const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
   const { items, summary } = overview;
   return (
     <div className="utilities-content">
       <header className="utilities-header">
         <div className="utilities-header-copy">
-          <p className="utilities-eyebrow">TENANCY FUNDS</p>
-          <h1>Deposits</h1>
-          <p>
-            Track expected, received, held, and explicitly settled deposits.
-          </p>
+          <p className="utilities-eyebrow">{t("tenancyFunds")}</p>
+          <h1>{t("deposits")}</h1>
+<p>{t("depositsSubtitle")}</p>
         </div>
       </header>
       <section className="summary-grid billing-summary">
         <Card
-          label="Expected"
-          value={formatVnd(summary.expected)}
-          detail={`${items.length} tenancy records`}
+          label={t("expected")}
+          value={formatVndLocale(summary.expected, locale)}
+          detail={t("tenancyRecords", { count: items.length })}
           icon={<CircleDollarSign />}
         />
         <Card
-          label="Received"
-          value={formatVnd(summary.received)}
-          detail="All deposit receipts"
+          label={t("received")}
+          value={formatVndLocale(summary.received, locale)}
+          detail={t("allReceipts")}
           icon={<HandCoins />}
         />
         <Card
-          label="Currently held"
-          value={formatVnd(summary.held)}
-          detail="Available for settlement"
+          label={t("currentlyHeld")}
+          value={formatVndLocale(summary.held, locale)}
+          detail={t("availableSettlement")}
           icon={<WalletCards />}
         />
         <Card
-          label="Needs settlement"
-          value={`${summary.needsSettlement} deposits`}
-          detail="Former tenancies with held funds"
+          label={t("needsSettlement")}
+          value={t("needsSettlementCount", { count: summary.needsSettlement })}
+          detail={t("formerHeld")}
           icon={<HandCoins />}
         />
       </section>
       <section className="utility-section">
         <div className="utility-section-header">
           <div>
-            <h2>Deposit ledger</h2>
-            <p>
-              Deposit funds remain separate from billed and collected rental
-              revenue.
-            </p>
+            <h2>{t("depositLedger")}</h2>
+<p>{t("depositLedgerSubtitle")}</p>
           </div>
         </div>
         {items.length ? (
@@ -81,16 +80,16 @@ export function DepositsDashboard({ overview }: { overview: Overview }) {
             <table className="utility-table">
               <thead>
                 <tr>
-                  <th>Tenant</th>
-                  <th>Room</th>
-                  <th>Expected</th>
-                  <th>Received</th>
-                  <th>Held</th>
-                  <th>Deductions</th>
-                  <th>Applied to invoices</th>
-                  <th>Refunded</th>
-                  <th>Status</th>
-                  <th>Action</th>
+                  <th>{t("tenant")}</th>
+                  <th>{t("room")}</th>
+                  <th>{t("expected")}</th>
+                  <th>{t("received")}</th>
+                  <th>{t("held")}</th>
+                  <th>{t("deductions")}</th>
+                  <th>{t("appliedInvoices")}</th>
+                  <th>{t("refunded")}</th>
+                  <th>{t("status")}</th>
+                  <th>{t("action")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -100,14 +99,14 @@ export function DepositsDashboard({ overview }: { overview: Overview }) {
                       <strong>{deposit.tenantName}</strong>
                     </td>
                     <td>{deposit.room}</td>
-                    <td>{formatVnd(deposit.expected)}</td>
-                    <td>{formatVnd(deposit.received)}</td>
+                    <td>{formatVndLocale(deposit.expected, locale)}</td>
+                    <td>{formatVndLocale(deposit.received, locale)}</td>
                     <td>
-                      <strong>{formatVnd(deposit.held)}</strong>
+                      <strong>{formatVndLocale(deposit.held, locale)}</strong>
                     </td>
-                    <td>{formatVnd(deposit.deductions)}</td>
-                    <td>{formatVnd(deposit.applied)}</td>
-                    <td>{formatVnd(deposit.refunded)}</td>
+                    <td>{formatVndLocale(deposit.deductions, locale)}</td>
+                    <td>{formatVndLocale(deposit.applied, locale)}</td>
+                    <td>{formatVndLocale(deposit.refunded, locale)}</td>
                     <td>
                       <BillingStatusBadge status={deposit.status} />
                     </td>
@@ -121,8 +120,8 @@ export function DepositsDashboard({ overview }: { overview: Overview }) {
           </div>
         ) : (
           <div className="billing-empty">
-            <strong>No deposits</strong>
-            <p>No expected deposits or ledger transactions are available.</p>
+            <strong>{t("noDeposits")}</strong>
+            <p>{t("noDepositsDetail")}</p>
           </div>
         )}
       </section>
@@ -131,12 +130,14 @@ export function DepositsDashboard({ overview }: { overview: Overview }) {
 }
 
 function DepositDetail({ deposit }: { deposit: Deposit }) {
+  const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
   const held = Number(deposit.held);
   return (
     <Dialog>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
-          <WalletCards /> Manage
+          <WalletCards /> {t("manage")}
         </Button>
       </DialogTrigger>
       <DialogContent className="billing-detail-dialog">
@@ -145,53 +146,53 @@ function DepositDetail({ deposit }: { deposit: Deposit }) {
             {deposit.tenantName} · {deposit.room}
           </DialogTitle>
           <DialogDescription>
-            Deposit position, settlement options, and ledger history.
+            {t("depositPosition")}
           </DialogDescription>
         </DialogHeader>
         <div className="deposit-detail-grid deposit-settlement-summary">
-          <Info label="Deposit received" value={formatVnd(deposit.received)} />
+          <Info label={t("depositReceivedLabel")} value={formatVndLocale(deposit.received, locale)} />
           <Info
-            label="Applied to invoices"
-            value={formatVnd(deposit.applied)}
+            label={t("appliedInvoices")}
+            value={formatVndLocale(deposit.applied, locale)}
           />
           <Info
-            label="Direct deductions"
-            value={formatVnd(deposit.deductions)}
+            label={t("directDeductions")}
+            value={formatVndLocale(deposit.deductions, locale)}
           />
-          <Info label="Refunded" value={formatVnd(deposit.refunded)} />
-          <Info label="Remaining held" value={formatVnd(deposit.held)} />
-          <Info label="Status" value={title(deposit.status)} />
+          <Info label={t("refunded")} value={formatVndLocale(deposit.refunded, locale)} />
+          <Info label={t("remainingHeld")} value={formatVndLocale(deposit.held, locale)} />
+          <Info label={t("status")} value={depositStatusLabel(deposit.status, t)} />
         </div>
         <div className="billing-actions">
           <DepositAction
             deposit={deposit}
             kind="RECEIPT"
-            label="Record receipt"
+            label={t("recordReceipt")}
           />
           {held > 0 && (
             <>
               <DepositAction
                 deposit={deposit}
                 kind="DEDUCTION"
-                label="Add deduction"
+                label={t("addDeduction")}
               />
-              <DepositAction deposit={deposit} kind="REFUND" label="Refund" />
+              <DepositAction deposit={deposit} kind="REFUND" label={t("refund")} />
             </>
           )}
           {held > 0 && deposit.invoices.length > 0 && (
             <DepositAction
               deposit={deposit}
               kind="APPLIED_TO_INVOICE"
-              label="Apply to invoice"
+              label={t("applyInvoice")}
             />
           )}
         </div>
         <section className="deposit-history">
           <div className="section-heading-row">
             <div>
-              <h3>Settlement activity</h3>
+              <h3>{t("settlementActivity")}</h3>
               <p className="utility-subtle">
-                Every balance change is represented by a ledger entry.
+                {t("ledgerEntryHelp")}
               </p>
             </div>
           </div>
@@ -200,18 +201,18 @@ function DepositDetail({ deposit }: { deposit: Deposit }) {
               <table className="utility-table">
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Description</th>
-                    <th>Amount</th>
-                    <th>Held after</th>
+                    <th>{t("date")}</th>
+                    <th>{t("type")}</th>
+                    <th>{t("description")}</th>
+                    <th>{t("amount")}</th>
+                    <th>{t("heldAfter")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {deposit.history.map((item) => (
                     <tr key={item.id}>
-                      <td>{formatDate(item.transactionDate)}</td>
-                      <td>{title(item.type)}</td>
+                      <td>{formatDateOnlyLocale(item.transactionDate, locale)}</td>
+                      <td>{depositTransactionLabel(item.type, t)}</td>
                       <td>
                         {item.description}
                         {item.reference && (
@@ -223,7 +224,7 @@ function DepositDetail({ deposit }: { deposit: Deposit }) {
                               className="billing-table-link"
                               href={`/billing/invoices/${item.invoice.id}`}
                             >
-                              View invoice
+                              {t("viewInvoice")}
                             </Link>
                           </div>
                         )}
@@ -236,9 +237,9 @@ function DepositDetail({ deposit }: { deposit: Deposit }) {
                         }
                       >
                         {item.effect.startsWith("+") ? "+" : "−"}
-                        {formatVnd(item.amount)}
+                        {formatVndLocale(item.amount, locale)}
                       </td>
-                      <td>{formatVnd(item.balanceAfter)}</td>
+                      <td>{formatVndLocale(item.balanceAfter, locale)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -246,8 +247,8 @@ function DepositDetail({ deposit }: { deposit: Deposit }) {
             </div>
           ) : (
             <div className="billing-empty">
-              <strong>No deposit history</strong>
-              <p>No deposit transactions have been recorded yet.</p>
+              <strong>{t("noDepositHistory")}</strong>
+              <p>{t("noDepositHistoryDetail")}</p>
             </div>
           )}
         </section>
@@ -265,6 +266,8 @@ function DepositAction({
   kind: Kind;
   label: string;
 }) {
+  const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
   const [state, action] = React.useActionState(
     depositTransactionAction,
     emptyActionState,
@@ -291,10 +294,10 @@ function DepositAction({
         </DialogHeader>
         {kind === "APPLIED_TO_INVOICE" && (
           <div className="payment-dialog-summary">
-            <Info label="Held deposit" value={formatVnd(deposit.held)} />
+            <Info label={t("heldDeposit")} value={formatVndLocale(deposit.held, locale)} />
             <Info
-              label="Invoice balance"
-              value={formatVnd(invoice?.balance ?? "0")}
+              label={t("invoiceBalance")}
+              value={formatVndLocale(invoice?.balance ?? "0", locale)}
             />
           </div>
         )}
@@ -303,7 +306,7 @@ function DepositAction({
           <input type="hidden" name="kind" value={kind} />
           <div className="dialog-grid">
             <div className="field">
-              <Label>Amount</Label>
+              <Label>{t("amount")}</Label>
               <Input
                 name="amount"
                 type="number"
@@ -324,7 +327,7 @@ function DepositAction({
               />
             </div>
             <Field
-              label="Date"
+              label={t("date")}
               name="transactionDate"
               type="date"
               defaultValue={new Date().toISOString().slice(0, 10)}
@@ -333,18 +336,18 @@ function DepositAction({
           </div>
           {kind === "DEDUCTION" && (
             <div className="field">
-              <Label>Category</Label>
+              <Label>{t("category")}</Label>
               <select name="category">
-                <option value="DAMAGE">Damage</option>
-                <option value="CLEANING">Cleaning</option>
-                <option value="OTHER">Other</option>
+                <option value="DAMAGE">{t("damage")}</option>
+                <option value="CLEANING">{t("cleaning")}</option>
+                <option value="OTHER">{t("other")}</option>
               </select>
             </div>
           )}
           {kind === "APPLIED_TO_INVOICE" && (
             <>
               <div className="field">
-                <Label>Outstanding invoice</Label>
+                <Label>{t("outstandingInvoice")}</Label>
                 <select
                   name="invoiceId"
                   value={invoiceId}
@@ -353,36 +356,37 @@ function DepositAction({
                 >
                   {deposit.invoices.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.room} · {monthLabel(item.billingPeriod)} · balance{" "}
-                      {formatVnd(item.balance)}
+                      {item.room} · {formatMonthLocale(item.billingPeriod, locale)} · {t("balance")} {formatVndLocale(item.balance, locale)}
                     </option>
                   ))}
                 </select>
               </div>
               <div className="resulting-balances">
                 <Info
-                  label="Invoice balance after"
-                  value={formatVnd(
+                  label={t("invoiceBalanceAfter")}
+                  value={formatVndLocale(
                     String(
                       Math.max(
                         0,
                         Number(invoice?.balance ?? 0) - numericAmount,
                       ),
                     ),
+                    locale,
                   )}
                 />
                 <Info
-                  label="Deposit held after"
-                  value={formatVnd(
+                  label={t("depositHeldAfter")}
+                  value={formatVndLocale(
                     String(Math.max(0, Number(deposit.held) - numericAmount)),
+                    locale,
                   )}
                 />
               </div>
             </>
           )}
-          <Field label="Reference" name="reference" />
+          <Field label={t("reference")} name="reference" />
           <div className="field">
-            <Label>Notes</Label>
+            <Label>{t("notes")}</Label>
             <Textarea name="notes" />
           </div>
           {state.message && (
@@ -439,9 +443,11 @@ function Info({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-function title(value: string) {
-  return value
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replace(/^./, (character) => character.toUpperCase());
+function depositStatusLabel(value: string, t: ReturnType<typeof useTranslations<"billing">>) {
+  if (value === "HELD") return t("held");
+  if (value === "NEEDS_SETTLEMENT") return t("needsSettlement");
+  return value.toLowerCase().replaceAll("_", " ");
+}
+function depositTransactionLabel(value: string, t: ReturnType<typeof useTranslations<"billing">>) {
+  return ({ RECEIPT: t("recordReceipt"), DEDUCTION: t("deductions"), REFUND: t("refund"), APPLIED_TO_INVOICE: t("appliedInvoices") } as Record<string,string>)[value] ?? value;
 }

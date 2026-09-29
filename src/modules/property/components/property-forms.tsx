@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { useFormStatus } from "react-dom";
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from "lucide-react";
 
@@ -40,12 +41,12 @@ import {
   updateSpaceAction,
 } from "../actions";
 import {
-  SPACE_TYPE_LABELS,
   SPACE_TYPE_OPTIONS,
   type DashboardFloor,
   type DashboardSpace,
   type PropertyShellProjection,
 } from "../domain/types";
+import { SPACE_TYPE_KEYS } from "./visual/building-copy";
 
 type ServerAction = (
   state: ActionState,
@@ -59,20 +60,21 @@ export function FloorActions({
   floor: DashboardFloor;
   propertyId: string;
 }) {
+  const t = useTranslations("building");
   return (
     <div className="floor-actions">
       <FloorReorderButton
         propertyId={propertyId}
         floorId={floor.id}
         direction="down"
-        label="Move floor higher"
+        label={t("forms.moveFloorHigher")}
         icon={<ArrowUp />}
       />
       <FloorReorderButton
         propertyId={propertyId}
         floorId={floor.id}
         direction="up"
-        label="Move floor lower"
+        label={t("forms.moveFloorLower")}
         icon={<ArrowDown />}
       />
       <FloorFormDialog
@@ -80,9 +82,9 @@ export function FloorActions({
         floor={floor}
         propertyId={propertyId}
         trigger={
-          <Button variant="ghost" size="icon" title="Edit floor">
+          <Button variant="ghost" size="icon" title={t("forms.editFloor")}>
             <Pencil />
-            <span className="sr-only">Edit floor</span>
+            <span className="sr-only">{t("forms.editFloor")}</span>
           </Button>
         }
       />
@@ -92,7 +94,7 @@ export function FloorActions({
         trigger={
           <Button variant="secondary" size="sm">
             <Plus />
-            Add space
+            {t("forms.addSpace")}
           </Button>
         }
       />
@@ -100,8 +102,8 @@ export function FloorActions({
         entityName={floor.name}
         description={
           floor.spaces.length > 0
-            ? "This floor still has active spaces, so it cannot be archived or deleted yet."
-            : "Archive keeps history. Delete removes this empty floor."
+            ? t("forms.floorHasSpaces")
+            : t("forms.emptyFloorArchive")
         }
         disabled={floor.spaces.length > 0}
         archiveAction={archiveFloorAction}
@@ -121,6 +123,7 @@ export function PropertyFormDialog({
   property: PropertyShellProjection;
   trigger?: React.ReactNode;
 }) {
+  const t = useTranslations("building");
   const [open, setOpen] = React.useState(false);
   const [state, formAction] = React.useActionState(
     async (previous: ActionState, data: FormData) => {
@@ -153,7 +156,7 @@ export function PropertyFormDialog({
           <Field
             id="property-name"
             name="name"
-            label="Name"
+            label={t("forms.name")}
             defaultValue={property.name}
             error={state.fieldErrors?.name?.[0]}
           />
@@ -208,6 +211,7 @@ export function FloorFormDialog({
   floor?: DashboardFloor;
   trigger: React.ReactNode;
 }) {
+  const t = useTranslations("building");
   const action = mode === "create" ? createFloorAction : updateFloorAction;
   const [open, setOpen] = React.useState(false);
   const [state, formAction] = React.useActionState(
@@ -225,10 +229,10 @@ export function FloorFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {mode === "create" ? "Add floor" : "Edit floor"}
+            {mode === "create" ? t("forms.addFloor") : t("forms.editFloor")}
           </DialogTitle>
           <DialogDescription>
-            Floors are ordered independently for each property.
+            {t("forms.floorOrdering")}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={formAction} className="grid gap-4">
@@ -240,14 +244,14 @@ export function FloorFormDialog({
           <Field
             id={`${mode}-floor-name-${floor?.id ?? "new"}`}
             name="name"
-            label="Name"
+            label={t("forms.name")}
             defaultValue={floor?.name ?? ""}
             error={state.fieldErrors?.name?.[0]}
           />
           <Field
             id={`${mode}-floor-level-${floor?.id ?? "new"}`}
             name="level"
-            label="Level"
+            label={t("forms.level")}
             type="number"
             defaultValue={floor?.level ?? ""}
             error={state.fieldErrors?.level?.[0]}
@@ -255,14 +259,14 @@ export function FloorFormDialog({
           <TextAreaField
             id={`${mode}-floor-notes-${floor?.id ?? "new"}`}
             name="notes"
-            label="Notes"
+            label={t("forms.notes")}
             defaultValue={floor?.notes ?? ""}
             error={state.fieldErrors?.notes?.[0]}
           />
           <FormStatus state={state} />
           <DialogFooter>
             <SubmitButton>
-              {mode === "create" ? "Add floor" : "Save floor"}
+              {mode === "create" ? t("forms.addFloor") : t("forms.saveFloor")}
             </SubmitButton>
           </DialogFooter>
         </PreservingActionForm>
@@ -282,6 +286,7 @@ export function SpaceFormDialog({
   space?: DashboardSpace;
   trigger: React.ReactNode;
 }) {
+  const t = useTranslations("building");
   const action = mode === "create" ? createSpaceAction : updateSpaceAction;
   const [open, setOpen] = React.useState(false);
   const [state, formAction] = React.useActionState(
@@ -299,7 +304,7 @@ export function SpaceFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {mode === "create" ? "Add space" : "Edit space"}
+            {mode === "create" ? t("forms.addSpace") : t("forms.editSpace")}
           </DialogTitle>
           <DialogDescription>{floor.name}</DialogDescription>
         </DialogHeader>
@@ -312,13 +317,13 @@ export function SpaceFormDialog({
           <Field
             id={`${mode}-space-name-${space?.id ?? floor.id}`}
             name="name"
-            label="Name or identifier"
+            label={t("forms.nameOrIdentifier")}
             defaultValue={space?.name ?? ""}
             error={state.fieldErrors?.name?.[0]}
           />
           <div className="grid gap-2">
             <Label htmlFor={`${mode}-space-type-${space?.id ?? floor.id}`}>
-              Type
+              {t("forms.type")}
             </Label>
             <Select name="type" defaultValue={space?.type ?? "ROOM"}>
               <SelectTrigger id={`${mode}-space-type-${space?.id ?? floor.id}`}>
@@ -327,7 +332,7 @@ export function SpaceFormDialog({
               <SelectContent>
                 {SPACE_TYPE_OPTIONS.map((type) => (
                   <SelectItem key={type} value={type}>
-                    {SPACE_TYPE_LABELS[type]}
+                    {t(`spaceTypes.${SPACE_TYPE_KEYS[type]}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -341,14 +346,14 @@ export function SpaceFormDialog({
           <TextAreaField
             id={`${mode}-space-notes-${space?.id ?? floor.id}`}
             name="notes"
-            label="Notes"
+            label={t("forms.notes")}
             defaultValue={space?.notes ?? ""}
             error={state.fieldErrors?.notes?.[0]}
           />
           <FormStatus state={state} />
           <DialogFooter>
             <SubmitButton>
-              {mode === "create" ? "Add space" : "Save space"}
+              {mode === "create" ? t("forms.addSpace") : t("forms.saveSpace")}
             </SubmitButton>
           </DialogFooter>
         </PreservingActionForm>
@@ -446,6 +451,8 @@ export function ArchiveOrDeleteDialog({
   deleteHidden: Record<string, string>;
   canDelete: boolean;
 }) {
+  const t = useTranslations("building");
+  const tCommon = useTranslations("common");
   const [archiveState, archiveFormAction] = React.useActionState(
     archiveAction,
     emptyActionState,
@@ -461,16 +468,16 @@ export function ArchiveOrDeleteDialog({
         <Button
           variant="outline"
           size="icon"
-          title="Archive or delete"
+          title={t("forms.archiveOrDelete")}
           disabled={disabled}
         >
           <Trash2 />
-          <span className="sr-only">Archive or delete</span>
+          <span className="sr-only">{t("forms.archiveOrDelete")}</span>
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Archive or delete {entityName}</DialogTitle>
+          <DialogTitle>{t("forms.archiveOrDeleteEntity", { entity: entityName })}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
@@ -479,7 +486,7 @@ export function ArchiveOrDeleteDialog({
               <input key={name} type="hidden" name={name} value={value} />
             ))}
             <Button variant="outline" className="w-full" disabled={disabled}>
-              Archive
+              {tCommon("archive")}
             </Button>
             <FormStatus state={archiveState} />
           </form>
@@ -489,7 +496,7 @@ export function ArchiveOrDeleteDialog({
                 <input key={name} type="hidden" name={name} value={value} />
               ))}
               <Button variant="danger" className="w-full">
-                Delete
+                {tCommon("delete")}
               </Button>
               <FormStatus state={deleteState} />
             </form>
@@ -554,11 +561,12 @@ function FormStatus({ state }: { state: ActionState }) {
 }
 
 function SubmitButton({ children }: { children: React.ReactNode }) {
+  const t = useTranslations("building");
   const { pending } = useFormStatus();
 
   return (
     <Button type="submit" disabled={pending}>
-      {pending ? "Saving..." : children}
+      {pending ? t("forms.saving") : children}
     </Button>
   );
 }

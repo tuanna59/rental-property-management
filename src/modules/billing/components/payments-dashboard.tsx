@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import {
   Banknote,
@@ -22,7 +23,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { emptyActionState } from "@/lib/action-state";
-import { formatDate, formatVnd } from "@/lib/presentation";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale, formatMonthLocale, formatVndLocale } from "@/i18n/format";
 import { MonthSelector } from "@/modules/utilities/components/utility-ui";
 import { updatePaymentAction } from "../actions";
 import type {
@@ -30,7 +32,7 @@ import type {
   getPayments,
 } from "../server/payment.queries";
 import { BillingStatusBadge } from "./billing-status";
-import { monthLabel } from "./invoice-export";
+
 
 type Payments = Awaited<ReturnType<typeof getPayments>>;
 type Summary = Awaited<ReturnType<typeof getFinancialSummary>>;
@@ -44,6 +46,8 @@ export function PaymentsDashboard({
   summary: Summary;
   month: string;
 }) {
+  const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
   const [search, setSearch] = React.useState("");
   const [method, setMethod] = React.useState("ALL");
   const [source, setSource] = React.useState("ALL");
@@ -61,46 +65,43 @@ export function PaymentsDashboard({
     <div className="utilities-content">
       <header className="utilities-header">
         <div className="utilities-header-copy">
-          <p className="utilities-eyebrow">COLLECTIONS</p>
-          <h1>Payments</h1>
-          <p>
-            See when revenue was billed, when cash arrived, and what remains
-            outstanding.
-          </p>
+          <p className="utilities-eyebrow">{t("collections")}</p>
+          <h1>{t("payments")}</h1>
+<p>{t("paymentsSubtitle")}</p>
         </div>
         <MonthSelector month={month} />
       </header>
       <section className="summary-grid billing-summary">
         <Card
-          label="Billed revenue"
-          value={formatVnd(summary.billed)}
-          detail="Invoice billing period"
+          label={t("billedRevenue")}
+          value={formatVndLocale(summary.billed, locale)}
+          detail={t("invoiceBillingPeriod")}
           icon={<CircleDollarSign />}
         />
         <Card
-          label="Cash collected"
-          value={formatVnd(summary.collected)}
-          detail="Payment date · excludes deposits"
+          label={t("cashCollected")}
+          value={formatVndLocale(summary.collected, locale)}
+          detail={t("paymentDateExcludesDeposits")}
           icon={<Banknote />}
         />
         <Card
-          label="Outstanding"
-          value={formatVnd(summary.outstanding)}
-          detail="Finalized invoice balance"
+          label={t("outstanding")}
+          value={formatVndLocale(summary.outstanding, locale)}
+          detail={t("finalizedBalance")}
           icon={<WalletCards />}
         />
         <Card
-          label="Open invoices"
-          value={`${summary.partial + summary.unpaid} open`}
-          detail={`${summary.partial} partial · ${summary.unpaid} unpaid`}
+          label={t("openInvoices")}
+          value={t("openInvoicesCount", { count: summary.partial + summary.unpaid })}
+          detail={t("partialUnpaid", { partial: summary.partial, unpaid: summary.unpaid })}
           icon={<CircleDollarSign />}
         />
       </section>
       <section className="utility-section">
         <div className="utility-section-header">
           <div>
-            <h2>Outstanding invoices</h2>
-            <p>Finalized invoices that still have a balance.</p>
+            <h2>{t("outstandingInvoices")}</h2>
+            <p>{t("outstandingSubtitle")}</p>
           </div>
         </div>
         {summary.outstandingInvoices.length ? (
@@ -108,12 +109,12 @@ export function PaymentsDashboard({
             <table className="utility-table">
               <thead>
                 <tr>
-                  <th>Tenant</th>
-                  <th>Room</th>
-                  <th>Invoice / Month</th>
-                  <th>Balance</th>
-                  <th>Status</th>
-                  <th>Action</th>
+                  <th>{t("tenant")}</th>
+                  <th>{t("room")}</th>
+                  <th>{t("invoiceMonth")}</th>
+                  <th>{t("balance")}</th>
+                  <th>{t("status")}</th>
+                  <th>{t("action")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -125,11 +126,11 @@ export function PaymentsDashboard({
                     <td>{invoice.room}</td>
                     <td>
                       {invoice.invoiceType === "FINAL_SETTLEMENT"
-                        ? "Final settlement"
-                        : monthLabel(invoice.billingPeriod)}
+                        ? t("finalSettlement")
+                        : formatMonthLocale(invoice.billingPeriod, locale)}
                     </td>
                     <td>
-                      <strong>{formatVnd(invoice.balance)}</strong>
+                      <strong>{formatVndLocale(invoice.balance, locale)}</strong>
                     </td>
                     <td>
                       <BillingStatusBadge status={invoice.paymentStatus} />
@@ -137,7 +138,7 @@ export function PaymentsDashboard({
                     <td>
                       <Button asChild size="sm" variant="outline">
                         <Link href={`/billing/invoices/${invoice.id}`}>
-                          View invoice
+                          {t("viewInvoice")}
                         </Link>
                       </Button>
                     </td>
@@ -148,29 +149,21 @@ export function PaymentsDashboard({
           </div>
         ) : (
           <div className="billing-empty">
-            <strong>No outstanding invoices</strong>
-            <p>All finalized invoices are fully settled.</p>
+            <strong>{t("noOutstandingInvoices")}</strong>
+            <p>{t("allSettled")}</p>
           </div>
         )}
       </section>
       <section className="utility-section">
         <div className="utility-section-header">
           <div>
-            <h2>Payment activity</h2>
-            <p>
-              Transactions recorded during{" "}
-              {new Intl.DateTimeFormat("en", {
-                month: "long",
-                year: "numeric",
-                timeZone: "UTC",
-              }).format(new Date(`${month}-01T00:00:00Z`))}
-              .
-            </p>
+            <h2>{t("paymentActivity")}</h2>
+<p>{t("paymentActivityDuring", { month: formatMonthLocale(`${month}-01`, locale) })}</p>
           </div>
           {summary.unpaid + summary.partial > 0 && (
             <Button asChild variant="outline">
               <Link href={`/billing/invoices?month=${month}`}>
-                View unpaid invoices
+                {t("viewUnpaidInvoices")}
               </Link>
             </Button>
           )}
@@ -181,27 +174,27 @@ export function PaymentsDashboard({
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search tenant, room, invoice, reference"
+              placeholder={t("searchPayments")}
             />
           </label>
           <select
-            aria-label="Payment method"
+            aria-label={t("paymentMethod")}
             value={method}
             onChange={(event) => setMethod(event.target.value)}
           >
-            <option value="ALL">All methods</option>
-            <option value="CASH">Cash</option>
-            <option value="BANK_TRANSFER">Bank transfer</option>
-            <option value="OTHER">Other</option>
+            <option value="ALL">{t("allMethods")}</option>
+            <option value="CASH">{t("cash")}</option>
+            <option value="BANK_TRANSFER">{t("bankTransfer")}</option>
+            <option value="OTHER">{t("other")}</option>
           </select>
           <select
-            aria-label="Payment source"
+            aria-label={t("paymentSource")}
             value={source}
             onChange={(event) => setSource(event.target.value)}
           >
-            <option value="ALL">All sources</option>
-            <option value="PAYMENT">Direct payment</option>
-            <option value="DEPOSIT">Tenant deposit</option>
+            <option value="ALL">{t("allSources")}</option>
+            <option value="PAYMENT">{t("directPayment")}</option>
+            <option value="DEPOSIT">{t("tenantDeposit")}</option>
           </select>
         </div>
         {filtered.length ? (
@@ -209,18 +202,18 @@ export function PaymentsDashboard({
             <table className="utility-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Tenant</th>
-                  <th>Invoice</th>
-                  <th>Source</th>
-                  <th>Amount</th>
-                  <th>Action</th>
+                  <th>{t("date")}</th>
+                  <th>{t("tenant")}</th>
+                  <th>{t("invoice")}</th>
+                  <th>{t("source")}</th>
+                  <th>{t("amount")}</th>
+                  <th>{t("action")}</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((payment) => (
                   <tr key={payment.id}>
-                    <td>{formatDate(payment.paymentDate)}</td>
+                    <td>{formatDateOnlyLocale(payment.paymentDate, locale)}</td>
                     <td>
                       <Link className="billing-table-link" href="/tenants">
                         {payment.renterName}
@@ -237,23 +230,23 @@ export function PaymentsDashboard({
                         <span className="utility-subtle">
                           {payment.room} ·{" "}
                           {payment.invoiceType === "FINAL_SETTLEMENT"
-                            ? "Final settlement"
-                            : monthLabel(payment.billingPeriod)}
+                            ? t("finalSettlement")
+                            : formatMonthLocale(payment.billingPeriod, locale)}
                         </span>
                       </div>
                     </td>
                     <td>
                       {payment.isDepositApplication
-                        ? "Tenant deposit"
-                        : title(payment.method)}
+                        ? t("tenantDeposit")
+                        : paymentMethodLabel(payment.method, t)}
                     </td>
                     <td>
-                      <strong>{formatVnd(payment.amount)}</strong>
+                      <strong>{formatVndLocale(payment.amount, locale)}</strong>
                     </td>
                     <td>
                       {payment.isDepositApplication ? (
                         <Button asChild size="sm" variant="ghost">
-                          <Link href="/billing/deposits">View deposit</Link>
+                          <Link href="/billing/deposits">{t("viewDeposit")}</Link>
                         </Button>
                       ) : (
                         <EditPayment payment={payment} />
@@ -266,8 +259,8 @@ export function PaymentsDashboard({
           </div>
         ) : (
           <div className="billing-empty">
-            <strong>No payments</strong>
-            <p>No payments recorded for this month or filter.</p>
+            <strong>{t("noPayments")}</strong>
+            <p>{t("noPaymentsFilter")}</p>
           </div>
         )}
       </section>
@@ -276,6 +269,8 @@ export function PaymentsDashboard({
 }
 
 function EditPayment({ payment }: { payment: Payments[number] }) {
+  const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
   const [state, action] = React.useActionState(
     updatePaymentAction,
     emptyActionState,
@@ -284,26 +279,26 @@ function EditPayment({ payment }: { payment: Payments[number] }) {
     <Dialog>
       <DialogTrigger asChild>
         <Button size="sm" variant="ghost">
-          <Pencil /> Edit
+          <Pencil /> {t("edit")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit payment</DialogTitle>
+          <DialogTitle>{t("editPayment")}</DialogTitle>
           <DialogDescription>
             {payment.invoiceLabel} · {payment.room} · {payment.renterName}
           </DialogDescription>
         </DialogHeader>
         <div className="payment-dialog-summary">
-          <Info label="Invoice total" value={formatVnd(payment.invoiceTotal)} />
-          <Info label="Total paid" value={formatVnd(payment.totalPaid)} />
-          <Info label="Balance" value={formatVnd(payment.balance)} />
+          <Info label={t("invoiceTotal")} value={formatVndLocale(payment.invoiceTotal, locale)} />
+          <Info label={t("totalPaid")} value={formatVndLocale(payment.totalPaid, locale)} />
+          <Info label={t("balance")} value={formatVndLocale(payment.balance, locale)} />
         </div>
         <PreservingActionForm action={action} className="dialog-form">
           <input type="hidden" name="paymentId" value={payment.id} />
           <div className="dialog-grid">
             <Field
-              label="Amount"
+              label={t("amount")}
               name="amount"
               type="number"
               step="1"
@@ -311,7 +306,7 @@ function EditPayment({ payment }: { payment: Payments[number] }) {
               required
             />
             <Field
-              label="Payment date"
+              label={t("paymentDate")}
               name="paymentDate"
               type="date"
               defaultValue={payment.paymentDate.toISOString().slice(0, 10)}
@@ -319,20 +314,20 @@ function EditPayment({ payment }: { payment: Payments[number] }) {
             />
           </div>
           <div className="field">
-            <Label>Method</Label>
+            <Label>{t("method")}</Label>
             <select name="method" defaultValue={payment.method}>
-              <option value="CASH">Cash</option>
-              <option value="BANK_TRANSFER">Bank transfer</option>
-              <option value="OTHER">Other</option>
+              <option value="CASH">{t("cash")}</option>
+              <option value="BANK_TRANSFER">{t("bankTransfer")}</option>
+              <option value="OTHER">{t("other")}</option>
             </select>
           </div>
           <Field
-            label="Reference"
+            label={t("reference")}
             name="reference"
             defaultValue={payment.reference ?? ""}
           />
           <Field
-            label="Notes"
+            label={t("notes")}
             name="notes"
             defaultValue={payment.notes ?? ""}
           />
@@ -341,7 +336,7 @@ function EditPayment({ payment }: { payment: Payments[number] }) {
               {state.message}
             </p>
           )}
-          <Button type="submit">Save payment</Button>
+          <Button type="submit">{t("savePayment")}</Button>
         </PreservingActionForm>
       </DialogContent>
     </Dialog>
@@ -389,9 +384,8 @@ function Info({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-function title(value: string) {
-  return value
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replace(/^./, (character) => character.toUpperCase());
+function paymentMethodLabel(value: string, t: ReturnType<typeof useTranslations<"billing">>) {
+  if (value === "CASH") return t("cash");
+  if (value === "BANK_TRANSFER") return t("bankTransfer");
+  return t("other");
 }

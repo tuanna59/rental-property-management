@@ -1,6 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { useLocale, useTranslations } from "next-intl";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale, formatMonthShortLocale, formatNumberLocale } from "@/i18n/format";
 import { ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PrivateAttachmentPicker } from "@/components/ui/private-attachment";
@@ -12,19 +15,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { formatDate } from "@/lib/presentation";
 import { emptyActionState } from "@/lib/action-state";
 import { appendMeterReadingPhotoAction } from "../actions";
 import { EditMeterReadingDialog } from "./edit-meter-reading-dialog";
-
-const labels = {
-  MONTHLY: "Legacy monthly reading",
-  MOVE_IN: "Move-in",
-  MOVE_OUT: "Move-out",
-  MANUAL: "Manual reading",
-  METER_INSTALL: "Meter installed",
-  METER_REMOVAL: "Meter removed",
-} as const;
 
 type History = Awaited<
   ReturnType<typeof import("../server/utility.queries").getSpaceMeterHistory>
@@ -39,8 +32,10 @@ export function MeterHistory({
   history: History;
   readOnly?: boolean;
 }) {
+  const t = useTranslations("utilities");
+  const locale = useLocale() as AppLocale;
   if (!history.length) {
-    return <p className="meter-details-empty">No meter readings yet.</p>;
+    return <p className="meter-details-empty">{t("noMeterReadings")}</p>;
   }
 
   return (
@@ -60,7 +55,7 @@ export function MeterHistory({
           <React.Fragment key={meter.id}>
             {replacementDate && (
               <div className="meter-replacement-divider">
-                Meter replaced · {formatDate(replacementDate)}
+                {t("meterReplaced", { date: formatDateOnlyLocale(replacementDate, locale) })}
               </div>
             )}
             {retired ? (
@@ -84,20 +79,22 @@ function MeterHistoryCard({
   retired: boolean;
   readOnly: boolean;
 }) {
+  const t = useTranslations("utilities");
+  const locale = useLocale() as AppLocale;
   const heading = (
     <div className="meter-history-heading">
       <div>
-        <h3>{meter.meterNumber || "Unnumbered meter"}</h3>
+        <h3>{meter.meterNumber || t("unnumberedMeter")}</h3>
         <p className="utility-subtle">
           {retired
-            ? `${formatDate(meter.installedAt)} → ${formatDate(meter.removedAt!)}`
-            : `Installed ${formatDate(meter.installedAt)}`}
+            ? `${formatDateOnlyLocale(meter.installedAt, locale)} → ${formatDateOnlyLocale(meter.removedAt!, locale)}`
+            : t("installed", { date: formatDateOnlyLocale(meter.installedAt, locale) })}
         </p>
       </div>
       <span
         className={`utility-status ${retired ? "is-estimated" : "is-complete"}`}
       >
-        {retired ? "Retired" : "Active"}
+        {retired ? t("retired") : t("active")}
       </span>
     </div>
   );
@@ -109,29 +106,29 @@ function MeterHistoryCard({
         <table className="utility-table meter-history-table">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Reading</th>
-              <th>Type</th>
-              <th>Role</th>
-              <th>Evidence</th>
-              <th>Action</th>
+              <th>{t("date")}</th>
+              <th>{t("reading")}</th>
+              <th>{t("type")}</th>
+              <th>{t("role")}</th>
+              <th>{t("evidence")}</th>
+              <th>{t("action")}</th>
             </tr>
           </thead>
           <tbody>
             {meter.readings.map((reading) => (
               <tr key={reading.id}>
-                <td>{formatDate(reading.readingDate)}</td>
+                <td>{formatDateOnlyLocale(reading.readingDate, locale)}</td>
                 <td>
                   <strong>
-                    {Number(reading.readingValue).toLocaleString()} kWh
+                    {formatNumberLocale(reading.readingValue, locale)} kWh
                   </strong>
                 </td>
-                <td>{labels[reading.readingType]}</td>
+                <td>{readingTypeLabel(reading.readingType, t)}</td>
                 <td>
                   <div className="meter-reading-role">
-                    <span>{readingRole(reading)}</span>
+                    <span>{readingRole(reading, locale, t)}</span>
                     {reading.isLocked && (
-                      <span className="utility-status is-incomplete">Locked</span>
+                      <span className="utility-status is-incomplete">{t("locked")}</span>
                     )}
                   </div>
                 </td>
@@ -151,7 +148,7 @@ function MeterHistoryCard({
                     />
                   ) : (
                     <Button type="button" size="sm" variant="ghost" disabled>
-                      View
+                      {t("view")}
                     </Button>
                   )}
                 </td>
@@ -164,18 +161,26 @@ function MeterHistoryCard({
   );
 }
 
-function readingRole(reading: Reading) {
+function readingTypeLabel(readingType: Reading["readingType"], t: ReturnType<typeof useTranslations>) {
+  return {
+    MONTHLY: t("legacyMonthlyReading"),
+    MOVE_IN: t("moveIn"),
+    MOVE_OUT: t("moveOut"),
+    MANUAL: t("manualReading"),
+    METER_INSTALL: t("meterInstalled"),
+    METER_REMOVAL: t("meterRemoved"),
+  }[readingType];
+}
+
+function readingRole(reading: Reading, locale: AppLocale, t: ReturnType<typeof useTranslations>) {
   if (reading.isClosing && reading.billingMonth) {
-    return `${monthName(reading.billingMonth)} closing`;
+    return t("closingForMonth", { month: formatMonthShortLocale(reading.billingMonth, locale) });
   }
   if (reading.readingType === "MOVE_IN" || reading.readingType === "MOVE_OUT") {
-    return "Tenant boundary";
+    return t("tenantBoundary");
   }
-  if (
-    reading.readingType === "METER_INSTALL" ||
-    reading.readingType === "METER_REMOVAL"
-  ) {
-    return "Meter lifecycle event";
+  if (reading.readingType === "METER_INSTALL" || reading.readingType === "METER_REMOVAL") {
+    return t("lifecycleEvent");
   }
   return "—";
 }
@@ -191,6 +196,7 @@ function PhotoDialog({
   count: number;
   readOnly?: boolean;
 }) {
+  const t = useTranslations("utilities");
   const [open, setOpen] = React.useState(false);
   const [photoIndex, setPhotoIndex] = React.useState(0);
   const [state, action] = React.useActionState(
@@ -215,15 +221,15 @@ function PhotoDialog({
         >
           <ImageIcon />{" "}
           {count
-            ? `${count} photo${count === 1 ? "" : "s"}`
+            ? t("photos", { count })
             : readOnly
-              ? "No photo"
-              : "Add photo"}
+              ? t("noPhotoShort")
+              : t("addPhoto")}
         </Button>
       </DialogTrigger>
       <DialogContent className="media-preview-dialog">
         <DialogHeader>
-          <DialogTitle>Meter reading evidence</DialogTitle>
+          <DialogTitle>{t("meterReadingEvidence")}</DialogTitle>
         </DialogHeader>
         {count > 0 && (
           <div className="meter-evidence-gallery">
@@ -231,16 +237,16 @@ function PhotoDialog({
               <img
                 key={currentIndex}
                 src={`/api/meters/${meterId}/media/${readingId}?index=${currentIndex}`}
-                alt={`Meter reading evidence ${currentIndex + 1} of ${count}`}
+                alt={t("evidenceAlt", { current: currentIndex + 1, count })}
               />
             </div>
             {count > 1 && (
-              <div className="meter-evidence-nav" aria-label="Evidence photo navigation">
+              <div className="meter-evidence-nav" aria-label={t("evidencePhotoNavigation")}>
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
-                  aria-label="Previous evidence photo"
+                  aria-label={t("previousEvidence")}
                   disabled={currentIndex === 0}
                   onClick={() => setPhotoIndex((value) => Math.max(0, value - 1))}
                 >
@@ -251,7 +257,7 @@ function PhotoDialog({
                   type="button"
                   size="sm"
                   variant="outline"
-                  aria-label="Next evidence photo"
+                  aria-label={t("nextEvidence")}
                   disabled={currentIndex >= count - 1}
                   onClick={() =>
                     setPhotoIndex((value) => Math.min(count - 1, value + 1))
@@ -270,9 +276,9 @@ function PhotoDialog({
               name="photo"
               accept="image/jpeg,image/png,image/webp"
               required
-              title="Evidence photo"
-              emptyText="No photo selected"
-              actionLabel="Choose photo"
+              title={t("evidencePhoto")}
+              emptyText={t("noPhoto")}
+              actionLabel={t("choosePhoto")}
               kind="image"
             />
             {state.message && (
@@ -280,7 +286,7 @@ function PhotoDialog({
                 {state.message}
               </p>
             )}
-            <Button type="submit">Add evidence photo</Button>
+            <Button type="submit">{t("addEvidencePhoto")}</Button>
           </PreservingActionForm>
         )}
       </DialogContent>
@@ -288,10 +294,3 @@ function PhotoDialog({
   );
 }
 
-function monthName(value: Date) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(value);
-}

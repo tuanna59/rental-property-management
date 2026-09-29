@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   ArrowRightLeft,
   LogIn,
@@ -58,6 +59,7 @@ export function MoveInDialog({
   space: DashboardSpace;
   people: DashboardPersonOption[];
 }) {
+  const t = useTranslations("tenants");
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [responsible, setResponsible] = React.useState("__new");
@@ -77,21 +79,21 @@ export function MoveInDialog({
       <DialogTrigger asChild>
         <Button className="w-full">
           <LogIn />
-          Move in
+          {t("moveIn")}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Move into {space.name}</DialogTitle>
+          <DialogTitle>{t("moveInto", { space: space.name })}</DialogTitle>
           <DialogDescription>
-            Select one responsible renter and any additional occupants.
+            {t("moveInDescription")}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="tenancy-form">
           <input type="hidden" name="spaceId" value={space.id} />
           <div className="grid gap-2">
             <Label htmlFor={`responsible-${space.id}`}>
-              Responsible renter
+              {t("responsibleRenter")}
             </Label>
             <select
               id={`responsible-${space.id}`}
@@ -104,15 +106,15 @@ export function MoveInDialog({
                   {person.fullName}
                 </option>
               ))}
-              <option value="__new">Create a new person</option>
+              <option value="__new">{t("createNewPerson")}</option>
             </select>
           </div>
           {responsible === "__new" && (
             <div className="new-person-fields">
-              <Field label="Full name" name="newPersonName" required />
-              <Field label="Phone" name="newPersonPhone" />
+              <Field label={t("fullName")} name="newPersonName" required />
+              <Field label={t("phone")} name="newPersonPhone" />
               <Field
-                label="Citizen ID"
+                label={t("citizenId")}
                 name="newPersonCitizenId"
                 autoComplete="off"
               />
@@ -120,28 +122,28 @@ export function MoveInDialog({
           )}
           <div className="grid gap-3 sm:grid-cols-2">
             <Field
-              label="Move-in date"
+              label={t("moveInDate")}
               name="moveInDate"
               type="date"
               defaultValue={today()}
               required
             />
-            <Field label="Planned move-out" name="moveOutDate" type="date" />
+            <Field label={t("plannedMoveOut")} name="moveOutDate" type="date" />
             <Field
-              label="Monthly rent (VND)"
+              label={t("monthlyRentVnd")}
               name="monthlyRentVnd"
               inputMode="numeric"
               required
             />
             <Field
-              label="Deposit (VND)"
+              label={t("depositVnd")}
               name="depositVnd"
               inputMode="numeric"
             />
           </div>
           {people.length > 1 && (
             <fieldset className="occupant-picker">
-              <legend>Additional occupants</legend>
+              <legend>{t("additionalOccupants")}</legend>
               {people
                 .filter((person) => person.id !== responsible)
                 .map((person) => (
@@ -157,20 +159,19 @@ export function MoveInDialog({
             </fieldset>
           )}
           <div className="grid gap-2">
-            <Label htmlFor={`move-in-notes-${space.id}`}>Notes</Label>
+            <Label htmlFor={`move-in-notes-${space.id}`}>{t("notes")}</Label>
             <Textarea id={`move-in-notes-${space.id}`} name="moveInNotes" />
           </div>
           <fieldset className="rounded-md border border-[var(--app-border)] p-3">
             <legend className="px-1 text-sm font-medium">
-              Electricity meter
+              {t("electricityMeter")}
             </legend>
             <p className="mb-3 text-xs text-[var(--app-text-secondary)]">
-              Optional boundary reading. If no active meter exists, move-in
-              continues normally.
+              {t("optionalBoundary")}
             </p>
             <div className="grid gap-3">
               <Field
-                label="Current reading"
+                label={t("currentReading")}
                 name="electricityReading"
                 type="number"
                 step="0.001"
@@ -178,11 +179,11 @@ export function MoveInDialog({
               <PrivateAttachmentPicker
                 name="electricityPhoto"
                 accept="image/jpeg,image/png,image/webp"
-                title="Boundary photo"
-                emptyText="No boundary photo selected"
-                actionLabel="Add photo"
+                title={t("boundaryPhoto")}
+                emptyText={t("noBoundaryPhoto")}
+                actionLabel={t("addPhoto")}
                 kind="image"
-                helperText="Optional evidence for the move-in meter reading."
+                helperText={t("boundaryPhotoHelp")}
               />
             </div>
           </fieldset>
@@ -194,7 +195,7 @@ export function MoveInDialog({
           <DialogFooter>
             <Button type="submit">
               <Plus />
-              Record move-in
+              {t("recordMoveIn")}
             </Button>
           </DialogFooter>
         </PreservingActionForm>
@@ -204,6 +205,7 @@ export function MoveInDialog({
 }
 
 export function MoveOutDialog({ space }: { space: DashboardSpace }) {
+  const t = useTranslations("tenants");
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [state, action] = React.useActionState(
@@ -223,15 +225,14 @@ export function MoveOutDialog({ space }: { space: DashboardSpace }) {
       <DialogTrigger asChild>
         <Button variant="outline" className="w-full">
           <LogOut />
-          Move out
+          {t("moveOut")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Move out of {space.name}</DialogTitle>
+          <DialogTitle>{t("moveOutOf", { space: space.name })}</DialogTitle>
           <DialogDescription>
-            This closes the tenancy and active occupant periods. Historical
-            records remain.
+            {t("moveOutDescription")}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="tenancy-form">
@@ -241,54 +242,53 @@ export function MoveOutDialog({ space }: { space: DashboardSpace }) {
             value={space.occupancy.tenancyId}
           />
           <Field
-            label="Move-out date"
+            label={t("moveOutDate")}
             name="moveOutDate"
             type="date"
             defaultValue={today()}
             required
           />
           <div className="grid gap-2">
-            <Label htmlFor={`move-out-notes-${space.id}`}>Notes</Label>
+            <Label htmlFor={`move-out-notes-${space.id}`}>{t("notes")}</Label>
             <Textarea id={`move-out-notes-${space.id}`} name="moveOutNotes" />
           </div>
           <fieldset className="rounded-md border border-[var(--app-border)] p-3">
             <legend className="px-1 text-sm font-medium">
-              Electricity meter
+              {t("electricityMeter")}
             </legend>
             <p className="mb-3 text-xs text-[var(--app-text-secondary)]">
-              Optional final boundary reading. If the meter cannot be read,
-              leave this blank.
+              {t("optionalFinalBoundary")}
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field
-                label="Final reading"
+                label={t("finalReading")}
                 name="electricityReading"
                 type="number"
                 step="0.001"
               />
               <div className="grid gap-2">
-                <Label htmlFor={`move-out-source-${space.id}`}>Source</Label>
+                <Label htmlFor={`move-out-source-${space.id}`}>{t("source")}</Label>
                 <select
                   id={`move-out-source-${space.id}`}
                   name="electricityReadingSource"
                 >
-                  <option value="MEASURED">Measured</option>
-                  <option value="ESTIMATED">Estimated</option>
+                  <option value="MEASURED">{t("measured")}</option>
+                  <option value="ESTIMATED">{t("estimated")}</option>
                 </select>
               </div>
               <Field
-                label="Reason if estimated"
+                label={t("estimatedReason")}
                 name="electricityReadingReason"
               />
             </div>
             <PrivateAttachmentPicker
               name="electricityPhoto"
               accept="image/jpeg,image/png,image/webp"
-              title="Boundary photo"
-              emptyText="No boundary photo selected"
-              actionLabel="Add photo"
+              title={t("boundaryPhoto")}
+              emptyText={t("noBoundaryPhoto")}
+              actionLabel={t("addPhoto")}
               kind="image"
-              helperText="Optional evidence for the final move-out meter reading."
+              helperText={t("finalBoundaryHelp")}
             />
           </fieldset>
           {state.message && (
@@ -299,7 +299,7 @@ export function MoveOutDialog({ space }: { space: DashboardSpace }) {
           <DialogFooter>
             <Button type="submit">
               <LogOut />
-              Confirm move-out
+              {t("confirmMoveOut")}
             </Button>
           </DialogFooter>
         </PreservingActionForm>
@@ -330,6 +330,7 @@ export function AddOccupantDialog({
   people: DashboardPersonOption[];
   compact?: boolean;
 }) {
+  const t = useTranslations("tenants");
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [personId, setPersonId] = React.useState("__new");
@@ -354,14 +355,14 @@ export function AddOccupantDialog({
           className={compact ? "occupant-add-button" : "w-full"}
         >
           <UserPlus />
-          Add occupant
+          {t("addOccupant")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add additional occupant</DialogTitle>
+          <DialogTitle>{t("addOccupant")}</DialogTitle>
           <DialogDescription>
-            Add someone to the active tenancy in {space.name}.
+            {t("addOccupantDescription", { space: space.name })}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="tenancy-form">
@@ -371,7 +372,7 @@ export function AddOccupantDialog({
             value={space.occupancy.tenancyId}
           />
           <div className="grid gap-2">
-            <Label htmlFor={`add-person-${space.id}`}>Person</Label>
+            <Label htmlFor={`add-person-${space.id}`}>{t("person")}</Label>
             <select
               id={`add-person-${space.id}`}
               name="personId"
@@ -383,24 +384,24 @@ export function AddOccupantDialog({
                   {person.fullName}
                 </option>
               ))}
-              <option value="__new">Create a new person</option>
+              <option value="__new">{t("createNewPerson")}</option>
             </select>
           </div>
           {personId === "__new" && (
             <div className="new-person-fields">
-              <Field label="Full name" name="newPersonName" required />
-              <Field label="Phone" name="newPersonPhone" />
+              <Field label={t("fullName")} name="newPersonName" required />
+              <Field label={t("phone")} name="newPersonPhone" />
             </div>
           )}
           <Field
-            label="Participation start"
+            label={t("participationStart")}
             name="startDate"
             type="date"
             defaultValue={today()}
             required
           />
           <div className="grid gap-2">
-            <Label htmlFor={`add-notes-${space.id}`}>Notes</Label>
+            <Label htmlFor={`add-notes-${space.id}`}>{t("notes")}</Label>
             <Textarea id={`add-notes-${space.id}`} name="notes" />
           </div>
           {state.message && (
@@ -411,7 +412,7 @@ export function AddOccupantDialog({
           <DialogFooter>
             <Button type="submit">
               <UserPlus />
-              Add occupant
+              {t("addOccupant")}
             </Button>
           </DialogFooter>
         </PreservingActionForm>
@@ -427,6 +428,7 @@ export function EndOccupancyDialog({
   membershipId: string;
   personName: string;
 }) {
+  const t = useTranslations("tenants");
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [state, action] = React.useActionState(
@@ -445,27 +447,27 @@ export function EndOccupancyDialog({
       <DialogTrigger asChild>
         <Button size="sm" variant="ghost">
           <UserMinus />
-          End occupancy
+          {t("endOccupancy")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>End {personName}&apos;s occupancy</DialogTitle>
+          <DialogTitle>{t("endOccupancyTitle", { person: personName })}</DialogTitle>
           <DialogDescription>
-            The participation record remains in rental history.
+            {t("endOccupancyDescription")}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="tenancy-form">
           <input type="hidden" name="membershipId" value={membershipId} />
           <Field
-            label="End date"
+            label={t("endDate")}
             name="endDate"
             type="date"
             defaultValue={today()}
             required
           />
           <div className="grid gap-2">
-            <Label htmlFor={`end-notes-${membershipId}`}>Notes</Label>
+            <Label htmlFor={`end-notes-${membershipId}`}>{t("notes")}</Label>
             <Textarea id={`end-notes-${membershipId}`} name="notes" />
           </div>
           {state.message && (
@@ -476,7 +478,7 @@ export function EndOccupancyDialog({
           <DialogFooter>
             <Button type="submit">
               <UserMinus />
-              End occupancy
+              {t("endOccupancy")}
             </Button>
           </DialogFooter>
         </PreservingActionForm>
@@ -492,6 +494,7 @@ function CancellationButton({
   tenancyId: string;
   kind: "move-in" | "move-out";
 }) {
+  const t = useTranslations("tenants");
   const router = useRouter();
   const action =
     kind === "move-in"
@@ -510,7 +513,7 @@ function CancellationButton({
       <input type="hidden" name="tenancyId" value={tenancyId} />
       <Button type="submit" variant="outline" className="w-full">
         <XCircle />
-        Cancel scheduled {kind}
+        {kind === "move-in" ? t("cancelScheduledMoveIn") : t("cancelScheduledMoveOut")}
       </Button>
       {state.message && (
         <p className={state.ok ? "form-success" : "form-error"}>
@@ -541,6 +544,7 @@ export function MoveOccupantDialog({
   personName: string;
   rooms: Array<{ id: string; name: string }>;
 }) {
+  const t = useTranslations("tenants");
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [state, action] = React.useActionState(
@@ -559,28 +563,28 @@ export function MoveOccupantDialog({
       <DialogTrigger asChild>
         <Button variant="outline">
           <ArrowRightLeft />
-          Move to another room
+          {t("moveAnotherRoom")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Move {personName}</DialogTitle>
+          <DialogTitle>{t("movePerson", { person: personName })}</DialogTitle>
           <DialogDescription>
-            The old participation ends on the same date the new one begins.
+            {t("movePersonDescription")}
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="tenancy-form">
           <input type="hidden" name="membershipId" value={membershipId} />
           <div className="grid gap-2">
             <Label htmlFor={`destination-${membershipId}`}>
-              Destination room
+              {t("destinationRoom")}
             </Label>
             <select
               id={`destination-${membershipId}`}
               name="destinationSpaceId"
               required
             >
-              <option value="">Select room</option>
+              <option value="">{t("selectRoom")}</option>
               {rooms.map((room) => (
                 <option key={room.id} value={room.id}>
                   {room.name}
@@ -589,7 +593,7 @@ export function MoveOccupantDialog({
             </select>
           </div>
           <Field
-            label="Effective date"
+            label={t("effectiveDate")}
             name="effectiveDate"
             type="date"
             defaultValue={today()}
@@ -603,7 +607,7 @@ export function MoveOccupantDialog({
           <DialogFooter>
             <Button type="submit">
               <ArrowRightLeft />
-              Move occupant
+              {t("moveOccupant")}
             </Button>
           </DialogFooter>
         </PreservingActionForm>

@@ -1,11 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { Download, FileText, Layers3, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { emptyActionState, type ActionState } from "@/lib/action-state";
-import { formatDate, formatVnd } from "@/lib/presentation";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale, formatMonthLocale, formatVndLocale } from "@/i18n/format";
 import { MonthSelector } from "@/modules/utilities/components/utility-ui";
 import { generateAllReadyAction, generateInvoiceAction } from "../actions";
 import type {
@@ -13,7 +15,7 @@ import type {
   getInvoices,
 } from "../server/billing.queries";
 import { BillingStatusBadge } from "./billing-status";
-import { exportInvoicePng, monthLabel } from "./invoice-export";
+import { exportInvoicePng } from "./invoice-export";
 
 type Candidates = Awaited<ReturnType<typeof getBillingCandidates>>;
 type Invoices = Awaited<ReturnType<typeof getInvoices>>;
@@ -30,6 +32,8 @@ export function InvoiceDashboard({
   candidates: Candidates;
   invoices: Invoices;
 }) {
+  const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
   const [filter, setFilter] = React.useState<Filter>("ALL");
   const [selected, setSelected] = React.useState<string[]>([]);
   const ready = candidates.filter((item) => item.status === "READY").length;
@@ -54,39 +58,36 @@ export function InvoiceDashboard({
     <div className="utilities-content">
       <header className="utilities-header">
         <div className="utilities-header-copy">
-          <p className="utilities-eyebrow">BILLING OPERATIONS</p>
-          <h1>Invoices</h1>
-          <p>
-            Prepare tenancy charges, finalize historical snapshots, and monitor
-            collection.
-          </p>
+          <p className="utilities-eyebrow">{t("eyebrow")}</p>
+          <h1>{t("invoices")}</h1>
+<p>{t("invoiceSubtitleLong")}</p>
         </div>
         <MonthSelector month={month} />
       </header>
 
       <section className="summary-grid billing-summary">
         <SummaryCard
-          label="Ready"
-          value={`${ready} invoices`}
-          detail="Can generate now"
+          label={t("ready")}
+          value={t("invoicesCount", { count: ready })}
+          detail={t("canGenerateNow")}
           icon={<FileText />}
         />
         <SummaryCard
-          label="Draft"
-          value={`${drafts} invoices`}
-          detail="Waiting for finalization"
+          label={t("draft")}
+          value={t("invoicesCount", { count: drafts })}
+          detail={t("waitingFinalization")}
           icon={<Layers3 />}
         />
         <SummaryCard
-          label="Finalized"
-          value={`${finalized.length} invoices`}
-          detail="Immutable snapshots"
+          label={t("finalized")}
+          value={t("invoicesCount", { count: finalized.length })}
+          detail={t("immutableSnapshots")}
           icon={<FileText />}
         />
         <SummaryCard
-          label="Outstanding"
-          value={formatVnd(String(outstanding))}
-          detail="Across finalized invoices"
+          label={t("outstanding")}
+          value={formatVndLocale(String(outstanding), locale)}
+          detail={t("acrossFinalized")}
           icon={<WalletCards />}
         />
       </section>
@@ -94,13 +95,13 @@ export function InvoiceDashboard({
       <section className="utility-section">
         <div className="utility-section-header">
           <div>
-            <h2>Billing candidates</h2>
-            <p>Readiness is derived per tenancy and billing period.</p>
+            <h2>{t("billingCandidates")}</h2>
+            <p>{t("invoiceSubtitle")}</p>
           </div>
           <ActionForm
             action={generateAllReadyAction}
             fields={{ propertyId, billingPeriod: `${month}-01` }}
-            label={`Generate all ready (${ready})`}
+            label={t("generateAllReady", { count: ready })}
             disabled={!ready}
             variant="outline"
           />
@@ -110,14 +111,14 @@ export function InvoiceDashboard({
             <table className="utility-table">
               <thead>
                 <tr>
-                  <th>Room</th>
-                  <th>Responsible renter</th>
-                  <th>Invoice type</th>
-                  <th>Service period</th>
-                  <th>Readiness</th>
-                  <th>Issue</th>
-                  <th>Invoice status</th>
-                  <th>Action</th>
+                  <th>{t("room")}</th>
+                  <th>{t("responsibleRenter")}</th>
+                  <th>{t("invoiceType")}</th>
+                  <th>{t("servicePeriod")}</th>
+                  <th>{t("readiness")}</th>
+                  <th>{t("issue")}</th>
+                  <th>{t("invoiceStatus")}</th>
+                  <th>{t("action")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -135,12 +136,12 @@ export function InvoiceDashboard({
                     </td>
                     <td>
                       {candidate.invoiceType === "REGULAR"
-                        ? "Regular"
-                        : "Final settlement"}
+                        ? t("regular")
+                        : t("finalSettlement")}
                     </td>
                     <td>
-                      {formatDate(candidate.serviceStart)} →{" "}
-                      {formatDate(candidate.serviceEnd)}
+                      {formatDateOnlyLocale(candidate.serviceStart, locale)} →{" "}
+                      {formatDateOnlyLocale(candidate.serviceEnd, locale)}
                     </td>
                     <td>
                       <BillingStatusBadge status={candidate.readiness} />
@@ -152,7 +153,7 @@ export function InvoiceDashboard({
                       {candidate.invoiceId ? (
                         <BillingStatusBadge status={candidate.status} />
                       ) : (
-                        <span className="utility-subtle">Not generated</span>
+                        <span className="utility-subtle">{t("notGenerated")}</span>
                       )}
                     </td>
                     <td>
@@ -169,8 +170,8 @@ export function InvoiceDashboard({
           </div>
         ) : (
           <Empty
-            title="No billing candidates"
-            description="No tenancies overlap this billing month."
+            title={t("noBillingCandidates")}
+            description={t("noTenanciesOverlap")}
           />
         )}
       </section>
@@ -178,8 +179,8 @@ export function InvoiceDashboard({
       <section className="utility-section">
         <div className="utility-section-header">
           <div>
-            <h2>Invoice register</h2>
-            <p>Filter drafts, finalized snapshots, and collection state.</p>
+            <h2>{t("invoiceRegister")}</h2>
+            <p>{t("invoiceRegisterSubtitle")}</p>
           </div>
           <Button
             variant="outline"
@@ -187,10 +188,10 @@ export function InvoiceDashboard({
             onClick={() =>
               finalized
                 .filter((invoice) => selected.includes(invoice.id))
-                .forEach(exportInvoicePng)
+                .forEach((invoice) => exportInvoicePng(invoice, locale))
             }
           >
-            <Download /> Tải PNG đã chọn ({selected.length})
+            <Download /> {t("downloadSelectedPng", { count: selected.length })}
           </Button>
         </div>
         <div className="billing-filter-tabs">
@@ -210,7 +211,7 @@ export function InvoiceDashboard({
               className={filter === item ? "is-active" : ""}
               onClick={() => setFilter(item)}
             >
-              {title(item)}
+              {statusLabel(item, t)}
             </button>
           ))}
         </div>
@@ -220,15 +221,15 @@ export function InvoiceDashboard({
               <thead>
                 <tr>
                   <th></th>
-                  <th>Invoice</th>
-                  <th>Tenant</th>
-                  <th>Room</th>
-                  <th>Billing period</th>
-                  <th>Status</th>
-                  <th>Total</th>
-                  <th>Payment</th>
-                  <th>Balance</th>
-                  <th>Actions</th>
+                  <th>{t("invoice")}</th>
+                  <th>{t("tenant")}</th>
+                  <th>{t("room")}</th>
+                  <th>{t("billingPeriod")}</th>
+                  <th>{t("status")}</th>
+                  <th>{t("total")}</th>
+                  <th>{t("payment")}</th>
+                  <th>{t("balance")}</th>
+                  <th>{t("actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -239,7 +240,7 @@ export function InvoiceDashboard({
                         <input
                           className="invoice-select"
                           type="checkbox"
-                          aria-label={`Select ${invoice.room} invoice`}
+                          aria-label={t("selectInvoice", { room: invoice.room })}
                           checked={selected.includes(invoice.id)}
                           onChange={(event) =>
                             setSelected((current) =>
@@ -271,12 +272,12 @@ export function InvoiceDashboard({
                         {invoice.room}
                       </Link>
                     </td>
-                    <td>{monthLabel(invoice.billingPeriod)}</td>
+                    <td>{formatMonthLocale(invoice.billingPeriod, locale)}</td>
                     <td>
                       <BillingStatusBadge status={invoice.status} />
                     </td>
                     <td>
-                      <strong>{formatVnd(invoice.total)}</strong>
+                      <strong>{formatVndLocale(invoice.total, locale)}</strong>
                     </td>
                     <td>
                       {invoice.status === "FINALIZED" ? (
@@ -287,22 +288,22 @@ export function InvoiceDashboard({
                     </td>
                     <td>
                       {invoice.status === "FINALIZED"
-                        ? formatVnd(invoice.balance)
+                        ? formatVndLocale(invoice.balance, locale)
                         : "—"}
                     </td>
                     <td className="billing-actions">
                       <Button asChild size="sm" variant="outline">
                         <Link href={`/billing/invoices/${invoice.id}`}>
-                          {invoice.status === "DRAFT" ? "Continue" : "View"}
+                          {invoice.status === "DRAFT" ? t("continue") : t("view")}
                         </Link>
                       </Button>
                       {invoice.status === "FINALIZED" && (
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => exportInvoicePng(invoice)}
+                          onClick={() => exportInvoicePng(invoice, locale)}
                         >
-                          <Download /> Tải PNG
+                          <Download /> {t("downloadPng")}
                         </Button>
                       )}
                     </td>
@@ -313,8 +314,8 @@ export function InvoiceDashboard({
           </div>
         ) : (
           <Empty
-            title={`No ${title(filter).toLowerCase()} invoices`}
-            description="Try another invoice filter or billing month."
+            title={t("noFilteredInvoices", { filter: statusLabel(filter, t).toLowerCase() })}
+            description={t("tryAnotherFilter")}
           />
         )}
       </section>
@@ -323,14 +324,15 @@ export function InvoiceDashboard({
 }
 
 function CandidateIssue({ candidate }: { candidate: Candidates[number] }) {
+  const t = useTranslations("billing");
   const issue = candidate.missing[0];
-  if (!issue) return <span className="utility-subtle">No blocking issue</span>;
+  if (!issue) return <span className="utility-subtle">{t("noBlockingIssue")}</span>;
   const isRate = issue.toLowerCase().includes("rate");
   return (
     <div className="candidate-issue">
-      <span>{conciseIssue(issue)}</span>
+      <span>{conciseIssue(issue, t)}</span>
       <Link href={isRate ? "/utilities/rates" : "/utilities/meters"}>
-        {isRate ? "Open rates" : "Resolve in meters"}
+        {isRate ? t("openRates") : t("resolveMeters")}
       </Link>
     </div>
   );
@@ -344,6 +346,7 @@ function CandidateAction({
   propertyId: string;
   month: string;
 }) {
+  const t = useTranslations("billing");
   if (candidate.status === "READY")
     return (
       <ActionForm
@@ -354,14 +357,14 @@ function CandidateAction({
           billingPeriod: `${month}-01`,
           invoiceType: candidate.invoiceType,
         }}
-        label="Generate"
+        label={t("generate")}
       />
     );
   if (candidate.invoiceId)
     return (
       <Button asChild size="sm" variant="outline">
         <Link href={`/billing/invoices/${candidate.invoiceId}`}>
-          {candidate.status === "DRAFT" ? "Continue" : "View"}
+          {candidate.status === "DRAFT" ? t("continue") : t("view")}
         </Link>
       </Button>
     );
@@ -433,17 +436,12 @@ function Empty({
     </div>
   );
 }
-function conciseIssue(issue: string) {
-  if (issue.toLowerCase().includes("move-out"))
-    return "Missing move-out meter boundary";
-  if (issue.toLowerCase().includes("move-in"))
-    return "Missing move-in meter boundary";
-  if (issue.toLowerCase().includes("rate")) return "Missing utility rate";
+function conciseIssue(issue: string, t: ReturnType<typeof useTranslations<"billing">>) {
+  if (issue.toLowerCase().includes("move-out")) return t("missingMoveOutBoundary");
+  if (issue.toLowerCase().includes("move-in")) return t("missingMoveInBoundary");
+  if (issue.toLowerCase().includes("rate")) return t("missingRate");
   return issue;
 }
-function title(value: string) {
-  return value
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replace(/^./, (character) => character.toUpperCase());
+function statusLabel(value: Filter, t: ReturnType<typeof useTranslations<"billing">>) {
+  return ({ ALL: t("all"), DRAFT: t("draft"), FINALIZED: t("finalized"), UNPAID: t("unpaid"), PARTIAL: t("partial"), PAID: t("paid") })[value];
 }

@@ -1,6 +1,9 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale, formatMonthLocale, formatNumberLocale, formatVndLocale } from "@/i18n/format";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,7 +13,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { formatDate, formatVnd } from "@/lib/presentation";
 import type { getElectricityPreview } from "../server/utility.queries";
 
 type Preview = Awaited<ReturnType<typeof getElectricityPreview>>;
@@ -22,6 +24,8 @@ export function ElectricityBreakdownDialog({
   preview: Preview;
   room: string;
 }) {
+  const t = useTranslations("utilities");
+  const locale = useLocale() as AppLocale;
   if (preview.completeness !== "COMPLETE") return null;
 
   const physicalUsage = Number(preview.totalPhysicalUsage ?? 0);
@@ -46,92 +50,92 @@ export function ElectricityBreakdownDialog({
           size="icon"
           variant="ghost"
           className="utility-estimate-details-trigger"
-          aria-label={`View electricity details for ${room}`}
-          title="View electricity details"
+          aria-label={`${t("viewElectricityDetails")} · ${room}`}
+          title={t("viewElectricityDetails")}
         >
           <ChevronRight />
         </Button>
       </DialogTrigger>
       <DialogContent className="electricity-details-dialog">
         <DialogHeader>
-          <DialogTitle>Electricity details · {room}</DialogTitle>
+          <DialogTitle>{t("electricityDetails", { room })}</DialogTitle>
           <DialogDescription>
-            {monthLabel(preview.billingPeriod)}
+            {formatMonthLocale(preview.billingPeriod, locale)}
             {serviceStart && serviceEnd
-              ? ` · Service ${formatDate(serviceStart)} → ${formatDate(serviceEnd)}`
+              ? ` · ${t("serviceRange", { start: formatDateOnlyLocale(serviceStart, locale), end: formatDateOnlyLocale(serviceEnd, locale) })}`
               : ""}
-            . Tenant billing excludes vacant/property usage.
+             {t("tenantBillingExcludesVacant")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="electricity-summary-grid">
           <Info
-            label="Applicable rate"
-            value={`${formatVnd(String(rate))} / kWh`}
+            label={t("applicableRate")}
+            value={`${formatVndLocale(String(rate), locale)} / kWh`}
             detail={
-              preview.rateOverridden ? "Room/month override" : "Snapshot rate"
+              preview.rateOverridden ? t("roomMonthOverride") : t("snapshotRate")
             }
           />
           <Info
-            label="Physical usage"
-            value={`${number(physicalUsage)} kWh`}
-            detail={`Across ${preview.meterSegments.length} physical ${preview.meterSegments.length === 1 ? "meter" : "meters"}`}
+            label={t("physicalUsage")}
+            value={`${formatNumberLocale(physicalUsage, locale, { maximumFractionDigits: 2 })} kWh`}
+            detail={t("physicalMeters", { count: preview.meterSegments.length })}
           />
           <Info
-            label="Vacant / property usage"
-            value={`${number(vacantUsage)} kWh`}
-            detail="Not billed"
+            label={t("vacantPropertyUsage")}
+            value={`${formatNumberLocale(vacantUsage, locale, { maximumFractionDigits: 2 })} kWh`}
+            detail={t("notBilled")}
           />
           <Info
-            label="Billable usage"
-            value={`${number(billableUsage)} kWh`}
-            detail="Tenant attributed"
+            label={t("billableUsage")}
+            value={`${formatNumberLocale(billableUsage, locale, { maximumFractionDigits: 2 })} kWh`}
+            detail={t("tenantAttributed")}
           />
           <Info
-            label="Calculated amount"
-            value={formatVnd(String(calculatedAmount))}
-            detail={`${number(billableUsage)} × ${number(rate)}`}
+            label={t("calculatedAmount")}
+            value={formatVndLocale(String(calculatedAmount), locale)}
+            detail={`${formatNumberLocale(billableUsage, locale, { maximumFractionDigits: 2 })} × ${formatNumberLocale(rate, locale, { maximumFractionDigits: 2 })}`}
           />
         </div>
 
         {preview.rateOverridden && (
           <p className="electricity-override-note">
-            Rate override · {preview.overrideReason ?? "No reason provided"}
+            {t("rateOverride")} · {preview.overrideReason ?? t("noReasonProvided")}
           </p>
         )}
 
         <section className="electricity-calculation">
-          <h3>Calculation</h3>
+          <h3>{t("calculation")}</h3>
           <CalculationRow
-            label="Physical usage"
-            value={`${number(physicalUsage)} kWh`}
+            label={t("physicalUsage")}
+            value={`${formatNumberLocale(physicalUsage, locale, { maximumFractionDigits: 2 })} kWh`}
           />
           <CalculationRow
-            label="Less vacant / property usage"
-            value={`−${number(vacantUsage)} kWh`}
+            label={t("lessVacantProperty")}
+            value={`−${formatNumberLocale(vacantUsage, locale, { maximumFractionDigits: 2 })} kWh`}
           />
           <CalculationRow
-            label="Billable usage"
-            value={`${number(billableUsage)} kWh`}
+            label={t("billableUsage")}
+            value={`${formatNumberLocale(billableUsage, locale, { maximumFractionDigits: 2 })} kWh`}
             strong
           />
           <CalculationRow
-            label="Rate"
-            value={`${formatVnd(String(rate))} / kWh`}
+            label={t("rate")}
+            value={`${formatVndLocale(String(rate), locale)} / kWh`}
           />
           <CalculationRow
-            label="Calculated amount"
-            value={formatVnd(String(calculatedAmount))}
+            label={t("calculatedAmount")}
+            value={formatVndLocale(String(calculatedAmount), locale)}
             strong
           />
         </section>
 
         {physicalUsage > 0 && (
           <section>
-            <h3>Usage allocation</h3>
+            <h3>{t("usageAllocation")}</h3>
             <div
               className="electricity-allocation-bar"
-              aria-label="Electricity usage allocation"
+              aria-label={t("usageAllocationAria")}
             >
               {preview.tenantBreakdown.map((segment, index) => (
                 <span
@@ -140,14 +144,14 @@ export function ElectricityBreakdownDialog({
                   style={{
                     width: `${(Number(segment.usage) / physicalUsage) * 100}%`,
                   }}
-                  title={`${segment.tenantName}: ${number(segment.usage)} kWh`}
+                  title={`${segment.tenantName}: ${formatNumberLocale(segment.usage, locale, { maximumFractionDigits: 2 })} kWh`}
                 />
               ))}
               {vacantUsage > 0 && (
                 <span
                   className="is-vacant"
                   style={{ width: `${(vacantUsage / physicalUsage) * 100}%` }}
-                  title={`Vacant / property: ${number(vacantUsage)} kWh`}
+                  title={`${t("vacantPropertyUsage")}: ${formatNumberLocale(vacantUsage, locale, { maximumFractionDigits: 2 })} kWh`}
                 />
               )}
             </div>
@@ -155,16 +159,16 @@ export function ElectricityBreakdownDialog({
         )}
 
         <section>
-          <h3>Tenant attribution</h3>
+          <h3>{t("attribution")}</h3>
           <div className="utility-table-wrap">
             <table className="utility-table electricity-details-table">
               <thead>
                 <tr>
-                  <th>Tenant</th>
-                  <th>Service period</th>
-                  <th>Billable usage</th>
-                  <th>Share</th>
-                  <th>Amount</th>
+                  <th>{t("tenant")}</th>
+                  <th>{t("servicePeriod")}</th>
+                  <th>{t("billableUsage")}</th>
+                  <th>{t("share")}</th>
+                  <th>{t("amount")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -174,23 +178,23 @@ export function ElectricityBreakdownDialog({
                       <strong>{segment.tenantName}</strong>
                     </td>
                     <td>
-                      {formatDate(segment.startDate)} →{" "}
-                      {formatDate(segment.endDate)}
+                      {formatDateOnlyLocale(segment.startDate, locale)} →{" "}
+                      {formatDateOnlyLocale(segment.endDate, locale)}
                     </td>
-                    <td>{number(segment.usage)} kWh</td>
+                    <td>{formatNumberLocale(segment.usage, locale, { maximumFractionDigits: 2 })} kWh</td>
                     <td>{segment.share}%</td>
-                    <td>{segment.amount ? formatVnd(segment.amount) : "—"}</td>
+                    <td>{segment.amount ? formatVndLocale(segment.amount, locale) : "—"}</td>
                   </tr>
                 ))}
                 {vacantUsage > 0 && (
                   <tr className="is-vacant-row">
                     <td>
-                      <strong>Vacant / property</strong>
+                      <strong>{t("vacantPropertyUsage")}</strong>
                     </td>
-                    <td>Unoccupied service time</td>
-                    <td>{number(vacantUsage)} kWh</td>
+                    <td>{t("unoccupiedServiceTime")}</td>
+                    <td>{formatNumberLocale(vacantUsage, locale, { maximumFractionDigits: 2 })} kWh</td>
                     <td>—</td>
-                    <td>Not billed</td>
+                    <td>{t("notBilled")}</td>
                   </tr>
                 )}
               </tbody>
@@ -199,41 +203,41 @@ export function ElectricityBreakdownDialog({
         </section>
 
         <section>
-          <h3>Physical meter evidence</h3>
+          <h3>{t("physicalMeterEvidence")}</h3>
           <div className="utility-table-wrap">
             <table className="utility-table electricity-details-table">
               <thead>
                 <tr>
-                  <th>Meter</th>
-                  <th>Previous anchor</th>
-                  <th>Monthly closing</th>
-                  <th>Known end / boundary</th>
-                  <th>Cycle usage</th>
-                  <th>Known usage</th>
-                  <th>Evidence</th>
+                  <th>{t("meter")}</th>
+                  <th>{t("previousAnchor")}</th>
+                  <th>{t("monthlyClosing")}</th>
+                  <th>{t("knownEndBoundary")}</th>
+                  <th>{t("cycleUsageLabel")}</th>
+                  <th>{t("knownUsage")}</th>
+                  <th>{t("evidence")}</th>
                 </tr>
               </thead>
               <tbody>
                 {preview.meterSegments.map((meter) => (
                   <tr key={meter.meterId}>
                     <td>
-                      <strong>{meter.meterNumber || "Unnumbered meter"}</strong>
+                      <strong>{meter.meterNumber || t("unnumberedMeter")}</strong>
                     </td>
-                    <td>{reading(meter.openingReading)}</td>
-                    <td>{reading(meter.monthlyClosingReading)}</td>
-                    <td>{reading(meter.knownEndReading)}</td>
+                    <td>{reading(meter.openingReading, locale, t)}</td>
+                    <td>{reading(meter.monthlyClosingReading, locale, t)}</td>
+                    <td>{reading(meter.knownEndReading, locale, t)}</td>
                     <td>
                       {meter.physicalUsage === null
-                        ? "Unavailable"
-                        : `${number(meter.physicalUsage)} kWh`}
+                        ? t("unavailable")
+                        : `${formatNumberLocale(meter.physicalUsage, locale, { maximumFractionDigits: 2 })} kWh`}
                     </td>
                     <td>
                       {meter.knownPhysicalUsage === null
-                        ? "Unavailable"
-                        : `${number(meter.knownPhysicalUsage)} kWh`}
+                        ? t("unavailable")
+                        : `${formatNumberLocale(meter.knownPhysicalUsage, locale, { maximumFractionDigits: 2 })} kWh`}
                     </td>
                     <td>
-                      {meter.hasEstimatedReading ? "Estimated" : "Measured"}
+                      {meter.hasEstimatedReading ? t("estimated") : t("measured")}
                     </td>
                   </tr>
                 ))}
@@ -244,10 +248,10 @@ export function ElectricityBreakdownDialog({
 
         <footer className="electricity-details-notes">
           <span>
-            Vacant/property electricity is excluded from tenant billing.
+            {t("vacantExcluded")}
           </span>
-          <span>The invoice uses the applicable rate snapshot.</span>
-          <span>This view is read-only.</span>
+          <span>{t("invoiceUsesRateSnapshot")}</span>
+          <span>{t("readOnly")}</span>
         </footer>
       </DialogContent>
     </Dialog>
@@ -289,20 +293,12 @@ function CalculationRow({
   );
 }
 
-function reading(value: Preview["meterSegments"][number]["openingReading"]) {
+function reading(
+  value: Preview["meterSegments"][number]["openingReading"],
+  locale: AppLocale,
+  t: ReturnType<typeof useTranslations>,
+) {
   return value
-    ? `${number(value.readingValue)} kWh · ${formatDate(value.readingDate)}`
-    : "Unavailable";
-}
-
-function number(value: string | number) {
-  return Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
-}
-
-function monthLabel(value: Date) {
-  return new Intl.DateTimeFormat("en", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(value);
+    ? `${formatNumberLocale(value.readingValue, locale, { maximumFractionDigits: 2 })} kWh · ${formatDateOnlyLocale(value.readingDate, locale)}`
+    : t("unavailable");
 }

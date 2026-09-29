@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
 import type { CSSProperties } from "react";
 import type {
@@ -32,6 +33,7 @@ export function BuildingFloor({
   editing: boolean;
   onSelectSpace: (spaceId: string, target: HTMLButtonElement) => void;
 }) {
+  const t = useTranslations("building");
   const spaces = [...floor.spaces].sort((a, b) => a.sortOrder - b.sortOrder);
   const units = Math.max(
     1,
@@ -55,7 +57,7 @@ export function BuildingFloor({
     >
       <div className="building-v2-floor-label">
         <strong>{floor.name}</strong>
-        <span>{spaces.length} {spaces.length === 1 ? "space" : "spaces"}</span>
+        <span>{t("counts.spaces", { count: spaces.length })}</span>
       </div>
       {editing && <FloorActions floor={floor} propertyId={propertyId} />}
       <div
@@ -86,8 +88,8 @@ export function BuildingFloor({
           ))
         ) : (
           <div className="building-v2-empty-floor">
-            <strong>No spaces</strong>
-            <span>This floor is configured but currently empty.</span>
+            <strong>{t("scene.noSpaces")}</strong>
+            <span>{t("scene.emptyFloor")}</span>
           </div>
         )}
       </div>

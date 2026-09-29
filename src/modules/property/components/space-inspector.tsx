@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
@@ -19,7 +20,8 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { formatDate, formatVnd } from "@/lib/presentation";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale, formatVndLocale } from "@/i18n/format";
 import { AssetFormDialog } from "@/modules/assets/components/asset-dialogs";
 import type {
   AssetInventoryPageView,
@@ -45,11 +47,11 @@ import { MeterReadingDialog } from "@/modules/utilities/components/meter-reading
 
 import { archiveSpaceAction, deleteSpaceAction } from "../actions";
 import {
-  SPACE_TYPE_LABELS,
   type BuildingVisualSpaceProjection,
   type DashboardFloor,
   type DashboardPersonOption,
 } from "../domain/types";
+import { SPACE_TYPE_KEYS, enumStatusKey } from "./visual/building-copy";
 import {
   ArchiveOrDeleteDialog,
   SpaceFormDialog,
@@ -70,13 +72,7 @@ export type BuildingInspectorData = {
   devices: DevicePageView;
 };
 
-const tabs: Array<{ value: SpaceInspectorTab; label: string }> = [
-  { value: "OVERVIEW", label: "Overview" },
-  { value: "RENTAL", label: "Rental" },
-  { value: "UTILITIES", label: "Utilities" },
-  { value: "OPERATIONS", label: "Operations" },
-  { value: "ASSETS", label: "Assets" },
-];
+
 
 export function SpaceInspector({
   propertyId,
@@ -99,6 +95,7 @@ export function SpaceInspector({
   onTabChange: (tab: SpaceInspectorTab) => void;
   onClose: () => void;
 }) {
+  const t = useTranslations("building");
   const [expanded, setExpanded] = React.useState(false);
   const layerRef = React.useRef<HTMLDivElement | null>(null);
   const inspectorRef = React.useRef<HTMLElement | null>(null);
@@ -172,11 +169,19 @@ export function SpaceInspector({
   const occupied = Boolean(space.occupancy);
   const status = space.type === "ROOM"
     ? occupied
-      ? `Occupied · ${space.occupancy?.occupantCount ?? 0} ${space.occupancy?.occupantCount === 1 ? "resident" : "residents"}`
+      ? t("spaceState.occupiedSummary", { count: space.occupancy?.occupantCount ?? 0 })
       : space.upcomingOccupancy
-        ? "Available · upcoming tenancy"
-        : "Available"
-    : "Active space";
+        ? t("spaceState.availableUpcoming")
+        : t("spaceState.available")
+    : t("spaceState.activeSpace");
+
+  const tabs: Array<{ value: SpaceInspectorTab; label: string }> = [
+    { value: "OVERVIEW", label: t("inspector.tabs.overview") },
+    { value: "RENTAL", label: t("inspector.tabs.rental") },
+    { value: "UTILITIES", label: t("inspector.tabs.utilities") },
+    { value: "OPERATIONS", label: t("inspector.tabs.operations") },
+    { value: "ASSETS", label: t("inspector.tabs.assets") },
+  ];
 
   return (
     <div ref={layerRef} className={`space-inspector-layer is-${side}`}>
@@ -188,14 +193,14 @@ export function SpaceInspector({
         exit={{ opacity: 0, x: side === "right" ? 18 : -18 }}
         transition={{ duration: 0.24, ease: "easeOut" }}
         className={`space-inspector${expanded ? " is-expanded" : ""}`}
-        aria-label={`${space.name} space overview`}
+        aria-label={t("inspector.ariaLabel", { space: space.name })}
       >
       <header className="space-inspector-header">
         <div className="space-inspector-heading">
-          <p>SPACE OVERVIEW</p>
+          <p>{t("inspector.title").toUpperCase()}</p>
           <div>
             <h2>{space.name}</h2>
-            <span>{SPACE_TYPE_LABELS[space.type]}</span>
+            <span>{t(`spaceTypes.${SPACE_TYPE_KEYS[space.type]}`)}</span>
           </div>
           <strong className={occupied ? "is-occupied" : ""}>{status}</strong>
         </div>
@@ -204,17 +209,17 @@ export function SpaceInspector({
             type="button"
             className="space-inspector-expand"
             onClick={() => setExpanded((value) => !value)}
-            aria-label={expanded ? "Collapse space overview" : "Expand space overview"}
+            aria-label={expanded ? t("inspector.collapse") : t("inspector.expand")}
           >
             {expanded ? <ChevronDown /> : <ChevronUp />}
           </button>
-          <button type="button" className="space-inspector-close" onClick={onClose} aria-label="Close space overview">
+          <button type="button" className="space-inspector-close" onClick={onClose} aria-label={t("inspector.close")}>
             <X />
           </button>
         </div>
       </header>
 
-      <nav className="space-inspector-tabs" aria-label="Space overview sections">
+      <nav className="space-inspector-tabs" aria-label={t("inspector.sectionsLabel")}>
         {tabs.map((item) => (
           <button
             key={item.value}
@@ -269,6 +274,15 @@ function OverviewTab({
   space: BuildingVisualSpaceProjection;
   data: BuildingInspectorData;
 }) {
+  const t = useTranslations("building");
+  const locale = useLocale() as AppLocale;
+  const utilityStatusLabel = () => {
+    if (!space.utilities.hasElectricityMeter) return t("inspector.noElectricityMeter");
+    if (space.utilities.missingBoundary) return t("utilities.boundaryAttention");
+    if (space.utilities.needsClosing) return t("utilities.monthlyClosingRequired");
+    if (space.utilities.attentionCount) return t("utilities.utilityWarnings", { count: space.utilities.attentionCount });
+    return t("utilities.healthy");
+  };
   const activeIssues = data.maintenance.items.filter(
     (item) => item.spaceId === space.id && item.status !== "COMPLETED",
   );
@@ -288,52 +302,52 @@ function OverviewTab({
     <div className="space-inspector-sections space-inspector-overview-sections">
       <section className="space-inspector-basic is-primary-context">
         <div className="space-inspector-section-title">
-          <h3>Basic information</h3>
+          <h3>{t("inspector.basicInformation")}</h3>
         </div>
         <dl className="space-inspector-basic-grid">
-          <DetailLine label="Floor" value={floor.name} />
-          <DetailLine label="Type" value={SPACE_TYPE_LABELS[space.type]} />
-          <DetailLine label="Record status" value="Active" />
+          <DetailLine label={t("floor")} value={floor.name} />
+          <DetailLine label={t("forms.type")} value={t(`spaceTypes.${SPACE_TYPE_KEYS[space.type]}`)} />
+          <DetailLine label={t("inspector.recordStatus")} value={t("inspector.active")} />
         </dl>
       </section>
 
-      <InspectorSection title="Current rental" icon={<Users />}>
+      <InspectorSection title={t("inspector.currentRental")} icon={<Users />}>
         {space.type !== "ROOM" ? (
-          <p className="space-inspector-muted">This is not a rental room.</p>
+          <p className="space-inspector-muted">{t("inspector.notRentalRoom")}</p>
         ) : space.occupancy ? (
           <>
-            <strong>{tenantNames || space.occupancy.responsible?.fullName || "Occupied"}</strong>
-            <p>{formatVnd(space.occupancy.monthlyRentVnd)} / month</p>
-            <p className="space-inspector-muted">Since {formatDate(space.occupancy.moveInDate)}</p>
+            <strong>{tenantNames || space.occupancy.responsible?.fullName || t("inspector.occupied")}</strong>
+            <p>{t("inspector.perMonth", { amount: formatVndLocale(space.occupancy.monthlyRentVnd, locale) })}</p>
+            <p className="space-inspector-muted">{t("inspector.since", { date: formatDateOnlyLocale(space.occupancy.moveInDate, locale) })}</p>
           </>
         ) : space.upcomingOccupancy ? (
           <>
-            <strong>Upcoming tenancy</strong>
-            <p>Starts {formatDate(space.upcomingOccupancy.moveInDate)}</p>
+            <strong>{t("inspector.upcomingTenancy")}</strong>
+            <p>{t("inspector.starts", { date: formatDateOnlyLocale(space.upcomingOccupancy.moveInDate, locale) })}</p>
           </>
         ) : (
-          <p className="space-inspector-muted">Available · no current or upcoming tenant.</p>
+          <p className="space-inspector-muted">{t("inspector.availableNoTenant")}</p>
         )}
       </InspectorSection>
 
-      <InspectorSection title="Utilities" icon={<Gauge />}>
-        <strong>{space.utilities.hasElectricityMeter ? space.utilities.meterNumber || "Electricity meter" : "No electricity meter"}</strong>
-        <p>{utilityStatus(space)}</p>
+      <InspectorSection title={t("toolbar.utilities")} icon={<Gauge />}>
+        <strong>{space.utilities.hasElectricityMeter ? space.utilities.meterNumber || t("inspector.electricityMeter") : t("inspector.noElectricityMeter")}</strong>
+        <p>{utilityStatusLabel()}</p>
       </InspectorSection>
 
-      <InspectorSection title="Operations" icon={<Wrench />}>
-        <strong>{activeIssues.length} active maintenance {activeIssues.length === 1 ? "issue" : "issues"}</strong>
-        <p>{openTasks.filter((item) => item.overdue).length} overdue tasks</p>
+      <InspectorSection title={t("inspector.operations")} icon={<Wrench />}>
+        <strong>{t("inspector.activeMaintenanceIssues", { count: activeIssues.length })}</strong>
+        <p>{t("inspector.overdueTasks", { count: openTasks.filter((item) => item.overdue).length })}</p>
       </InspectorSection>
 
-      <InspectorSection title="Assets & Devices" icon={<Boxes />}>
-        <strong>{assets.length} active {assets.length === 1 ? "asset" : "assets"}</strong>
-        <p>{devices.length} registered {devices.length === 1 ? "device" : "devices"}</p>
+      <InspectorSection title={t("inspector.assetsDevices")} icon={<Boxes />}>
+        <strong>{t("inspector.activeAssets", { count: assets.length })}</strong>
+        <p>{t("inspector.registeredDevices", { count: devices.length })}</p>
       </InspectorSection>
 
       <div className="space-inspector-notes is-standalone">
-        <span>Notes</span>
-        <p>{space.notes || "No notes"}</p>
+        <span>{t("inspector.notes")}</span>
+        <p>{space.notes || t("inspector.noNotes")}</p>
       </div>
     </div>
   );
@@ -346,24 +360,26 @@ function RentalTab({
   space: BuildingVisualSpaceProjection;
   people: DashboardPersonOption[];
 }) {
+  const t = useTranslations("building");
+  const locale = useLocale() as AppLocale;
   if (space.type !== "ROOM") {
-    return <EmptyState icon={<Users />} title="Not a rental space" copy="Rental workflows apply only to rental rooms." />;
+    return <EmptyState icon={<Users />} title={t("rental.notRentalSpace")} copy={t("rental.rentalOnly")} />;
   }
 
   if (!space.occupancy) {
     return (
       <div className="space-inspector-sections">
         {space.upcomingOccupancy ? (
-          <InspectorSection title="Upcoming tenancy" icon={<Users />}>
-            <strong>Starts {formatDate(space.upcomingOccupancy.moveInDate)}</strong>
-            <p>{space.upcomingOccupancy.responsible?.fullName || "Responsible renter not assigned"}</p>
-            <p>{space.upcomingOccupancy.occupantCount} expected {space.upcomingOccupancy.occupantCount === 1 ? "occupant" : "occupants"}</p>
+          <InspectorSection title={t("rental.upcomingTenancy")} icon={<Users />}>
+            <strong>{t("rental.starts", { date: formatDateOnlyLocale(space.upcomingOccupancy.moveInDate, locale) })}</strong>
+            <p>{space.upcomingOccupancy.responsible?.fullName || t("rental.responsibleNotAssigned")}</p>
+            <p>{t("rental.expectedOccupants", { count: space.upcomingOccupancy.occupantCount })}</p>
             <CancelUpcomingMoveInButton tenancyId={space.upcomingOccupancy.tenancyId} />
           </InspectorSection>
         ) : (
-          <InspectorSection title="Available" icon={<Users />}>
-            <strong>No current or upcoming tenant</strong>
-            <p className="space-inspector-muted">This room is ready for a new tenancy.</p>
+          <InspectorSection title={t("rental.available")} icon={<Users />}>
+            <strong>{t("rental.noCurrentUpcoming")}</strong>
+            <p className="space-inspector-muted">{t("rental.readyForTenancy")}</p>
             <MoveInDialog space={space} people={people} />
           </InspectorSection>
         )}
@@ -378,27 +394,27 @@ function RentalTab({
   return (
     <div className="space-inspector-sections">
       {space.occupancy.moveOutDate && (
-        <InspectorSection title="Scheduled move-out" icon={<Users />}>
-          <strong>{formatDate(space.occupancy.moveOutDate)}</strong>
+        <InspectorSection title={t("rental.scheduledMoveOut")} icon={<Users />}>
+          <strong>{formatDateOnlyLocale(space.occupancy.moveOutDate, locale)}</strong>
           <CancelScheduledMoveOutButton tenancyId={space.occupancy.tenancyId} />
         </InspectorSection>
       )}
-      <InspectorSection title="Current tenancy" icon={<Users />}>
-        <strong>{formatDate(space.occupancy.moveInDate)} → {space.occupancy.moveOutDate ? formatDate(space.occupancy.moveOutDate) : "Ongoing"}</strong>
+      <InspectorSection title={t("rental.currentTenancy")} icon={<Users />}>
+        <strong>{formatDateOnlyLocale(space.occupancy.moveInDate, locale)} → {space.occupancy.moveOutDate ? formatDateOnlyLocale(space.occupancy.moveOutDate, locale) : t("rental.ongoing")}</strong>
         <dl className="space-inspector-inline-dl">
-          <DetailLine label="Monthly rent" value={formatVnd(space.occupancy.monthlyRentVnd)} />
-          <DetailLine label="Deposit" value={space.occupancy.depositVnd ? formatVnd(space.occupancy.depositVnd) : "Not recorded"} />
+          <DetailLine label={t("rental.monthlyRent")} value={formatVndLocale(space.occupancy.monthlyRentVnd, locale)} />
+          <DetailLine label={t("rental.deposit")} value={space.occupancy.depositVnd ? formatVndLocale(space.occupancy.depositVnd, locale) : t("rental.notRecorded")} />
         </dl>
         {!space.occupancy.moveOutDate && <MoveOutDialog space={space} />}
       </InspectorSection>
 
-      <InspectorSection title={`Occupants (${space.occupancy.occupantCount})`} icon={<Users />}>
+      <InspectorSection title={t("rental.occupants", { count: space.occupancy.occupantCount })} icon={<Users />}>
         <div className="space-inspector-list">
           {space.occupancy.occupants.map((occupant) => (
             <div key={occupant.membershipId} className="space-inspector-list-row">
               <div>
                 <strong>{occupant.fullName}</strong>
-                <span>{occupant.role === "RESPONSIBLE" ? "Responsible" : "Additional"}</span>
+                <span>{occupant.role === "RESPONSIBLE" ? t("rental.responsible") : t("rental.additional")}</span>
               </div>
               {occupant.role === "ADDITIONAL" && (
                 <EndOccupancyDialog membershipId={occupant.membershipId} personName={occupant.fullName} />
@@ -413,41 +429,49 @@ function RentalTab({
 }
 
 function UtilitiesTab({ space }: { space: BuildingVisualSpaceProjection }) {
+  const t = useTranslations("building");
+  const utilityStatusLabel = () => {
+    if (!space.utilities.hasElectricityMeter) return t("inspector.noElectricityMeter");
+    if (space.utilities.missingBoundary) return t("utilities.boundaryAttention");
+    if (space.utilities.needsClosing) return t("utilities.monthlyClosingRequired");
+    if (space.utilities.attentionCount) return t("utilities.utilityWarnings", { count: space.utilities.attentionCount });
+    return t("utilities.healthy");
+  };
   return (
     <div className="space-inspector-sections">
-      <InspectorSection title="Electricity" icon={<Gauge />}>
+      <InspectorSection title={t("utilities.electricity")} icon={<Gauge />}>
         {space.utilities.hasElectricityMeter ? (
           <>
-            <strong>{space.utilities.meterNumber || "Electricity meter"}</strong>
+            <strong>{space.utilities.meterNumber || t("inspector.electricityMeter")}</strong>
             <dl className="space-inspector-inline-dl">
-              <DetailLine label="Latest reading" value={space.utilities.latestReadingValue ?? "—"} />
-              <DetailLine label="Current closing" value={space.utilities.monthlyClosingValue ?? "—"} />
-              <DetailLine label="Known usage" value={space.utilities.knownUsageKwh ? `${space.utilities.knownUsageKwh} kWh` : "—"} />
-              <DetailLine label="Status" value={utilityStatus(space)} />
+              <DetailLine label={t("utilities.latestReading")} value={space.utilities.latestReadingValue ?? "—"} />
+              <DetailLine label={t("utilities.currentClosing")} value={space.utilities.monthlyClosingValue ?? "—"} />
+              <DetailLine label={t("utilities.knownUsage")} value={space.utilities.knownUsageKwh ? `${space.utilities.knownUsageKwh} kWh` : "—"} />
+              <DetailLine label={t("utilities.status")} value={utilityStatusLabel()} />
             </dl>
             <div className="space-inspector-actions">
               {space.utilities.activeMeterId && <MeterReadingDialog meterId={space.utilities.activeMeterId} />}
-              <Button size="sm" variant="outline" asChild><a href={`/utilities/meters?space=${space.id}`}>View meter</a></Button>
-              <Button size="sm" variant="ghost" asChild><a href="/utilities">Open Utilities</a></Button>
+              <Button size="sm" variant="outline" asChild><a href={`/utilities/meters?space=${space.id}`}>{t("utilities.viewMeter")}</a></Button>
+              <Button size="sm" variant="ghost" asChild><a href="/utilities">{t("utilities.openUtilities")}</a></Button>
             </div>
           </>
         ) : (
           <>
-            <p className="space-inspector-muted">No electricity meter is linked to this space.</p>
-            <Button size="sm" variant="outline" asChild><a href={`/utilities/meters?space=${space.id}`}>Open meters</a></Button>
+            <p className="space-inspector-muted">{t("utilities.meterNotLinked")}</p>
+            <Button size="sm" variant="outline" asChild><a href={`/utilities/meters?space=${space.id}`}>{t("utilities.openMeters")}</a></Button>
           </>
         )}
       </InspectorSection>
 
-      <InspectorSection title="Water" icon={<Gauge />}>
+      <InspectorSection title={t("utilities.water")} icon={<Gauge />}>
         {space.type === "ROOM" ? (
           <>
-            <strong>{space.occupancy?.occupantCount ?? 0} current {space.occupancy?.occupantCount === 1 ? "occupant" : "occupants"}</strong>
-            <p>Fixed per occupant</p>
-            <p className="space-inspector-muted">Billing calculation remains in the existing Utilities/Billing workflow.</p>
+            <strong>{t("utilities.currentOccupants", { count: space.occupancy?.occupantCount ?? 0 })}</strong>
+            <p>{t("utilities.fixedPerOccupant")}</p>
+            <p className="space-inspector-muted">{t("utilities.billingOwnedElsewhere")}</p>
           </>
         ) : (
-          <p className="space-inspector-muted">No room-level occupant water summary for this space type.</p>
+          <p className="space-inspector-muted">{t("utilities.noWaterSummary")}</p>
         )}
       </InspectorSection>
     </div>
@@ -465,6 +489,12 @@ function OperationsTab({
   space: BuildingVisualSpaceProjection;
   data: BuildingInspectorData;
 }) {
+  const t = useTranslations("building");
+  const locale = useLocale() as AppLocale;
+  const enumLabel = (value: string) => {
+    const key = enumStatusKey(value);
+    return key ? t(`statusLabels.${key}`) : value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  };
   const activeIssues = data.maintenance.items.filter(
     (item) => item.spaceId === space.id && item.status !== "COMPLETED",
   );
@@ -477,15 +507,15 @@ function OperationsTab({
 
   return (
     <div className="space-inspector-sections">
-      <InspectorSection title="Maintenance" icon={<Wrench />}>
-        <strong>{activeIssues.length} active {activeIssues.length === 1 ? "issue" : "issues"}</strong>
+      <InspectorSection title={t("operations.maintenance")} icon={<Wrench />}>
+        <strong>{t("operations.activeIssues", { count: activeIssues.length })}</strong>
         <div className="space-inspector-list">
           {activeIssues.slice(0, 4).map((issue) => (
             <a key={issue.id} className="space-inspector-list-row is-link" href={`/operations/maintenance?space=${space.id}&issue=${issue.id}`}>
-              <div><strong>{issue.title}</strong><span>{titleCase(issue.priority)} · {titleCase(issue.status)}</span></div>
+              <div><strong>{issue.title}</strong><span>{enumLabel(issue.priority)} · {enumLabel(issue.status)}</span></div>
             </a>
           ))}
-          {!activeIssues.length && <p className="space-inspector-muted">No active maintenance issues.</p>}
+          {!activeIssues.length && <p className="space-inspector-muted">{t("operations.noActiveIssues")}</p>}
         </div>
         <div className="space-inspector-actions">
           <MaintenanceFormDialog
@@ -494,21 +524,21 @@ function OperationsTab({
             assetOptions={data.maintenance.assetOptions}
             defaultFloorId={floor.id}
             defaultSpaceId={space.id}
-            trigger={<Button size="sm"><Plus /> Report issue</Button>}
+            trigger={<Button size="sm"><Plus /> {t("operations.reportIssue")}</Button>}
           />
-          <Button size="sm" variant="outline" asChild><a href={`/operations/maintenance?space=${space.id}`}>View maintenance</a></Button>
+          <Button size="sm" variant="outline" asChild><a href={`/operations/maintenance?space=${space.id}`}>{t("operations.viewMaintenance")}</a></Button>
         </div>
       </InspectorSection>
 
-      <InspectorSection title="Tasks" icon={<ListTodo />}>
-        <strong>{tasks.length} upcoming</strong>
+      <InspectorSection title={t("operations.tasks")} icon={<ListTodo />}>
+        <strong>{t("operations.upcomingCount", { count: tasks.length })}</strong>
         <div className="space-inspector-list">
           {tasks.slice(0, 4).map((task) => (
             <div key={task.id} className="space-inspector-list-row">
-              <div><strong>{task.title}</strong><span>{task.dueDate ? formatDate(task.dueDate) : "No due date"}{task.overdue ? " · Overdue" : ""}</span></div>
+              <div><strong>{task.title}</strong><span>{task.dueDate ? formatDateOnlyLocale(task.dueDate, locale) : t("operations.noDueDate")}{task.overdue ? ` · ${t("operations.overdue")}` : ""}</span></div>
             </div>
           ))}
-          {!tasks.length && <p className="space-inspector-muted">No tasks linked to this room.</p>}
+          {!tasks.length && <p className="space-inspector-muted">{t("operations.noLinkedTasks")}</p>}
         </div>
         <div className="space-inspector-actions">
           <TaskFormDialog
@@ -518,9 +548,9 @@ function OperationsTab({
             invoiceOptions={data.tasks.invoiceOptions}
             defaultLinkedEntityType="SPACE"
             defaultLinkedEntityId={space.id}
-            trigger={<Button size="sm"><Plus /> Add task</Button>}
+            trigger={<Button size="sm"><Plus /> {t("operations.addTask")}</Button>}
           />
-          <Button size="sm" variant="outline" asChild><a href="/operations/tasks">View tasks</a></Button>
+          <Button size="sm" variant="outline" asChild><a href="/operations/tasks">{t("operations.viewTasks")}</a></Button>
         </div>
       </InspectorSection>
     </div>
@@ -538,6 +568,11 @@ function AssetsTab({
   space: BuildingVisualSpaceProjection;
   data: BuildingInspectorData;
 }) {
+  const t = useTranslations("building");
+  const enumLabel = (value: string) => {
+    const key = enumStatusKey(value);
+    return key ? t(`statusLabels.${key}`) : value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  };
   const assets = data.assets.items.filter((item) => item.spaceId === space.id && item.status !== "DISPOSED");
   const devices = data.devices.items.filter((item) => item.spaceId === space.id);
   const online = devices.filter((item) => item.status === "ONLINE").length;
@@ -545,16 +580,16 @@ function AssetsTab({
 
   return (
     <div className="space-inspector-sections">
-      <InspectorSection title="Assets" icon={<Boxes />}>
-        <strong>{assets.filter((item) => item.status === "ACTIVE").length} active</strong>
-        <p>{assets.filter((item) => item.underMaintenance).length} under maintenance</p>
+      <InspectorSection title={t("assetsPanel.assets")} icon={<Boxes />}>
+        <strong>{t("assetsPanel.activeCount", { count: assets.filter((item) => item.status === "ACTIVE").length })}</strong>
+        <p>{t("assetsPanel.underMaintenance", { count: assets.filter((item) => item.underMaintenance).length })}</p>
         <div className="space-inspector-list">
           {assets.slice(0, 5).map((asset) => (
             <a key={asset.id} className="space-inspector-list-row is-link" href={`/assets/${asset.id}`}>
-              <div><strong>{asset.name}</strong><span>{asset.categoryName} · {titleCase(asset.status)}</span></div>
+              <div><strong>{asset.name}</strong><span>{asset.categoryName} · {enumLabel(asset.status)}</span></div>
             </a>
           ))}
-          {!assets.length && <p className="space-inspector-muted">No tracked assets in this space.</p>}
+          {!assets.length && <p className="space-inspector-muted">{t("assetsPanel.noAssets")}</p>}
         </div>
         <div className="space-inspector-actions">
           <AssetFormDialog
@@ -563,24 +598,24 @@ function AssetsTab({
             locations={data.assets.locations}
             defaultFloorId={floor.id}
             defaultSpaceId={space.id}
-            trigger={<Button size="sm"><Plus /> Add asset</Button>}
+            trigger={<Button size="sm"><Plus /> {t("assetsPanel.addAsset")}</Button>}
           />
-          <Button size="sm" variant="outline" asChild><a href={`/assets?location=${space.id}`}>View assets</a></Button>
+          <Button size="sm" variant="outline" asChild><a href={`/assets?location=${space.id}`}>{t("assetsPanel.viewAssets")}</a></Button>
         </div>
       </InspectorSection>
 
-      <InspectorSection title="Devices" icon={<Wifi />}>
-        <strong>{devices.length} registered</strong>
-        <p>{online} online · {unknown} unknown</p>
+      <InspectorSection title={t("assetsPanel.devices")} icon={<Wifi />}>
+        <strong>{t("assetsPanel.registered", { count: devices.length })}</strong>
+        <p>{t("assetsPanel.onlineUnknown", { online, unknown })}</p>
         <div className="space-inspector-list">
           {devices.slice(0, 5).map((device) => (
             <div key={device.id} className="space-inspector-list-row">
-              <div><strong>{device.name}</strong><span>{device.deviceType} · {titleCase(device.status)}</span></div>
+              <div><strong>{device.name}</strong><span>{device.deviceType} · {enumLabel(device.status)}</span></div>
             </div>
           ))}
-          {!devices.length && <p className="space-inspector-muted">No devices linked to this space.</p>}
+          {!devices.length && <p className="space-inspector-muted">{t("assetsPanel.noDevices")}</p>}
         </div>
-        <Button size="sm" variant="outline" asChild><a href="/assets/devices">View devices</a></Button>
+        <Button size="sm" variant="outline" asChild><a href="/assets/devices">{t("assetsPanel.viewDevices")}</a></Button>
       </InspectorSection>
     </div>
   );
@@ -593,22 +628,23 @@ function SpaceManagement({
   floor: DashboardFloor;
   space: BuildingVisualSpaceProjection;
 }) {
+  const t = useTranslations("building");
   return (
     <details className="space-inspector-manage">
-      <summary>Space management</summary>
+      <summary>{t("management.title")}</summary>
       <div>
-        <span className="space-inspector-management-meta">Display order {space.sortOrder}</span>
+        <span className="space-inspector-management-meta">{t("management.displayOrder", { order: space.sortOrder })}</span>
         <SpaceFormDialog
           mode="edit"
           floor={floor}
           space={space}
-          trigger={<Button size="sm" variant="outline"><Pencil /> Edit space</Button>}
+          trigger={<Button size="sm" variant="outline"><Pencil /> {t("management.editSpace")}</Button>}
         />
-        <SpaceReorderButton floorId={floor.id} spaceId={space.id} direction="up" label="Move space left" icon={<ArrowLeft />} />
-        <SpaceReorderButton floorId={floor.id} spaceId={space.id} direction="down" label="Move space right" icon={<ArrowRight />} />
+        <SpaceReorderButton floorId={floor.id} spaceId={space.id} direction="up" label={t("management.moveLeft")} icon={<ArrowLeft />} />
+        <SpaceReorderButton floorId={floor.id} spaceId={space.id} direction="down" label={t("management.moveRight")} icon={<ArrowRight />} />
         <ArchiveOrDeleteDialog
           entityName={space.name}
-          description="Archive removes this space from active views and keeps its record. Delete permanently removes the record."
+          description={t("management.archiveDeleteDescription")}
           archiveAction={archiveSpaceAction}
           archiveHidden={{ spaceId: space.id }}
           deleteAction={deleteSpaceAction}
@@ -644,16 +680,4 @@ function DetailLine({ label, value }: { label: string; value: string }) {
 
 function EmptyState({ icon, title, copy }: { icon: React.ReactNode; title: string; copy: string }) {
   return <div className="space-inspector-empty"><span>{icon}</span><strong>{title}</strong><p>{copy}</p></div>;
-}
-
-function utilityStatus(space: BuildingVisualSpaceProjection) {
-  if (!space.utilities.hasElectricityMeter) return "No electricity meter";
-  if (space.utilities.missingBoundary) return "Boundary attention required";
-  if (space.utilities.needsClosing) return "Monthly closing required";
-  if (space.utilities.attentionCount) return `${space.utilities.attentionCount} utility warning${space.utilities.attentionCount === 1 ? "" : "s"}`;
-  return "Healthy";
-}
-
-function titleCase(value: string) {
-  return value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

@@ -1,6 +1,9 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import type { AppLocale } from "@/i18n/config";
+import { formatVndLocale } from "@/i18n/format";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,7 +13,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { formatVnd } from "@/lib/presentation";
 
 type Water = {
   room: string;
@@ -28,6 +30,8 @@ type Water = {
 };
 
 export function WaterBreakdownDialog({ water }: { water: Water }) {
+  const t = useTranslations("utilities");
+  const locale = useLocale() as AppLocale;
   if (!water.occupants.length) return null;
   return (
     <Dialog>
@@ -37,17 +41,17 @@ export function WaterBreakdownDialog({ water }: { water: Water }) {
           size="icon"
           variant="ghost"
           className="utility-estimate-details-trigger"
-          aria-label={`View water details for ${water.room}`}
-          title="View water details"
+          aria-label={`${t("viewWaterDetails")} · ${water.room}`}
+          title={t("viewWaterDetails")}
         >
           <ChevronRight />
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Water breakdown · {water.room}</DialogTitle>
+          <DialogTitle>{t("waterBreakdown", { room: water.room })}</DialogTitle>
           <DialogDescription>
-            Calculated separately for each occupant.
+            {t("waterCalculatedPerOccupant")}
           </DialogDescription>
         </DialogHeader>
         <div className="meter-reading-list">
@@ -56,20 +60,20 @@ export function WaterBreakdownDialog({ water }: { water: Water }) {
               <strong>{occupant.personName}</strong>
               <span>
                 {occupant.fullMonth
-                  ? "Full month"
-                  : `${occupant.billableDays} days`}
+                  ? t("fullMonth")
+                  : t("days", { count: occupant.billableDays })}
               </span>
               <strong>
-                {occupant.amount ? formatVnd(occupant.amount) : "No rate"}
+                {occupant.amount ? formatVndLocale(occupant.amount, locale) : t("noRate")}
               </strong>
             </div>
           ))}
         </div>
         <div className="meter-breakdown-total">
-          <span>Total · {water.occupantDays} occupant-days</span>
+          <span>{t("waterTotal", { days: water.occupantDays })}</span>
           <strong>
             {water.finalPreviewAmount
-              ? formatVnd(water.finalPreviewAmount)
+              ? formatVndLocale(water.finalPreviewAmount, locale)
               : "—"}
           </strong>
         </div>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
   Check,
@@ -16,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 export function MonthSelector({ month }: { month: string }) {
+  const t = useTranslations("utilities");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -31,17 +33,17 @@ export function MonthSelector({ month }: { month: string }) {
   };
 
   return (
-    <div className="meter-month-nav" aria-label="Billing month navigation">
+    <div className="meter-month-nav" aria-label={t("billingMonth")}>
       <Link
         href={hrefForMonth(shiftMonth(selectedMonth, -1))}
-        aria-label="Previous month"
+        aria-label={t("previousMonth")}
       >
         <ChevronLeft aria-hidden="true" />
       </Link>
       <label>
-        <span className="sr-only">Billing month</span>
+        <span className="sr-only">{t("billingMonth")}</span>
         <Input
-          aria-label="Billing month"
+          aria-label={t("billingMonth")}
           type="month"
           value={selectedMonth}
           onChange={(event) => {
@@ -52,7 +54,7 @@ export function MonthSelector({ month }: { month: string }) {
       </label>
       <Link
         href={hrefForMonth(shiftMonth(selectedMonth, 1))}
-        aria-label="Next month"
+        aria-label={t("nextMonth")}
       >
         <ChevronRight aria-hidden="true" />
       </Link>
@@ -61,7 +63,7 @@ export function MonthSelector({ month }: { month: string }) {
         href={hrefForMonth(currentMonth)}
         aria-current={selectedMonth === currentMonth ? "date" : undefined}
       >
-        Current
+        {t("currentMonth")}
       </Link>
     </div>
   );
@@ -98,16 +100,17 @@ export function UtilityStatusBadge({
     | "needs-closing"
     | "n-a";
 }) {
+  const t = useTranslations("utilities");
   const copy = {
-    complete: "Complete",
-    missing: "Missing",
-    estimated: "Estimated",
-    incomplete: "Incomplete",
-    "closing-set": "Closing set",
-    locked: "Locked",
-    optional: "Optional",
-    "needs-closing": "Needs closing",
-    "n-a": "N/A",
+    complete: t("complete"),
+    missing: t("missing"),
+    estimated: t("estimated"),
+    incomplete: t("incomplete"),
+    "closing-set": t("closingSet"),
+    locked: t("locked"),
+    optional: t("optional"),
+    "needs-closing": t("needsClosing"),
+    "n-a": t("notApplicable"),
   }[status];
   const normalized =
     status === "closing-set" || status === "locked"

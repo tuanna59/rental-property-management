@@ -1,4 +1,7 @@
-import { formatVnd } from "@/lib/presentation";
+import { createTranslator } from "next-intl";
+import type { AppLocale } from "@/i18n/config";
+import { formatDateOnlyLocale, formatMonthLocale, formatNumberLocale, formatVndLocale } from "@/i18n/format";
+import { getMessages } from "@/i18n/messages";
 import type { getInvoices } from "../server/billing.queries";
 
 type Invoice = Awaited<ReturnType<typeof getInvoices>>[number];
@@ -14,19 +17,20 @@ type InvoiceLinePresentation = {
   amount: string;
 };
 
-export function invoicePresentation(invoice: Invoice) {
+export function invoicePresentation(invoice: Invoice, locale: AppLocale) {
+  const t = billingTranslator(locale);
   const month = invoice.billingPeriod.toISOString().slice(0, 7);
   const lines: InvoiceLinePresentation[] = [
-    ...invoice.lines.map((line) => linePresentation(line)),
+    ...invoice.lines.map((line) => linePresentation(line, locale, t)),
     ...invoice.adjustments.map((adjustment) => ({
       id: adjustment.id,
       type: "ADJUSTMENT",
-      label: adjustment.type === "CREDIT" ? "Giảm trừ" : "Phụ thu",
+      label: adjustment.type === "CREDIT" ? t("creditDiscount") : t("additionalCharge"),
       detail: adjustment.description,
       detailNote: adjustment.reason || null,
       quantity: "—",
       rate: "—",
-      amount: `${adjustment.type === "CREDIT" ? "−" : ""}${formatVnd(adjustment.amount)}`,
+      amount: `${adjustment.type === "CREDIT" ? "−" : ""}${formatVndLocale(adjustment.amount, locale)}`,
     })),
   ];
 
@@ -34,19 +38,19 @@ export function invoicePresentation(invoice: Invoice) {
     propertyName: invoice.propertyName,
     invoiceNumber: `${invoice.type === "FINAL_SETTLEMENT" ? "FS" : "INV"}-${month}-${sanitizeSegment(invoice.room).toUpperCase()}`,
     documentTitle:
-      invoice.type === "FINAL_SETTLEMENT" ? "QUYẾT TOÁN" : "HÓA ĐƠN",
-    statusLabel: invoice.status === "DRAFT" ? "BẢN NHÁP" : "ĐÃ CHỐT",
+      invoice.type === "FINAL_SETTLEMENT" ? t("finalSettlementDocument") : t("invoiceDocument"),
+    statusLabel: invoice.status === "DRAFT" ? t("draftWatermark") : t("finalizedLabel"),
     billTo: invoice.renterName,
     room: invoice.room,
     billingLabel:
-      invoice.type === "FINAL_SETTLEMENT" ? "NGÀY HÓA ĐƠN" : "KỲ HÓA ĐƠN",
+      invoice.type === "FINAL_SETTLEMENT" ? t("billingLabelFinal") : t("billingLabelRegular"),
     billingValue:
       invoice.type === "FINAL_SETTLEMENT"
-        ? formatViDate(invoice.invoiceDate)
-        : viMonthLabel(invoice.billingPeriod),
+        ? formatDateOnlyLocale(invoice.invoiceDate, locale)
+        : formatMonthLocale(invoice.billingPeriod, locale),
     moveOut:
       invoice.type === "FINAL_SETTLEMENT"
-        ? formatViDate(invoice.invoiceDate)
+        ? formatDateOnlyLocale(invoice.invoiceDate, locale)
         : null,
     lines,
     total: invoice.total,
@@ -54,8 +58,9 @@ export function invoicePresentation(invoice: Invoice) {
   };
 }
 
-export function exportInvoicePng(invoice: Invoice) {
-  const presentation = invoicePresentation(invoice);
+export function exportInvoicePng(invoice: Invoice, locale: AppLocale) {
+  const t = billingTranslator(locale);
+  const presentation = invoicePresentation(invoice, locale);
   const canvas = document.createElement("canvas");
   const rowHeight = 104;
   canvas.width = 1600;
@@ -86,7 +91,7 @@ export function exportInvoicePng(invoice: Invoice) {
   context.fillText(presentation.propertyName, 132, 90);
   context.fillStyle = colors.muted;
   context.font = `400 19px ${font}`;
-  context.fillText("Quản lý tiền thuê và tiện ích", 132, 120);
+  context.fillText(t("rentalUtilitiesManagement"), 132, 120);
 
   context.textAlign = "right";
   context.fillStyle = colors.greenDark;
@@ -110,8 +115,8 @@ export function exportInvoicePng(invoice: Invoice) {
   context.stroke();
 
   // Billing context
-  drawLabel(context, "NGƯỜI THUÊ", presentation.billTo, 72, 198, colors, font);
-  drawLabel(context, "PHÒNG", presentation.room, 610, 198, colors, font);
+  drawLabel(context, t("tenantUpper"), presentation.billTo, 72, 198, colors, font);
+  drawLabel(context, t("roomUpper"), presentation.room, 610, 198, colors, font);
   drawLabel(
     context,
     presentation.billingLabel,
@@ -136,12 +141,12 @@ export function exportInvoicePng(invoice: Invoice) {
   context.fill();
   context.fillStyle = "#40564e";
   context.font = `750 17px ${font}`;
-  context.fillText("HẠNG MỤC", 96, y + 37);
-  context.fillText("CHI TIẾT / CÁCH TÍNH", x.detail, y + 37);
-  context.fillText("SỐ LƯỢNG / SỬ DỤNG", x.quantity, y + 37);
-  context.fillText("ĐƠN GIÁ", x.rate, y + 37);
+  context.fillText(t("itemUpper"), 96, y + 37);
+  context.fillText(t("detailCalculationUpper"), x.detail, y + 37);
+  context.fillText(t("quantityUsageUpper"), x.quantity, y + 37);
+  context.fillText(t("rateUpper"), x.rate, y + 37);
   context.textAlign = "right";
-  context.fillText("THÀNH TIỀN", x.amount, y + 37);
+  context.fillText(t("amountUpper"), x.amount, y + 37);
   context.textAlign = "left";
   y += 70;
 
@@ -195,10 +200,10 @@ export function exportInvoicePng(invoice: Invoice) {
   context.fill();
   context.fillStyle = colors.white;
   context.font = `700 28px ${font}`;
-  context.fillText("TỔNG THANH TOÁN", totalX + 38, y + 65);
+  context.fillText(t("totalPaymentUpper"), totalX + 38, y + 65);
   context.textAlign = "right";
   context.font = `800 36px ${font}`;
-  context.fillText(formatVnd(presentation.total), 1490, y + 66);
+  context.fillText(formatVndLocale(presentation.total, locale), 1490, y + 66);
   context.textAlign = "left";
 
   // Footer
@@ -209,12 +214,12 @@ export function exportInvoicePng(invoice: Invoice) {
   context.fillStyle = colors.muted;
   context.font = `400 16px ${font}`;
   context.fillText(
-    presentation.isDraft ? "Bản xem trước · chưa chốt" : "Hóa đơn điện tử được tạo bởi hệ thống.",
+    presentation.isDraft ? t("draftPreviewFooter") : t("electronicInvoiceCreated"),
     72,
     footerY + 5,
   );
   context.textAlign = "right";
-  context.fillText("Cảm ơn bạn đã thanh toán đúng hạn.", 1528, footerY + 5);
+  context.fillText(t("thankYouOnTime"), 1528, footerY + 5);
   context.textAlign = "left";
 
   const link = document.createElement("a");
@@ -223,25 +228,29 @@ export function exportInvoicePng(invoice: Invoice) {
   link.click();
 }
 
-function linePresentation(line: Invoice["lines"][number]): InvoiceLinePresentation {
+function linePresentation(
+  line: Invoice["lines"][number],
+  locale: AppLocale,
+  t: ReturnType<typeof billingTranslator>,
+): InvoiceLinePresentation {
   const metadata = line.metadata as Record<string, unknown>;
   const period = line.sourceBillingMonth
-    ? viMonthLabel(line.sourceBillingMonth)
+    ? formatMonthLocale(line.sourceBillingMonth, locale)
     : "—";
 
   if (line.type === "RENT") {
     const fullMonth = Boolean(metadata.fullMonth);
     const days = Number(metadata.billableDays ?? 0);
-    const monthlyRent = formatVnd(String(metadata.monthlyRentVnd ?? 0));
+    const monthlyRent = formatVndLocale(String(metadata.monthlyRentVnd ?? 0), locale);
     return {
       id: line.id,
       type: line.type,
-      label: "Tiền phòng",
-      detail: `Tiền phòng ${period}`,
-      detailNote: servicePeriodText(line.servicePeriodStart, line.servicePeriodEnd),
-      quantity: fullMonth ? "1 tháng" : `${days} ngày`,
-      rate: `${monthlyRent}/tháng`,
-      amount: formatVnd(line.finalAmount),
+      label: t("rent"),
+      detail: t("rentPeriodDetail", { period }),
+      detailNote: servicePeriodText(line.servicePeriodStart, line.servicePeriodEnd, locale),
+      quantity: fullMonth ? `1 ${t("monthUnit")}` : t("daysCount", { count: days }),
+      rate: `${monthlyRent}${t("rateUnitMonth")}`,
+      amount: formatVndLocale(line.finalAmount, locale),
     };
   }
 
@@ -250,12 +259,12 @@ function linePresentation(line: Invoice["lines"][number]): InvoiceLinePresentati
     return {
       id: line.id,
       type: line.type,
-      label: "Điện",
-      detail: `Điện sử dụng ${period}`,
-      detailNote: meterReadingSummary(metadata),
+      label: t("electricity"),
+      detail: t("electricityPeriodDetail", { period }),
+      detailNote: meterReadingSummary(metadata, locale, t),
       quantity: `${kwh} kWh`,
-      rate: `${formatVnd(String(metadata.applicableRate ?? 0))}/kWh`,
-      amount: formatVnd(line.finalAmount),
+      rate: `${formatVndLocale(String(metadata.applicableRate ?? 0), locale)}/kWh`,
+      amount: formatVndLocale(line.finalAmount, locale),
     };
   }
 
@@ -265,16 +274,16 @@ function linePresentation(line: Invoice["lines"][number]): InvoiceLinePresentati
   return {
     id: line.id,
     type: line.type,
-    label: "Nước",
-    detail: `Nước sử dụng ${period}`,
-    detailNote: `Tính theo ${occupants.length} người ở`,
-    quantity: `${occupants.length} người`,
-    rate: `${formatVnd(String(metadata.applicableRate ?? 0))}/người/tháng`,
-    amount: formatVnd(line.finalAmount),
+    label: t("water"),
+    detail: t("waterPeriodDetail", { period }),
+    detailNote: t("peopleCount", { count: occupants.length }),
+    quantity: t("peopleCount", { count: occupants.length }),
+    rate: t("perPersonPerMonth", { rate: formatVndLocale(String(metadata.applicableRate ?? 0), locale) }),
+    amount: formatVndLocale(line.finalAmount, locale),
   };
 }
 
-function meterReadingSummary(metadata: Record<string, unknown>) {
+function meterReadingSummary(metadata: Record<string, unknown>, locale: AppLocale, t: ReturnType<typeof billingTranslator>) {
   const segments = Array.isArray(metadata.meterSegments)
     ? (metadata.meterSegments as Array<Record<string, unknown>>)
     : [];
@@ -282,43 +291,31 @@ function meterReadingSummary(metadata: Record<string, unknown>) {
     const opening = segments[0].openingReading as Record<string, unknown> | null;
     const closing = segments[0].closingReading as Record<string, unknown> | null;
     if (opening?.value != null && closing?.value != null) {
-      return `Chỉ số công tơ: ${formatRegister(opening.value)} → ${formatRegister(closing.value)}`;
+      return t("meterReadingSummary", { opening: formatRegister(opening.value, locale), closing: formatRegister(closing.value, locale) });
     }
   }
-  if (segments.length > 1) return `Chu kỳ sử dụng qua ${segments.length} công tơ`;
+  if (segments.length > 1) return t("meterCycleCount", { count: segments.length });
   return null;
 }
 
-function servicePeriodText(start: Date | null, end: Date | null) {
+function servicePeriodText(start: Date | null, end: Date | null, locale: AppLocale) {
   if (!start || !end) return null;
-  return `${formatViDate(start)} – ${formatViDate(end)}`;
+  return `${formatDateOnlyLocale(start, locale)} – ${formatDateOnlyLocale(end, locale)}`;
 }
 
-function formatRegister(value: unknown) {
+function formatRegister(value: unknown, locale: AppLocale) {
   const number = Number(value);
   return Number.isFinite(number)
-    ? new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 3 }).format(number)
+    ? formatNumberLocale(number, locale, { maximumFractionDigits: 3 })
     : String(value);
 }
 
-function formatViDate(value: Date) {
-  return new Intl.DateTimeFormat("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(value);
-}
-
-function viMonthLabel(value: Date) {
-  const parts = new Intl.DateTimeFormat("vi-VN", {
-    month: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  }).formatToParts(value);
-  const month = parts.find((part) => part.type === "month")?.value ?? "";
-  const year = parts.find((part) => part.type === "year")?.value ?? "";
-  return `tháng ${month}/${year}`;
+function billingTranslator(locale: AppLocale) {
+  return createTranslator({
+    locale,
+    messages: getMessages(locale),
+    namespace: "billing",
+  });
 }
 
 function drawLabel(
@@ -455,14 +452,6 @@ function clipCanvasText(
     text = text.slice(0, -1);
   }
   return `${text}…`;
-}
-
-export function monthLabel(value: Date) {
-  return new Intl.DateTimeFormat("en", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(value);
 }
 
 function sanitizeSegment(value: string) {
