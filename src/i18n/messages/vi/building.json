@@ -254,6 +254,11 @@
     "databaseNotRunning": "Cơ sở dữ liệu chưa chạy",
     "databaseUnavailable": "Web server đang hoạt động nhưng cần PostgreSQL trên cổng 5432 trước khi có thể tải dữ liệu nhà trọ.",
     "startDatabase": "Khởi động cơ sở dữ liệu cục bộ:",
-    "applySchemaSeed": "Sau đó áp dụng schema và seed dữ liệu:"
+    "applySchemaSeed": "Sau đó áp dụng schema và seed dữ liệu:",
+    "setupTitle": "Chưa thiết lập nhà trọ",
+    "setupDescription": "Thiết lập thông tin nhà trọ để bắt đầu sử dụng.",
+    "setupAction": "Thiết lập nhà trọ",
+    "startProduction": "Khởi động môi trường production:",
+    "applyProductionMigrations": "Áp dụng migration production nếu cần:"
   }
 }

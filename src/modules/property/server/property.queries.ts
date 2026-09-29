@@ -15,6 +15,12 @@ import type {
   PropertyShellProjection,
 } from "../domain/types";
 
+/** True once any Property record exists. Used by the first-run bootstrap guard. */
+export async function hasExistingProperty(): Promise<boolean> {
+  const property = await prisma.property.findFirst({ select: { id: true } });
+  return Boolean(property);
+}
+
 /** Lightweight property projection used by the shared application shell. */
 export async function getPrimaryPropertyShell(): Promise<PropertyShellProjection | null> {
   return prisma.property.findFirst({

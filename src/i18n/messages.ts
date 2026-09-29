@@ -10,6 +10,7 @@ import enOperations from "./messages/en/operations.json";
 import enAssets from "./messages/en/assets.json";
 import enReports from "./messages/en/reports.json";
 import enProperty from "./messages/en/property.json";
+import enSetup from "./messages/en/setup.json";
 
 import viCommon from "./messages/vi/common.json";
 import viNavigation from "./messages/vi/navigation.json";
@@ -23,6 +24,7 @@ import viOperations from "./messages/vi/operations.json";
 import viAssets from "./messages/vi/assets.json";
 import viReports from "./messages/vi/reports.json";
 import viProperty from "./messages/vi/property.json";
+import viSetup from "./messages/vi/setup.json";
 
 import type { AppLocale } from "./config";
 
@@ -39,6 +41,7 @@ const en = {
   assets: enAssets,
   reports: enReports,
   property: enProperty,
+  setup: enSetup,
 };
 
 const vi: typeof en = {
@@ -54,6 +57,7 @@ const vi: typeof en = {
   assets: viAssets,
   reports: viReports,
   property: viProperty,
+  setup: viSetup,
 };
 
 export type AppMessages = typeof en;

@@ -1,0 +1,48 @@
+{
+  "title": "Set up your rental property",
+  "description": "Create the basic structure of the property. You can change it later in Property Settings.",
+  "propertyInformation": "Property information",
+  "propertyInformationHint": "Start with the name used to identify this property.",
+  "propertyName": "Property name",
+  "notes": "Notes",
+  "notesPlaceholder": "Optional notes about the property",
+  "structure": "Structure",
+  "structureHint": "Add floors and spaces in the same order you want them to appear in the building.",
+  "addFloor": "Add floor",
+  "removeFloor": "Remove floor",
+  "floorName": "Floor {number} name",
+  "spaces": "Spaces",
+  "spaceOrderHint": "Spaces keep the order shown here.",
+  "addSpace": "Add space",
+  "removeSpace": "Remove space",
+  "noSpaces": "No spaces on this floor yet.",
+  "spaceName": "Space {number} name / code",
+  "spaceNamePlaceholder": "Example: P01",
+  "spaceType": "Space type",
+  "complete": "Complete setup",
+  "saving": "Creating property…",
+  "footerHint": "This creates only the property structure. No demo tenants or transactions will be added.",
+  "empty": {
+    "title": "Property not set up yet",
+    "description": "Set up your rental property to start using the application.",
+    "action": "Set up property"
+  },
+  "spaceTypes": {
+    "room": "Rental Room",
+    "ownerHome": "Owner Home",
+    "garage": "Garage",
+    "rooftop": "Rooftop",
+    "commonArea": "Common Area",
+    "storage": "Storage",
+    "other": "Other"
+  },
+  "validation": {
+    "propertyNameRequired": "Property name is required.",
+    "atLeastOneFloor": "Add at least one floor before completing setup."
+  },
+  "feedback": {
+    "checkFields": "Please check the setup information and try again.",
+    "saveFailed": "The property could not be created. Please try again.",
+    "alreadyConfigured": "The property has already been configured."
+  }
+}

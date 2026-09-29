@@ -254,6 +254,11 @@
     "databaseNotRunning": "Database is not running",
     "databaseUnavailable": "The web server is reachable, but the dashboard needs PostgreSQL on port 5432 before it can load property data.",
     "startDatabase": "Start the local database:",
-    "applySchemaSeed": "Then apply schema and seed data:"
+    "applySchemaSeed": "Then apply schema and seed data:",
+    "setupTitle": "Property not set up yet",
+    "setupDescription": "Set up your rental property to start using the application.",
+    "setupAction": "Set up property",
+    "startProduction": "Start the production stack:",
+    "applyProductionMigrations": "Apply production migrations if needed:"
   }
 }

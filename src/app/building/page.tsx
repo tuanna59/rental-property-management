@@ -1,6 +1,8 @@
 import { Building2, DatabaseZap } from "lucide-react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { getAppEnvironment } from "@/lib/app-environment";
 import { getServerTranslator } from "@/i18n/server";
 import "@/modules/assets/components/assets.css";
 import { getAssetInventoryPage, getDevicePage } from "@/modules/assets/server/assets.queries";
@@ -37,16 +39,25 @@ export default async function Home({
   }
 
   if (!property) {
+    const isProduction = getAppEnvironment() === "production";
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--app-page-bg)] px-4 text-[var(--app-text-primary)]">
         <section className="flex max-w-md flex-col items-center rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-8 text-center shadow-sm">
           <Building2 className="size-12 text-[var(--app-brand)]" />
-          <h1 className="mt-4 text-2xl font-semibold">{t("server.noProperty")}</h1>
+          <h1 className="mt-4 text-2xl font-semibold">
+            {isProduction ? t("server.setupTitle") : t("server.noProperty")}
+          </h1>
           <p className="mt-2 text-sm text-[var(--app-text-secondary)]">
-            {t("server.seedHint")}
+            {isProduction ? t("server.setupDescription") : t("server.seedHint")}
           </p>
           <Button className="mt-5" asChild>
-            <a href="https://www.prisma.io/docs/orm/prisma-migrate/workflows/seeding">{t("server.seedWorkflow")}</a>
+            {isProduction ? (
+              <Link href="/setup">{t("server.setupAction")}</Link>
+            ) : (
+              <a href="https://www.prisma.io/docs/orm/prisma-migrate/workflows/seeding">
+                {t("server.seedWorkflow")}
+              </a>
+            )}
           </Button>
         </section>
       </main>
@@ -81,6 +92,7 @@ function isDatabaseUnavailable(error: unknown) {
 
 async function DatabaseUnavailable() {
   const t = await getServerTranslator("building");
+  const isProduction = getAppEnvironment() === "production";
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--app-page-bg)] px-4 text-[var(--app-text-primary)]">
       <section className="w-full max-w-2xl rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-8 shadow-sm">
@@ -97,10 +109,18 @@ async function DatabaseUnavailable() {
           </div>
         </div>
         <div className="mt-6 grid gap-3 rounded-md bg-[var(--app-surface-subtle)] p-4 text-sm">
-          <p className="font-medium text-[var(--app-text-primary)]">{t("server.startDatabase")}</p>
-          <code className="overflow-x-auto rounded-md border border-[var(--app-border)] bg-[var(--app-surface-elevated)] px-3 py-2 text-[var(--app-text-primary)]">docker compose up -d postgres</code>
-          <p className="font-medium text-[var(--app-text-primary)]">{t("server.applySchemaSeed")}</p>
-          <code className="overflow-x-auto rounded-md border border-[var(--app-border)] bg-[var(--app-surface-elevated)] px-3 py-2 text-[var(--app-text-primary)]">pnpm db:migrate && pnpm db:seed</code>
+          <p className="font-medium text-[var(--app-text-primary)]">
+            {isProduction ? t("server.startProduction") : t("server.startDatabase")}
+          </p>
+          <code className="overflow-x-auto rounded-md border border-[var(--app-border)] bg-[var(--app-surface-elevated)] px-3 py-2 text-[var(--app-text-primary)]">
+            {isProduction ? ".\\scripts\\prod-up.ps1" : "docker compose up -d postgres"}
+          </code>
+          <p className="font-medium text-[var(--app-text-primary)]">
+            {isProduction ? t("server.applyProductionMigrations") : t("server.applySchemaSeed")}
+          </p>
+          <code className="overflow-x-auto rounded-md border border-[var(--app-border)] bg-[var(--app-surface-elevated)] px-3 py-2 text-[var(--app-text-primary)]">
+            {isProduction ? ".\\scripts\\prod-migrate.ps1" : "pnpm db:migrate && pnpm db:seed"}
+          </code>
         </div>
       </section>
     </main>

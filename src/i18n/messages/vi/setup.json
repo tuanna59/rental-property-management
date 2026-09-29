@@ -1,0 +1,48 @@
+{
+  "title": "Thiết lập nhà trọ",
+  "description": "Tạo cấu trúc cơ bản cho nhà trọ. Bạn có thể chỉnh sửa sau trong phần cài đặt nhà trọ.",
+  "propertyInformation": "Thông tin nhà trọ",
+  "propertyInformationHint": "Bắt đầu với tên dùng để nhận biết nhà trọ này.",
+  "propertyName": "Tên nhà trọ",
+  "notes": "Ghi chú",
+  "notesPlaceholder": "Ghi chú về nhà trọ (không bắt buộc)",
+  "structure": "Cấu trúc",
+  "structureHint": "Thêm tầng và khu vực theo đúng thứ tự bạn muốn hiển thị trong tòa nhà.",
+  "addFloor": "Thêm tầng",
+  "removeFloor": "Xóa tầng",
+  "floorName": "Tên tầng {number}",
+  "spaces": "Khu vực",
+  "spaceOrderHint": "Các khu vực sẽ giữ nguyên thứ tự đang hiển thị.",
+  "addSpace": "Thêm khu vực",
+  "removeSpace": "Xóa khu vực",
+  "noSpaces": "Tầng này chưa có khu vực.",
+  "spaceName": "Tên / mã khu vực {number}",
+  "spaceNamePlaceholder": "Ví dụ: P01",
+  "spaceType": "Loại khu vực",
+  "complete": "Hoàn tất thiết lập",
+  "saving": "Đang tạo nhà trọ…",
+  "footerHint": "Bước này chỉ tạo cấu trúc nhà trọ. Không thêm người thuê hoặc dữ liệu giao dịch mẫu.",
+  "empty": {
+    "title": "Chưa thiết lập nhà trọ",
+    "description": "Thiết lập thông tin nhà trọ để bắt đầu sử dụng.",
+    "action": "Thiết lập nhà trọ"
+  },
+  "spaceTypes": {
+    "room": "Phòng cho thuê",
+    "ownerHome": "Nhà chủ",
+    "garage": "Nhà xe",
+    "rooftop": "Sân thượng",
+    "commonArea": "Khu vực chung",
+    "storage": "Kho",
+    "other": "Khác"
+  },
+  "validation": {
+    "propertyNameRequired": "Tên nhà trọ là bắt buộc.",
+    "atLeastOneFloor": "Hãy thêm ít nhất một tầng trước khi hoàn tất thiết lập."
+  },
+  "feedback": {
+    "checkFields": "Vui lòng kiểm tra thông tin thiết lập và thử lại.",
+    "saveFailed": "Không thể tạo nhà trọ. Vui lòng thử lại.",
+    "alreadyConfigured": "Nhà trọ đã được thiết lập."
+  }
+}
