@@ -1,12 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import type { ActionState } from "@/lib/action-state";
 import { getActionFeedback } from "@/i18n/action-feedback";
 import { PeopleDomainError } from "@/modules/people/domain/identity";
+import {
+  localizePeopleDomainError,
+  localizePersonValidationError,
+  parseNewPersonForAction,
+} from "@/modules/people/action-feedback";
 
 import { TenancyDomainError } from "./domain/errors";
+import { localizeTenancyError } from "./action-feedback";
 import {
   addAdditionalOccupant,
   addNewAdditionalOccupant,
@@ -81,13 +88,19 @@ export async function moveInAction(
     };
     const responsiblePersonId = value(formData, "responsiblePersonId");
     if (responsiblePersonId === "__new") {
-      await moveInWithNewResponsible({
-        ...baseInput,
-        person: {
+      const person = parseNewPersonForAction(
+        {
           fullName: value(formData, "newPersonName"),
           phone: value(formData, "newPersonPhone") || undefined,
           citizenId: value(formData, "newPersonCitizenId") || undefined,
         },
+        feedback,
+      );
+      if (!person.ok) return { ok: false, message: person.message };
+
+      await moveInWithNewResponsible({
+        ...baseInput,
+        person: person.data,
         responsible: { role: "RESPONSIBLE", startDate, endDate: moveOutDate },
         additionalPersonIds: formData.getAll("additionalPersonIds").map(String),
       });
@@ -114,11 +127,14 @@ export async function moveInAction(
     revalidatePath("/tenants");
     return { ok: true, message: feedback("moveInRecorded") };
   } catch (error) {
-    if (
-      error instanceof TenancyDomainError ||
-      error instanceof PeopleDomainError
-    ) {
-      return { ok: false, message: error.message };
+    if (error instanceof TenancyDomainError) {
+      return { ok: false, message: localizeTenancyError(error, feedback) };
+    }
+    if (error instanceof PeopleDomainError) {
+      return { ok: false, message: localizePeopleDomainError(error, feedback) };
+    }
+    if (error instanceof z.ZodError) {
+      return { ok: false, message: localizePersonValidationError(error, feedback) };
     }
     console.error(error);
     return { ok: false, message: feedback("moveInFailed") };
@@ -147,7 +163,7 @@ export async function moveOutAction(
     return { ok: true, message: feedback("moveOutRecorded") };
   } catch (error) {
     if (error instanceof TenancyDomainError) {
-      return { ok: false, message: error.message };
+      return { ok: false, message: localizeTenancyError(error, feedback) };
     }
     console.error(error);
     return { ok: false, message: feedback("moveOutFailed") };
@@ -165,11 +181,14 @@ async function tenancyAction(
     revalidatePath("/tenants");
     return { ok: true, message: feedback(successKey) };
   } catch (error) {
-    if (
-      error instanceof TenancyDomainError ||
-      error instanceof PeopleDomainError
-    ) {
-      return { ok: false, message: error.message };
+    if (error instanceof TenancyDomainError) {
+      return { ok: false, message: localizeTenancyError(error, feedback) };
+    }
+    if (error instanceof PeopleDomainError) {
+      return { ok: false, message: localizePeopleDomainError(error, feedback) };
+    }
+    if (error instanceof z.ZodError) {
+      return { ok: false, message: localizePersonValidationError(error, feedback) };
     }
     console.error(error);
     return { ok: false, message: feedback("rentalSaveFailed") };
@@ -179,29 +198,35 @@ async function tenancyAction(
 export async function addOccupantAction(
   _state: ActionState,
   formData: FormData,
-) {
-  return tenancyAction(async () => {
-    const occupancy = {
-      tenancyId: value(formData, "tenancyId"),
-      startDate: value(formData, "startDate"),
-      notes: value(formData, "notes") || undefined,
-    };
-    const personId = value(formData, "personId");
-    if (personId === "__new") {
-      await addNewAdditionalOccupant(
-        {
-          fullName: value(formData, "newPersonName"),
-          phone: value(formData, "newPersonPhone") || undefined,
-        },
-        occupancy,
-      );
-    } else {
-      await addAdditionalOccupant({
-        ...occupancy,
-        personId,
-      });
-    }
-  }, "occupantAdded");
+): Promise<ActionState> {
+  const occupancy = {
+    tenancyId: value(formData, "tenancyId"),
+    startDate: value(formData, "startDate"),
+    notes: value(formData, "notes") || undefined,
+  };
+  const personId = value(formData, "personId");
+
+  if (personId === "__new") {
+    const feedback = await getActionFeedback("tenants");
+    const person = parseNewPersonForAction(
+      {
+        fullName: value(formData, "newPersonName"),
+        phone: value(formData, "newPersonPhone") || undefined,
+      },
+      feedback,
+    );
+    if (!person.ok) return { ok: false, message: person.message };
+
+    return tenancyAction(
+      () => addNewAdditionalOccupant(person.data, occupancy),
+      "occupantAdded",
+    );
+  }
+
+  return tenancyAction(
+    () => addAdditionalOccupant({ ...occupancy, personId }),
+    "occupantAdded",
+  );
 }
 
 export async function endOccupancyAction(

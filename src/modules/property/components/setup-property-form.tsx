@@ -61,6 +61,15 @@ export function SetupPropertyForm() {
     },
   ]);
 
+  React.useEffect(() => {
+    if (state.ok) {
+      // A full navigation is intentional here. The root AppShell was rendered
+      // before the first Property existed, so a client-only redirect can keep
+      // that stale root layout mounted until the user manually refreshes.
+      window.location.replace("/dashboard");
+    }
+  }, [state.ok]);
+
   const serializedFloors = React.useMemo(
     () =>
       JSON.stringify(

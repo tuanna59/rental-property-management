@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { getActionFeedback } from "@/i18n/action-feedback";
@@ -57,5 +57,6 @@ export async function completeSetupAction(
     return { ok: false, message: feedback("saveFailed") };
   }
 
-  redirect("/dashboard");
+  revalidatePath("/", "layout");
+  return { ok: true, message: "" };
 }

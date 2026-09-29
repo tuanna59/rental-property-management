@@ -28,6 +28,11 @@ import {
 } from "./server/people.service";
 import { revealPersonCitizenId } from "./server/people.queries";
 
+import {
+  localizePeopleDomainError,
+  localizePersonFieldErrors,
+} from "./action-feedback";
+
 async function personAction<T extends z.ZodType>(
   schema: T,
   formData: FormData,
@@ -40,7 +45,10 @@ async function personAction<T extends z.ZodType>(
     return {
       ok: false,
       message: feedback("checkFields"),
-      fieldErrors: z.flattenError(parsed.error).fieldErrors,
+      fieldErrors: localizePersonFieldErrors(
+        z.flattenError(parsed.error).fieldErrors,
+        feedback,
+      ),
     };
   }
   try {
@@ -50,7 +58,7 @@ async function personAction<T extends z.ZodType>(
     return { ok: true, message: feedback(successKey) };
   } catch (error) {
     if (error instanceof PeopleDomainError) {
-      return { ok: false, message: error.message };
+      return { ok: false, message: localizePeopleDomainError(error, feedback) };
     }
     console.error(error);
     return { ok: false, message: feedback("savePersonFailed") };
@@ -114,7 +122,10 @@ export async function revealCitizenIdAction(personId: string) {
       : { ok: false as const, message: feedback("noCitizenId") };
   } catch (error) {
     if (error instanceof PeopleDomainError) {
-      return { ok: false as const, message: error.message };
+      return {
+        ok: false as const,
+        message: localizePeopleDomainError(error, feedback),
+      };
     }
     console.error(error);
     return { ok: false as const, message: feedback("revealCitizenIdFailed") };

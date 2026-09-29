@@ -19,6 +19,24 @@
     "spaceUpdated": "Đã cập nhật khu vực.",
     "spaceOrderUpdated": "Đã cập nhật thứ tự khu vực.",
     "spaceArchived": "Đã lưu trữ khu vực.",
-    "spaceDeleted": "Đã xóa khu vực."
+    "spaceDeleted": "Đã xóa khu vực.",
+    "validationMissingIdentifier": "Thiếu mã định danh bắt buộc.",
+    "validationNameRequired": "Vui lòng nhập tên.",
+    "validationNameTooLong": "Tên không được vượt quá 120 ký tự.",
+    "validationTextTooLong": "Nội dung không được vượt quá 1000 ký tự.",
+    "validationLevelNumber": "Số tầng phải là một số.",
+    "validationLevelWholeNumber": "Số tầng phải là số nguyên.",
+    "validationLevelTooLow": "Số tầng thấp hơn phạm vi được hỗ trợ.",
+    "validationLevelTooHigh": "Số tầng cao hơn phạm vi được hỗ trợ.",
+    "validationSpaceType": "Vui lòng chọn loại khu vực hợp lệ.",
+    "errorReorderItemNotFound": "Không tìm thấy mục cần thay đổi thứ tự.",
+    "errorFloorHasSpaces": "Hãy di chuyển hoặc lưu trữ các khu vực trước khi lưu trữ tầng này.",
+    "errorDeleteFloorWithSpaces": "Chỉ có thể xóa tầng không có khu vực.",
+    "errorSpaceWrongFloor": "Khu vực đã chọn không thuộc tầng này.",
+    "errorRecordNotFound": "Không tìm thấy dữ liệu yêu cầu.",
+    "errorPropertyNotFound": "Không tìm thấy nhà trọ đã chọn.",
+    "errorFloorNotFound": "Không tìm thấy tầng đã chọn.",
+    "errorSpaceNotFound": "Không tìm thấy khu vực đã chọn.",
+    "errorSpaceHasTenancy": "Không thể lưu trữ phòng đang có người thuê hoặc lịch chuyển vào sắp tới."
   }
 }

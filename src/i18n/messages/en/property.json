@@ -19,6 +19,24 @@
     "spaceUpdated": "Space updated.",
     "spaceOrderUpdated": "Space order updated.",
     "spaceArchived": "Space archived.",
-    "spaceDeleted": "Space deleted."
+    "spaceDeleted": "Space deleted.",
+    "validationMissingIdentifier": "A required identifier is missing.",
+    "validationNameRequired": "Name is required.",
+    "validationNameTooLong": "Name must be 120 characters or fewer.",
+    "validationTextTooLong": "Text must be 1000 characters or fewer.",
+    "validationLevelNumber": "Level must be a number.",
+    "validationLevelWholeNumber": "Level must be a whole number.",
+    "validationLevelTooLow": "Level is below the supported range.",
+    "validationLevelTooHigh": "Level is above the supported range.",
+    "validationSpaceType": "Choose a valid space type.",
+    "errorReorderItemNotFound": "The item being reordered was not found.",
+    "errorFloorHasSpaces": "Move or archive the spaces before archiving this floor.",
+    "errorDeleteFloorWithSpaces": "Only an empty floor can be deleted.",
+    "errorSpaceWrongFloor": "The selected space does not belong to this floor.",
+    "errorRecordNotFound": "The requested record was not found.",
+    "errorPropertyNotFound": "The selected property was not found.",
+    "errorFloorNotFound": "The selected floor was not found.",
+    "errorSpaceNotFound": "The selected space was not found.",
+    "errorSpaceHasTenancy": "A room with a current or upcoming tenancy cannot be archived."
   }
 }

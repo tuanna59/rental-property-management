@@ -2506,7 +2506,7 @@
   overflow-y: auto;
 }
 .space-inspector-body.is-overview {
-  overflow-y: clip;
+  overflow-y: auto;
 }
 .space-inspector-overview-sections {
   gap: 8px;

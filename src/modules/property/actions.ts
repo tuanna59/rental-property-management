@@ -34,6 +34,58 @@ import {
   updateSpace,
 } from "./server/property.service";
 
+type PropertyFeedback = Awaited<ReturnType<typeof getActionFeedback>>;
+
+const PROPERTY_VALIDATION_KEYS: Record<string, string> = {
+  "Missing identifier.": "validationMissingIdentifier",
+  "Name is required.": "validationNameRequired",
+  "Name must be 120 characters or fewer.": "validationNameTooLong",
+  "Text must be 1000 characters or fewer.": "validationTextTooLong",
+  "Level must be a number.": "validationLevelNumber",
+  "Level must be a whole number.": "validationLevelWholeNumber",
+  "Level is unexpectedly low.": "validationLevelTooLow",
+  "Level is unexpectedly high.": "validationLevelTooHigh",
+};
+
+
+const PROPERTY_DOMAIN_KEYS: Record<string, string> = {
+  "The item being reordered was not found.": "errorReorderItemNotFound",
+  "Archive or move spaces before archiving this floor.": "errorFloorHasSpaces",
+  "Delete is only allowed for floors with no spaces.": "errorDeleteFloorWithSpaces",
+  "The selected space does not belong to this floor.": "errorSpaceWrongFloor",
+  "The requested record was not found.": "errorRecordNotFound",
+  "The selected property was not found.": "errorPropertyNotFound",
+  "The selected floor was not found.": "errorFloorNotFound",
+  "The selected space was not found.": "errorSpaceNotFound",
+  "A room with a current or upcoming tenancy cannot be archived.": "errorSpaceHasTenancy",
+};
+
+function localizePropertyDomainError(
+  error: DomainError,
+  feedback: PropertyFeedback,
+) {
+  const key = PROPERTY_DOMAIN_KEYS[error.message];
+  return key ? feedback(key) : feedback("saveFailed");
+}
+function localizePropertyFieldErrors(
+  fieldErrors: Record<string, string[] | undefined>,
+  feedback: PropertyFeedback,
+) {
+  return Object.fromEntries(
+    Object.entries(fieldErrors).map(([field, messages]) => [
+      field,
+      messages?.map((message) => {
+        const key = PROPERTY_VALIDATION_KEYS[message];
+        if (key) return feedback(key);
+        if (message.startsWith("Invalid option")) {
+          return feedback("validationSpaceType");
+        }
+        return message;
+      }),
+    ]),
+  );
+}
+
 async function runAction<TSchema extends z.ZodType>(
   schema: TSchema,
   formData: FormData,
@@ -47,7 +99,10 @@ async function runAction<TSchema extends z.ZodType>(
     return {
       ok: false,
       message: feedback("checkFields"),
-      fieldErrors: z.flattenError(parsed.error).fieldErrors,
+      fieldErrors: localizePropertyFieldErrors(
+        z.flattenError(parsed.error).fieldErrors,
+        feedback,
+      ),
     };
   }
 
@@ -59,7 +114,10 @@ async function runAction<TSchema extends z.ZodType>(
     return { ok: true, message: feedback(successKey) };
   } catch (error) {
     if (error instanceof DomainError) {
-      return { ok: false, message: error.message };
+      return {
+        ok: false,
+        message: localizePropertyDomainError(error, feedback),
+      };
     }
 
     console.error(error);

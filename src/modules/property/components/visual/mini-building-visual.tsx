@@ -45,7 +45,6 @@ export function MiniBuildingVisual({ projection }: { projection: BuildingVisualP
           const spaces = orderVisualSpaces(floor.spaces);
           return (
           <div className={`mini-building-floor${spaces.length === 0 ? " is-empty" : ""}`} key={floor.id}>
-            <span className="mini-building-floor-label">{floor.name}</span>
             {spaces.length ? (
               <div className="mini-building-spaces">
                 {spaces.map((space) => {
