@@ -1,7 +1,15 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, Check, CircleAlert, LoaderCircle } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  AlertTriangle,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  CircleAlert,
+  LoaderCircle,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,27 +17,71 @@ import { cn } from "@/lib/utils";
 
 export function MonthSelector({ month }: { month: string }) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const urlMonth = searchParams.get("month");
   const selectedMonth = validMonth(urlMonth) ? urlMonth : month;
+  const currentMonth = currentLocalMonth();
+
+  const hrefForMonth = (nextMonth: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("month", nextMonth);
+    const query = params.toString();
+    return query ? `${pathname}?${query}` : pathname;
+  };
+
   return (
-    <label className="month-selector">
-      <span className="sr-only">Billing month</span>
-      <Input
-        type="month"
-        value={selectedMonth}
-        onChange={(event) => {
-          const url = new URL(window.location.href);
-          url.searchParams.set("month", event.target.value);
-          router.push(`${url.pathname}?${url.searchParams.toString()}`);
-        }}
-      />
-    </label>
+    <div className="meter-month-nav" aria-label="Billing month navigation">
+      <Link
+        href={hrefForMonth(shiftMonth(selectedMonth, -1))}
+        aria-label="Previous month"
+      >
+        <ChevronLeft aria-hidden="true" />
+      </Link>
+      <label>
+        <span className="sr-only">Billing month</span>
+        <Input
+          aria-label="Billing month"
+          type="month"
+          value={selectedMonth}
+          onChange={(event) => {
+            if (!validMonth(event.target.value)) return;
+            router.push(hrefForMonth(event.target.value));
+          }}
+        />
+      </label>
+      <Link
+        href={hrefForMonth(shiftMonth(selectedMonth, 1))}
+        aria-label="Next month"
+      >
+        <ChevronRight aria-hidden="true" />
+      </Link>
+      <Link
+        className="current-month-link"
+        href={hrefForMonth(currentMonth)}
+        aria-current={selectedMonth === currentMonth ? "date" : undefined}
+      >
+        Current
+      </Link>
+    </div>
   );
 }
 
 function validMonth(value: string | null): value is string {
   return Boolean(value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value));
+}
+
+function shiftMonth(month: string, amount: number) {
+  const [year, value] = month.split("-").map(Number);
+  return new Date(Date.UTC(year, value - 1 + amount, 1))
+    .toISOString()
+    .slice(0, 7);
+}
+
+function currentLocalMonth() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return `${now.getFullYear()}-${month}`;
 }
 
 export function UtilityStatusBadge({

@@ -29,7 +29,8 @@
 .meter-month-nav svg {
   width: 1rem;
 }
-.meter-month-nav form {
+.meter-month-nav label {
+  display: block;
   margin: 0;
 }
 .meter-month-nav input {
@@ -399,10 +400,6 @@
   line-height: 1.55;
   margin: 8px 0 0;
 }
-.month-selector {
-  display: block;
-  min-width: 155px;
-}
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -741,9 +738,6 @@
   .utilities-header {
     align-items: stretch;
     flex-direction: column;
-  }
-  .month-selector {
-    max-width: none;
   }
   .summary-grid {
     grid-template-columns: 1fr;

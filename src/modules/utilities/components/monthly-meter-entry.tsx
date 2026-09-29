@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { createPortal } from "react-dom";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
@@ -39,7 +38,7 @@ import {
 } from "../actions";
 import type { getMonthlyMeterEntries } from "../server/utility.queries";
 import { MeterDetails } from "./meter-details";
-import { EmptyUtilitiesState } from "./utility-ui";
+import { EmptyUtilitiesState, MonthSelector } from "./utility-ui";
 
 type Entries = Awaited<ReturnType<typeof getMonthlyMeterEntries>>;
 type Filter = "ALL" | "OPEN" | "CLOSED";
@@ -101,7 +100,7 @@ export function MonthlyMeterEntry({
             monthly closings.
           </p>
         </div>
-        <MonthNavigation month={selectedMonth} />
+        <MonthSelector month={selectedMonth} />
       </header>
       <section className="utility-section meter-fast-section">
         <div className="utility-section-header meter-fast-toolbar">
@@ -818,40 +817,6 @@ function PhotoAction({
   );
 }
 
-function MonthNavigation({ month }: { month: string }) {
-  const router = useRouter();
-  return (
-    <div className="meter-month-nav">
-      <Link
-        href={`/utilities/meters?month=${shiftMonth(month, -1)}`}
-        aria-label="Previous month"
-      >
-        <ChevronLeft />
-      </Link>
-      <Input
-        aria-label="Billing month"
-        type="month"
-        value={month}
-        onChange={(event) =>
-          router.push(`/utilities/meters?month=${event.target.value}`)
-        }
-      />
-      <Link
-        href={`/utilities/meters?month=${shiftMonth(month, 1)}`}
-        aria-label="Next month"
-      >
-        <ChevronRight />
-      </Link>
-      <Link
-        className="current-month-link"
-        href={`/utilities/meters?month=${new Date().toISOString().slice(0, 7)}`}
-      >
-        Current
-      </Link>
-    </div>
-  );
-}
-
 function NoMeterRow({ entry }: { entry: Entries[number] }) {
   return (
     <tr className="meter-no-meter-row">
@@ -987,12 +952,6 @@ function monthLabel(value: string | Date) {
     year: "numeric",
     timeZone: "UTC",
   }).format(parsed);
-}
-function shiftMonth(month: string, amount: number) {
-  const [year, value] = month.split("-").map(Number);
-  return new Date(Date.UTC(year, value - 1 + amount, 1))
-    .toISOString()
-    .slice(0, 7);
 }
 function validMonth(value: string | null): value is string {
   return Boolean(value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value));
