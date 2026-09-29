@@ -5,14 +5,17 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { AlertTriangle } from "lucide-react";
 
-import type { BuildingVisualProjection } from "../../domain/types";
+import type { BuildingTimeOfDay, BuildingVisualProjection } from "../../domain/types";
+import { useTheme } from "@/theme/theme-provider";
 import { SPACE_TYPE_KEYS } from "./building-copy";
-import { getRoomSizeClass, getRoomVisualVariant, getSpaceVisualWeight } from "./layout";
+import { getRoomSizeClass, getRoomVisualVariant, getSpaceVisualWeight, orderVisualFloors, orderVisualSpaces } from "./layout";
 import { SpaceInterior } from "./interiors/space-interior";
 
 export function MiniBuildingVisual({ projection }: { projection: BuildingVisualProjection }) {
   const t = useTranslations("building");
-  const floors = [...projection.floors].sort((a, b) => (b.level ?? b.sortOrder) - (a.level ?? a.sortOrder));
+  const { resolvedTheme } = useTheme();
+  const timeOfDay: BuildingTimeOfDay = resolvedTheme === "dark" ? "NIGHT" : "DAY";
+  const floors = orderVisualFloors(projection.floors);
 
   const occupancyText = (space: BuildingVisualProjection["floors"][number]["spaces"][number]) => {
     if (space.occupancyState === "OCCUPIED") return t("spaceState.residents", { count: space.occupancy?.occupantCount ?? 0 });
@@ -34,16 +37,18 @@ export function MiniBuildingVisual({ projection }: { projection: BuildingVisualP
   };
 
   return (
-    <div className="mini-building mini-building-v2" aria-label={t("scene.overviewLabel", { property: projection.name })}>
+    <div className="mini-building mini-building-v2" data-time={timeOfDay.toLowerCase()} data-floor-count={floors.length} aria-label={t("scene.overviewLabel", { property: projection.name })}>
       <div className="mini-building-sky" aria-hidden="true"><span /></div>
       <div className="mini-building-landscape" aria-hidden="true"><i /><i /><i /></div>
       <div className="mini-building-stack" style={{ "--mini-floor-count": Math.max(floors.length, 1) } as CSSProperties}>
-        {floors.map((floor) => (
-          <div className={`mini-building-floor${floor.spaces.length === 0 ? " is-empty" : ""}`} key={floor.id}>
+        {floors.map((floor) => {
+          const spaces = orderVisualSpaces(floor.spaces);
+          return (
+          <div className={`mini-building-floor${spaces.length === 0 ? " is-empty" : ""}`} key={floor.id}>
             <span className="mini-building-floor-label">{floor.name}</span>
-            {floor.spaces.length ? (
+            {spaces.length ? (
               <div className="mini-building-spaces">
-                {floor.spaces.map((space) => {
+                {spaces.map((space) => {
                   const attention = space.maintenance.urgentCount > 0 || space.utilities.missingBoundary || space.utilities.needsClosing || space.devices.offlineCount > 0;
                   const weight = getSpaceVisualWeight(space.type);
                   const roomSize = getRoomSizeClass({ space, floor });
@@ -71,7 +76,8 @@ export function MiniBuildingVisual({ projection }: { projection: BuildingVisualP
               <span className="mini-building-empty-floor">{t("scene.noSpaces")}</span>
             )}
           </div>
-        ))}
+          );
+        })}
         <div className="mini-building-foundation" aria-hidden="true" />
       </div>
     </div>

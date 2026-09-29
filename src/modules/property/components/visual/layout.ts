@@ -3,6 +3,19 @@ import type {
   BuildingVisualSpaceProjection,
 } from "../../domain/types";
 
+export function orderVisualSpaces(spaces: BuildingVisualSpaceProjection[]) {
+  return [...spaces].sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export function orderVisualFloors(floors: BuildingVisualFloorProjection[]) {
+  return [...floors].sort((a, b) => {
+    const aRoof = a.spaces.length > 0 && a.spaces.every((space) => space.type === "ROOFTOP");
+    const bRoof = b.spaces.length > 0 && b.spaces.every((space) => space.type === "ROOFTOP");
+    if (aRoof !== bRoof) return aRoof ? -1 : 1;
+    return (b.level ?? b.sortOrder) - (a.level ?? a.sortOrder);
+  });
+}
+
 export type RoomSizeClass = "small" | "medium" | "large" | "xl";
 
 export function getSpaceVisualWeight(

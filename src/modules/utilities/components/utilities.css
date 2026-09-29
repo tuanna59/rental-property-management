@@ -29,13 +29,45 @@
 .meter-month-nav svg {
   width: 1rem;
 }
-.meter-month-nav label {
-  display: block;
+.meter-month-picker {
+  position: relative;
+  min-width: 11.4rem;
+  min-height: 2.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin: 0;
+  padding: 0.5rem 0.75rem;
+  overflow: hidden;
+  border: 1px solid var(--app-input-border);
+  border-radius: 0.65rem;
+  background: var(--app-input-bg);
+  color: var(--app-text-primary);
+  cursor: pointer;
 }
-.meter-month-nav input {
-  min-width: 10rem;
-  width: fit-content;
+.meter-month-picker:focus-within {
+  border-color: var(--app-brand);
+  box-shadow: 0 0 0 2px var(--app-focus-ring);
+}
+.meter-month-picker-label {
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.meter-month-picker > svg {
+  flex: 0 0 auto;
+  color: var(--app-text-secondary);
+}
+.meter-month-native-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 .current-month-link {
   font-size: 0.84rem;
@@ -305,10 +337,11 @@
   overflow-y: auto;
 }
 .meter-history-group .utility-table-wrap {
-  overflow-x: visible;
+  max-width: 100%;
+  overflow-x: auto;
 }
 .meter-history-table {
-  min-width: 0;
+  min-width: 720px;
   table-layout: fixed;
   font-size: calc(11px + var(--app-font-size-bump));
 }
@@ -319,27 +352,12 @@
   vertical-align: middle;
   overflow-wrap: anywhere;
 }
-.meter-history-table th:nth-child(1) {
-  width: 12%;
-}
-.meter-history-table th:nth-child(2) {
-  width: 12%;
-}
-.meter-history-table th:nth-child(3) {
-  width: 17%;
-}
-.meter-history-table th:nth-child(4) {
-  width: 11%;
-}
-.meter-history-table th:nth-child(5) {
-  width: 13%;
-}
-.meter-history-table th:nth-child(6) {
-  width: 27%;
-}
-.meter-history-table th:nth-child(7) {
-  width: 8%;
-}
+.meter-history-table th:nth-child(1) { width: 14%; }
+.meter-history-table th:nth-child(2) { width: 14%; }
+.meter-history-table th:nth-child(3) { width: 18%; }
+.meter-history-table th:nth-child(4) { width: 22%; }
+.meter-history-table th:nth-child(5) { width: 18%; }
+.meter-history-table th:nth-child(6) { width: 14%; }
 .meter-history-table td:nth-child(6) {
   white-space: normal;
 }
@@ -852,9 +870,12 @@
   width: 15px;
 }
 .meter-details-dialog {
-  width: min(920px, calc(100% - 2rem));
+  width: min(920px, calc(100vw - 24px));
   max-width: 920px;
+  overflow-x: hidden;
 }
+.meter-details-dialog > *,
+.meter-details-dialog section { min-width: 0; }
 .meter-current-summary {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
@@ -1029,7 +1050,7 @@
   gap: 12px;
   max-height: 390px;
   overflow-y: auto;
-  overflow-x: visible;
+  overflow-x: hidden;
   padding-right: 3px;
 }
 .meter-history-group {
@@ -1078,9 +1099,22 @@
 }
 
 .electricity-details-dialog {
-  max-height: 90vh;
-  max-width: min(1080px, 94vw);
+  width: min(1080px, calc(100vw - 24px));
+  max-width: 1080px;
+  max-height: calc(100dvh - 16px);
+  overflow-x: hidden;
   overflow-y: auto;
+}
+.electricity-details-dialog > *,
+.electricity-details-dialog section {
+  min-width: 0;
+  max-width: 100%;
+}
+.electricity-details-dialog .utility-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overscroll-behavior-inline: contain;
 }
 
 .electricity-details-dialog section h3 {
@@ -1215,12 +1249,48 @@
   }
   .meter-current-summary {
     grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 13px;
+  }
+  .meter-detail-actions {
+    flex-wrap: wrap;
+  }
+  .meter-detail-actions > * {
+    flex: 1 1 11rem;
   }
   .usage-legend {
     grid-template-columns: 1fr;
   }
   .electricity-summary-grid {
     grid-template-columns: 1fr;
+  }
+  .electricity-details-dialog {
+    width: calc(100vw - 12px);
+    max-height: calc(100dvh - 12px);
+    padding-inline: 14px;
+  }
+  .electricity-details-dialog section h3 {
+    margin-top: 14px;
+  }
+  .electricity-calculation {
+    padding-inline: 12px;
+  }
+  .electricity-calculation > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: start;
+  }
+  .electricity-calculation strong {
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+  .electricity-details-notes {
+    display: grid;
+    gap: 6px;
+  }
+  .electricity-details-table {
+    min-width: 680px;
   }
 }
 
@@ -1447,11 +1517,15 @@
   justify-items: start;
 }
 .meter-history-table th:nth-child(1) { width: 14%; }
-.meter-history-table th:nth-child(2) { width: 15%; }
-.meter-history-table th:nth-child(3) { width: 20%; }
-.meter-history-table th:nth-child(4) { width: 23%; }
+.meter-history-table th:nth-child(2) { width: 14%; }
+.meter-history-table th:nth-child(3) { width: 18%; }
+.meter-history-table th:nth-child(4) { width: 22%; }
 .meter-history-table th:nth-child(5) { width: 18%; }
-.meter-history-table th:nth-child(6) { width: 10%; }
+.meter-history-table th:nth-child(6) { width: 14%; }
+.meter-history-table td:last-child button {
+  max-width: 100%;
+  white-space: nowrap;
+}
 
 
 .meter-mobile-label {
@@ -1634,7 +1708,7 @@
   .meter-month-nav {
     flex-wrap: nowrap;
   }
-  .meter-month-nav input {
+  .meter-month-picker {
     min-width: 0;
     flex: 1 1 auto;
   }

@@ -9,6 +9,7 @@ import type {
   BuildingVisualProjection,
 } from "../../domain/types";
 import { BuildingFloor } from "./building-floor";
+import { orderVisualFloors } from "./layout";
 
 export function BuildingVisual({
   projection,
@@ -28,7 +29,7 @@ export function BuildingVisual({
   onSelectSpace: (spaceId: string, target: HTMLButtonElement) => void;
 }) {
   const t = useTranslations("building");
-  const floors = orderFloors(projection.floors);
+  const floors = orderVisualFloors(projection.floors);
   const hasOpenRooftop = Boolean(
     floors[0]?.spaces.length && floors[0].spaces.every((space) => space.type === "ROOFTOP"),
   );
@@ -87,17 +88,6 @@ export function BuildingVisual({
       <div className="building-v2-ground" aria-hidden="true" />
     </div>
   );
-}
-
-function orderFloors(floors: BuildingVisualFloorProjection[]) {
-  return [...floors].sort((a, b) => {
-    const aRoof = a.spaces.length > 0 && a.spaces.every((space) => space.type === "ROOFTOP");
-    const bRoof = b.spaces.length > 0 && b.spaces.every((space) => space.type === "ROOFTOP");
-    if (aRoof !== bRoof) return aRoof ? -1 : 1;
-    const aLevel = a.level ?? a.sortOrder;
-    const bLevel = b.level ?? b.sortOrder;
-    return bLevel - aLevel;
-  });
 }
 
 function Tree() {

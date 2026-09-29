@@ -238,7 +238,8 @@
 .asset-detail-actions { display: flex; align-self: start; gap: 7px; }
 .asset-action-menu-wrap { position: relative; }
 .asset-action-menu { position: absolute; z-index: 30; right: 0; top: calc(100% + 6px); min-width: 210px; padding: 5px; border: 1px solid var(--app-border); border-radius: var(--app-radius-control); background: var(--app-surface-elevated); box-shadow: var(--app-shadow-elevated); }
-.asset-action-menu button { width: 100%; min-height: 38px; justify-content: flex-start; border: 0; background: transparent; color: var(--app-text-primary); }
+.asset-action-menu button { width: 100%; min-height: 38px; display: flex; align-items: center; justify-content: flex-start; gap: 9px; padding: 8px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--app-text-primary); font: inherit; font-weight: 600; line-height: 1.2; text-align: left; white-space: nowrap; }
+.asset-action-menu button svg { width: 17px; height: 17px; flex: 0 0 17px; }
 .asset-action-menu button:hover { background: var(--app-row-hover-bg); }
 
 .asset-detail-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }

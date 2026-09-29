@@ -83,11 +83,12 @@
   "overlay": {
     "activeMaintenanceIssues": "{count, plural, one {# active maintenance issue} other {# active maintenance issues}}",
     "noElectricityMeter": "No electricity meter",
-    "boundaryAttention": "Utility boundary attention required",
+    "boundaryAttention": "Handover reading needs attention",
     "monthlyClosingRequired": "Monthly closing required",
     "meterReady": "Electricity meter ready",
     "activeAssets": "{count, plural, one {# active asset} other {# active assets}}",
-    "offlineDevices": "{count, plural, one {# offline device} other {# offline devices}}"
+    "offlineDevices": "{count, plural, one {# offline device} other {# offline devices}}",
+    "utilityBoundaryMissingLower": "handover reading missing"
   },
   "inspector": {
     "title": "Space Overview",
@@ -160,7 +161,7 @@
     "fixedPerOccupant": "Fixed per occupant",
     "billingOwnedElsewhere": "Billing calculation remains in the existing Utilities/Billing workflow.",
     "noWaterSummary": "No room-level occupant water summary for this space type.",
-    "boundaryAttention": "Boundary attention required",
+    "boundaryAttention": "Handover reading needs attention",
     "monthlyClosingRequired": "Monthly closing required",
     "utilityWarnings": "{count, plural, one {# utility warning} other {# utility warnings}}",
     "healthy": "Healthy"

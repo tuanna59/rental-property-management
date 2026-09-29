@@ -2,22 +2,25 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   AlertTriangle,
   Check,
   ChevronLeft,
   ChevronRight,
+  CalendarDays,
   CircleAlert,
   LoaderCircle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import type { AppLocale } from "@/i18n/config";
+import { formatMonthLocale } from "@/i18n/format";
 import { cn } from "@/lib/utils";
 
 export function MonthSelector({ month }: { month: string }) {
   const t = useTranslations("utilities");
+  const locale = useLocale() as AppLocale;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -40,10 +43,16 @@ export function MonthSelector({ month }: { month: string }) {
       >
         <ChevronLeft aria-hidden="true" />
       </Link>
-      <label>
+      <label className="meter-month-picker">
         <span className="sr-only">{t("billingMonth")}</span>
-        <Input
+        <span className="meter-month-picker-label" aria-hidden="true">
+          {formatMonthLocale(selectedMonth, locale)}
+        </span>
+        <CalendarDays aria-hidden="true" />
+        <input
+          className="meter-month-native-input"
           aria-label={t("billingMonth")}
+          lang={locale === "vi" ? "vi-VN" : "en-US"}
           type="month"
           value={selectedMonth}
           onChange={(event) => {

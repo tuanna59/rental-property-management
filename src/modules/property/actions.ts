@@ -54,6 +54,8 @@ async function runAction<TSchema extends z.ZodType>(
   try {
     await handler(parsed.data);
     revalidatePath("/");
+    revalidatePath("/building");
+    revalidatePath("/dashboard");
     return { ok: true, message: feedback(successKey) };
   } catch (error) {
     if (error instanceof DomainError) {

@@ -10,7 +10,7 @@ import type {
 } from "../../domain/types";
 import { FloorActions } from "../property-forms";
 import { BuildingSpace } from "./building-space";
-import { getRoomSizeClass, getSpaceVisualWeight } from "./layout";
+import { getRoomSizeClass, getSpaceVisualWeight, orderVisualSpaces } from "./layout";
 
 export function BuildingFloor({
   floor,
@@ -34,7 +34,7 @@ export function BuildingFloor({
   onSelectSpace: (spaceId: string, target: HTMLButtonElement) => void;
 }) {
   const t = useTranslations("building");
-  const spaces = [...floor.spaces].sort((a, b) => a.sortOrder - b.sortOrder);
+  const spaces = orderVisualSpaces(floor.spaces);
   const units = Math.max(
     1,
     spaces.reduce((sum, space) => sum + getSpaceVisualWeight(space.type), 0),

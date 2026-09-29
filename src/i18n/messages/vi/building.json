@@ -83,11 +83,12 @@
   "overlay": {
     "activeMaintenanceIssues": "{count} vấn đề bảo trì đang hoạt động",
     "noElectricityMeter": "Chưa có công tơ điện",
-    "boundaryAttention": "Cần xử lý chỉ số mốc điện",
+    "boundaryAttention": "Cần xử lý chỉ số bàn giao điện",
     "monthlyClosingRequired": "Cần chốt chỉ số tháng",
     "meterReady": "Công tơ điện sẵn sàng",
     "activeAssets": "{count} tài sản đang hoạt động",
-    "offlineDevices": "{count} thiết bị ngoại tuyến"
+    "offlineDevices": "{count} thiết bị ngoại tuyến",
+    "utilityBoundaryMissingLower": "thiếu chỉ số bàn giao điện"
   },
   "inspector": {
     "title": "Thông tin khu vực",
@@ -160,7 +161,7 @@
     "fixedPerOccupant": "Tính cố định theo người",
     "billingOwnedElsewhere": "Phần tính tiền vẫn thuộc quy trình Điện nước/Hóa đơn hiện có.",
     "noWaterSummary": "Loại khu vực này không có tổng hợp tiền nước theo người ở.",
-    "boundaryAttention": "Cần xử lý chỉ số mốc",
+    "boundaryAttention": "Cần xử lý chỉ số bàn giao",
     "monthlyClosingRequired": "Cần chốt chỉ số tháng",
     "utilityWarnings": "{count} cảnh báo điện nước",
     "healthy": "Ổn định"

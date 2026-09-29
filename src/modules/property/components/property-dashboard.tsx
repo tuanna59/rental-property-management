@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/theme/theme-provider";
 
 import {
   type BuildingTimeOfDay,
@@ -23,7 +24,7 @@ import {
 } from "../domain/types";
 import { BuildingToolbar } from "./visual/building-toolbar";
 import { BuildingVisual } from "./visual/building-visual";
-import { getSpaceVisualWeight } from "./visual/layout";
+import { getSpaceVisualWeight, orderVisualFloors } from "./visual/layout";
 import {
   FloorFormDialog,
   SpaceFormDialog,
@@ -47,9 +48,13 @@ export function PropertyDashboard({
   initialSpaceId?: string | null;
 }) {
   const t = useTranslations("building");
+  const { resolvedTheme } = useTheme();
   const [selectedId, setSelectedId] = React.useState<string | null>(initialSpaceId);
   const [mode, setMode] = React.useState<BuildingVisualMode>("OCCUPANCY");
-  const [timeOfDay, setTimeOfDay] = React.useState<BuildingTimeOfDay>("DAY");
+  const [timeOfDay, setTimeOfDay] = React.useState<BuildingTimeOfDay>(() =>
+    resolvedTheme === "dark" ? "NIGHT" : "DAY",
+  );
+  const timeOfDayManuallyChanged = React.useRef(false);
   const [focusedFloorId, setFocusedFloorId] = React.useState<string | null>(null);
   const [inspectorTab, setInspectorTab] = React.useState<SpaceInspectorTab>("OVERVIEW");
   const [editing, setEditing] = React.useState(false);
@@ -60,6 +65,11 @@ export function PropertyDashboard({
   const space = floor?.spaces.find((item) => item.id === selectedId);
   const selected = floor && space ? { floor, space } : null;
   const inspectorSide = selected ? resolveInspectorSide(selected.floor, selected.space.id) : "right";
+
+  React.useEffect(() => {
+    if (timeOfDayManuallyChanged.current) return;
+    setTimeOfDay(resolvedTheme === "dark" ? "NIGHT" : "DAY");
+  }, [resolvedTheme]);
 
   React.useEffect(() => {
     const onPopState = () => {
@@ -143,7 +153,10 @@ export function PropertyDashboard({
             timeOfDay={timeOfDay}
             focusedFloorId={focusedFloorId}
             onModeChange={setMode}
-            onTimeOfDayChange={setTimeOfDay}
+            onTimeOfDayChange={(next) => {
+              timeOfDayManuallyChanged.current = true;
+              setTimeOfDay(next);
+            }}
             onFloorChange={changeFocusedFloor}
           />
         </div>
@@ -220,15 +233,6 @@ function resolveInspectorSide(floor: BuildingVisualFloorProjection, spaceId: str
   }
 
   return "right";
-}
-
-function orderVisualFloors(floors: BuildingVisualFloorProjection[]) {
-  return [...floors].sort((a, b) => {
-    const aRoof = a.spaces.length > 0 && a.spaces.every((space) => space.type === "ROOFTOP");
-    const bRoof = b.spaces.length > 0 && b.spaces.every((space) => space.type === "ROOFTOP");
-    if (aRoof !== bRoof) return aRoof ? -1 : 1;
-    return (b.level ?? b.sortOrder) - (a.level ?? a.sortOrder);
-  });
 }
 
 function AddMenu({

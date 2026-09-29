@@ -64,7 +64,7 @@ export function ElectricityBreakdownDialog({
             {serviceStart && serviceEnd
               ? ` · ${t("serviceRange", { start: formatDateOnlyLocale(serviceStart, locale), end: formatDateOnlyLocale(serviceEnd, locale) })}`
               : ""}
-             {t("tenantBillingExcludesVacant")}
+            {` · ${t("tenantBillingExcludesVacant")}`}
           </DialogDescription>
         </DialogHeader>
 

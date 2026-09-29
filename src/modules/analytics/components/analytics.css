@@ -215,6 +215,8 @@
   gap: 14px;
   margin-top: 14px;
 }
+.dashboard-middle-grid { align-items: start; }
+.dashboard-trend-card { align-self: start; }
 .dashboard-trend-card,
 .dashboard-billing-card,
 .dashboard-list-card,
@@ -410,6 +412,54 @@
 .mini-building-attention { position: absolute; z-index: 6; top: 3px; right: 3px; width: 14px; height: 14px; display: grid; place-items: center; border-radius: 50%; background: #fff4d9; color: #aa6e13; box-shadow: 0 1px 2px rgba(47,45,39,.12); }
 .mini-building-attention svg { width: 8px; }
 .mini-building-foundation { height: 9px; margin: 0 -7px; background: linear-gradient(180deg, #9da89e, #69766b); border-radius: 0 0 4px 4px; box-shadow: 0 5px 8px rgba(50,61,53,.2); }
+
+/* Dashboard mini twin follows the resolved application theme while keeping the
+ * same floor/space projection and ordering as the full Building renderer. */
+.mini-building[data-time="night"] {
+  --building-wall-light: #e8d7bd;
+  --building-wall-mid: #c7ab87;
+  --building-wall-deep: #92765b;
+  --building-side-light: #817d73;
+  --building-side-dark: #514f4b;
+  --building-floor-light: #8f765e;
+  --building-floor-dark: #655141;
+  --building-glass-dark: #345668;
+  --building-glass-light: #8ea7ad;
+  --building-glass-mid: #2d4c5d;
+  --building-lamp-core: #ffe6a7;
+  --building-lamp-glow: #e8a844;
+  --building-room-frame: #4d4b48;
+  --building-ceiling: #c4b8a8;
+  --building-plant: #536c4c;
+  --building-service-light: #f0bc61;
+  --building-shadow-color: #14221e;
+  background:
+    radial-gradient(circle at 78% 11%, rgba(199,214,225,.12), transparent 20%),
+    linear-gradient(180deg, #203143 0%, #35495a 45%, #58645e 73%, #4b5d52 100%);
+}
+.mini-building[data-time="night"] .mini-building-sky span {
+  width: 58px;
+  height: 58px;
+  background: radial-gradient(circle at 38% 35%, #f4efe0 0 52%, #cbd3d8 72%, rgba(224,234,238,.15) 73%);
+  box-shadow: 0 0 34px rgba(220,230,235,.2);
+  opacity: .86;
+}
+.mini-building[data-time="night"] .mini-building-landscape { filter: brightness(.72) saturate(.78); opacity: .78; }
+.mini-building[data-time="night"] .mini-building-space.type-room .building-v2-interior { filter: brightness(.66) saturate(.72) contrast(.96); }
+.mini-building[data-time="night"] .mini-building-space.type-owner-home .building-v2-interior { filter: brightness(.86) saturate(.86) sepia(.04); }
+.mini-building[data-time="night"] .mini-building-space.type-garage .building-v2-interior { filter: brightness(.72) saturate(.7); }
+.mini-building[data-time="night"] .mini-building-space.type-rooftop .building-v2-interior { filter: brightness(.8) saturate(.72); }
+.mini-building[data-time="night"] .mini-building-space-label {
+  background: rgba(238,242,237,.9);
+  color: #263d33;
+}
+.mini-building[data-time="night"] .mini-building-space-label small { color: #53685c; }
+.mini-building[data-time="night"] .mini-building-floor-label { color: #d0d9d2; }
+.mini-building[data-time="night"] .mini-building-empty-floor {
+  border-color: rgba(196,208,201,.22);
+  background: rgba(43,57,50,.56);
+  color: #c0cbc4;
+}
 
 /* Reports */
 .reports-page { padding-bottom: 42px; }
