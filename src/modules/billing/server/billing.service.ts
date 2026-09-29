@@ -103,17 +103,18 @@ type AdjustmentInput = {
   type: "CHARGE" | "CREDIT";
   description: string;
   amount: string;
-  reason: string;
+  reason?: string;
 };
 
 function adjustmentData(input: AdjustmentInput) {
   if (!input.description.trim()) throw new Error("A description is required.");
-  if (!input.reason.trim()) throw new Error("A reason is required.");
   return {
     type: input.type,
     description: input.description.trim(),
     amount: roundMoneyAmount(positiveWholeVnd(input.amount)),
-    reason: input.reason.trim(),
+    // Prisma currently stores adjustment reason as a required string.
+    // Keep an empty string for an omitted optional reason and hide it in presentation.
+    reason: input.reason?.trim() ?? "",
   };
 }
 

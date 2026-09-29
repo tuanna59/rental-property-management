@@ -3272,7 +3272,7 @@ button.tenant-summary-card:hover {
 }
 
 .tenant-kpi-content {
-  gap: 5px;
+  gap: 3px;
 }
 
 .tenant-kpi-content > small {

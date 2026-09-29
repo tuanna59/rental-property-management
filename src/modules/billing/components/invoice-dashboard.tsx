@@ -190,7 +190,7 @@ export function InvoiceDashboard({
                 .forEach(exportInvoicePng)
             }
           >
-            <Download /> Export selected ({selected.length})
+            <Download /> Tải PNG đã chọn ({selected.length})
           </Button>
         </div>
         <div className="billing-filter-tabs">
@@ -302,7 +302,7 @@ export function InvoiceDashboard({
                           variant="ghost"
                           onClick={() => exportInvoicePng(invoice)}
                         >
-                          <Download /> PNG
+                          <Download /> Tải PNG
                         </Button>
                       )}
                     </td>

@@ -218,11 +218,11 @@ function TenantProfileHeader({
                 <Phone aria-hidden="true" />
                 <span>{person.phone || "Phone not provided"}</span>
               </span>
+              <CitizenIdContextFact person={person} />
               <span className="tenant-profile-context-item tenant-profile-birthday">
                 <CalendarDays aria-hidden="true" />
                 <span>{person.dateOfBirth ? formatDate(person.dateOfBirth) : "Birthday not provided"}</span>
               </span>
-              <CitizenIdContextFact person={person} />
             </div>
           </div>
         </div>

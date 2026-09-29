@@ -7,6 +7,7 @@ import {
   Calendar,
   Coins,
   Download,
+  Droplets,
   Eye,
   FileText,
   Home,
@@ -228,7 +229,9 @@ function ChargesTab({ invoice }: { invoice: Invoice }) {
                 <td>—</td>
                 <td>
                   {adjustment.description}
-                  <div className="utility-subtle">{adjustment.reason}</div>
+                  {adjustment.reason?.trim() && (
+                    <div className="utility-subtle">{adjustment.reason}</div>
+                  )}
                 </td>
                 <td>—</td>
                 <td>
@@ -237,7 +240,7 @@ function ChargesTab({ invoice }: { invoice: Invoice }) {
                       adjustment.type === "CREDIT" ? "deposit-negative" : ""
                     }
                   >
-                    {adjustment.type === "CREDIT" ? "−" : "+"}
+                    {adjustment.type === "CREDIT" ? "−" : ""}
                     {formatVnd(adjustment.amount)}
                   </strong>
                 </td>
@@ -689,7 +692,7 @@ function HistoryTab({ invoice }: { invoice: Invoice }) {
     ...invoice.adjustments.map((adjustment) => ({
       date: adjustment.createdAt,
       title: "Adjustment added",
-      detail: `${adjustment.description} · ${adjustment.type === "CREDIT" ? "−" : "+"}${formatVnd(adjustment.amount)}`,
+      detail: `${adjustment.description} · ${adjustment.type === "CREDIT" ? "−" : ""}${formatVnd(adjustment.amount)}`,
     })),
     ...(invoice.finalizedAt
       ? [
@@ -741,64 +744,102 @@ function InvoicePreviewDialog({ invoice }: { invoice: Invoice }) {
           </DialogDescription>
         </DialogHeader>
         <article className="invoice-paper">
-          <header>
-            <div>
-              <strong>{presentation.propertyName}</strong>
-              <span>
-                {presentation.status === "DRAFT" ? "DRAFT" : "FINALIZED"}
+          <header className="invoice-paper-header">
+            <div className="invoice-paper-brand">
+              <span className="invoice-paper-brand-icon" aria-hidden="true">
+                <Home />
               </span>
+              <div>
+                <strong>{presentation.propertyName}</strong>
+                <span>Quản lý tiền thuê và tiện ích</span>
+              </div>
             </div>
             <div className="invoice-paper-heading">
               <h2>{presentation.documentTitle}</h2>
               <p>#{presentation.invoiceNumber}</p>
+              {presentation.isDraft && (
+                <span className="invoice-paper-draft">BẢN NHÁP</span>
+              )}
             </div>
           </header>
+
           <dl className="invoice-paper-details">
             <div>
-              <dt>Bill to</dt>
+              <dt>NGƯỜI THUÊ</dt>
               <dd>{presentation.billTo}</dd>
             </div>
             <div>
-              <dt>Room</dt>
+              <dt>PHÒNG</dt>
               <dd>{presentation.room}</dd>
             </div>
             <div>
-              <dt>Invoice month</dt>
-              <dd>{presentation.invoiceMonth}</dd>
+              <dt>{presentation.billingLabel}</dt>
+              <dd>{presentation.billingValue}</dd>
             </div>
-            {presentation.moveOut && (
-              <div>
-                <dt>Move-out</dt>
-                <dd>{presentation.moveOut}</dd>
-              </div>
-            )}
           </dl>
+
           <div className="invoice-paper-table-heading">
-            <span>Item</span>
-            <span>Period</span>
-            <span>Calculation</span>
-            <span>Amount</span>
+            <span>Hạng mục</span>
+            <span>Chi tiết / Cách tính</span>
+            <span>Số lượng / Sử dụng</span>
+            <span>Đơn giá</span>
+            <span>Thành tiền</span>
           </div>
-          {presentation.lines.map((line) => (
-            <div className="invoice-paper-line" key={line.id}>
-              <strong>{line.label}</strong>
-              <span>{line.period}</span>
-              <span>{line.calculation}</span>
-              <strong>
-                {line.sign}
-                {formatVnd(line.amount)}
-              </strong>
+          <div className="invoice-paper-lines">
+            {presentation.lines.map((line) => (
+              <div className="invoice-paper-line" key={line.id}>
+                <div className="invoice-paper-item">
+                  <span className="invoice-paper-item-icon" aria-hidden="true">
+                    {line.type === "RENT" ? (
+                      <Home />
+                    ) : line.type === "ELECTRICITY" ? (
+                      <Zap />
+                    ) : line.type === "WATER" ? (
+                      <Droplets />
+                    ) : (
+                      <Receipt />
+                    )}
+                  </span>
+                  <strong>{line.label}</strong>
+                </div>
+                <div className="invoice-paper-calculation">
+                  <strong>{line.detail}</strong>
+                  {line.detailNote && <span>{line.detailNote}</span>}
+                </div>
+                <span>{line.quantity}</span>
+                <span>{line.rate}</span>
+                <strong>{line.amount}</strong>
+              </div>
+            ))}
+          </div>
+
+          <div className="invoice-paper-total-row">
+            <div className="invoice-paper-total">
+              <span>Tổng thanh toán</span>
+              <strong>{formatVnd(presentation.total)}</strong>
             </div>
-          ))}
-          <footer>
-            <span>TOTAL</span>
-            <strong>{formatVnd(presentation.total)}</strong>
+          </div>
+
+          <footer className="invoice-paper-footer">
+            <div>
+              <strong>{presentation.propertyName}</strong>
+              <span>
+                {presentation.isDraft
+                  ? "Bản xem trước · chưa chốt"
+                  : "Hóa đơn đã chốt"}
+              </span>
+            </div>
+            <p>
+              Hóa đơn điện tử được tạo bởi hệ thống.
+              <br />
+              Cảm ơn bạn đã thanh toán đúng hạn.
+            </p>
           </footer>
         </article>
         {invoice.status === "FINALIZED" && (
           <DialogFooter>
             <Button onClick={() => exportInvoicePng(invoice)}>
-              <Download /> Export PNG
+              <Download /> Tải PNG
             </Button>
           </DialogFooter>
         )}
@@ -920,10 +961,9 @@ function AdjustmentDialog({
             required
           />
           <Field
-            label="Reason"
+            label="Reason (optional)"
             name="reason"
             defaultValue={adjustment?.reason ?? ""}
-            required
           />
           {state.message && (
             <p className={state.ok ? "form-success" : "form-error"}>
