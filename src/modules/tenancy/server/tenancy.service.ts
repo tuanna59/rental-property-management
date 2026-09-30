@@ -453,14 +453,14 @@ export async function moveOut(input: MoveOutInput) {
 
 export async function addAdditionalOccupant(input: AddOccupantInput) {
   const startDate = normalizeBusinessDate(input.startDate);
-  return tenancyTransaction(async (tx) => {
+  const result = await tenancyTransaction(async (tx) => {
     await lockAndValidatePeople(tx, [input.personId]);
     await tx.$queryRaw(Prisma.sql`
       SELECT "id" FROM "Tenancy" WHERE "id" = ${input.tenancyId} FOR UPDATE
     `);
     const tenancy = await tx.tenancy.findUnique({
       where: { id: input.tenancyId },
-      select: { id: true, moveInDate: true, moveOutDate: true },
+      select: { id: true, spaceId: true, moveInDate: true, moveOutDate: true },
     });
     if (!tenancy) {
       throw new TenancyDomainError(
@@ -501,7 +501,7 @@ export async function addAdditionalOccupant(input: AddOccupantInput) {
       );
     }
     try {
-      return await tx.tenancyOccupant.create({
+      const created = await tx.tenancyOccupant.create({
         data: {
           tenancyId: tenancy.id,
           personId: input.personId,
@@ -513,6 +513,7 @@ export async function addAdditionalOccupant(input: AddOccupantInput) {
         },
         select: { id: true },
       });
+      return { id: created.id, spaceId: tenancy.spaceId };
     } catch (error) {
       if (hasExclusionViolation(error)) {
         throw new TenancyDomainError(
@@ -523,6 +524,11 @@ export async function addAdditionalOccupant(input: AddOccupantInput) {
       throw error;
     }
   });
+
+  // Water billing is occupant-based, so an existing draft for this room must
+  // be recalculated as soon as occupancy changes.
+  await refreshDraftInvoicesForSpace(result.spaceId);
+  return { id: result.id };
 }
 
 /** Keeps the optional "new person" path inside the occupancy command workflow. */

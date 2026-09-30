@@ -224,6 +224,15 @@ html[data-sidebar-collapsed="true"] .app-sidebar-desktop .app-sidebar-parent.is-
   background: var(--app-brand-soft);
 }
 
+.app-sidebar-flyout-bridge {
+  position: absolute;
+  z-index: 59;
+  top: 0;
+  left: 100%;
+  width: 10px;
+  height: 100%;
+}
+
 .app-sidebar-flyout {
   position: absolute;
   z-index: 60;

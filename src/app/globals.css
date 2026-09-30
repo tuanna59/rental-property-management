@@ -357,9 +357,23 @@ input[type="radio"] {
   accent-color: var(--app-brand);
 }
 
-input[type="date"],
-input[type="month"] {
-  color-scheme: inherit;
+/* Keep native date/month controls aligned with the app's resolved theme.
+   Explicit color-scheme values avoid Chromium keeping a dark picker indicator
+   on light surfaces when the OS/browser preference differs from the app theme. */
+html[data-theme="light"] input[type="date"],
+html[data-theme="light"] input[type="month"] {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] input[type="date"],
+html[data-theme="dark"] input[type="month"] {
+  color-scheme: dark;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1;
 }
 
 select option {

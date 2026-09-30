@@ -348,7 +348,12 @@ function AppSidebar({
               )}
 
               {collapsed && flyoutOpen && (
-                <div className="app-sidebar-flyout" role="menu">
+                <>
+                  <span
+                    className="app-sidebar-flyout-bridge"
+                    aria-hidden="true"
+                  />
+                  <div className="app-sidebar-flyout" role="menu">
                   <strong>{tNav(item.labelKey)}</strong>
                   <div />
                   {item.children?.map((child) => {
@@ -372,7 +377,8 @@ function AppSidebar({
                       </Link>
                     );
                   })}
-                </div>
+                  </div>
+                </>
               )}
             </div>
           );

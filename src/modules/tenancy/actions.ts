@@ -179,6 +179,10 @@ async function tenancyAction(
     await work();
     revalidatePath("/");
     revalidatePath("/tenants");
+    revalidatePath("/billing");
+    revalidatePath("/billing/invoices");
+    revalidatePath("/utilities");
+    revalidatePath("/dashboard");
     return { ok: true, message: feedback(successKey) };
   } catch (error) {
     if (error instanceof TenancyDomainError) {
