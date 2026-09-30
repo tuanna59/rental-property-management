@@ -17,6 +17,7 @@ export function translateUtilityWarning(
   if (warning === "Monthly closing is not ready for billing.") return t("monthlyClosingNotReady");
   if (warning === "Electricity attribution is incomplete.") return t("electricityAttributionIncomplete");
   if (warning === "No electricity rate is configured.") return t("noElectricityRateConfigured");
+  if (warning === "The month isn't over yet.") return t("monthNotEnd");
 
   const moveMatch = warning.match(/^Missing move-(in|out) reading for (.+) on (\d{4}-\d{2}-\d{2})$/);
   if (moveMatch) {

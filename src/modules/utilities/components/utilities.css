@@ -1157,6 +1157,17 @@
   margin: 8px 0 0;
 }
 
+.utility-estimate-note {
+  background: var(--app-warning-soft);
+  border: 1px solid color-mix(in srgb, var(--app-warning) 28%, var(--app-border));
+  border-radius: 8px;
+  color: var(--app-warning);
+  font-size: calc(11px + var(--app-font-size-bump));
+  line-height: 1.45;
+  margin: 8px 0 0;
+  padding: 8px 10px;
+}
+
 .electricity-calculation {
   background: var(--app-neutral-soft);
   border: 1px solid var(--app-border);
@@ -1789,5 +1800,113 @@
   .utility-overview-summary .utility-summary-card {
     height: auto;
     min-height: 150px;
+  }
+}
+
+/* Water estimate detail dialog */
+.water-breakdown-dialog {
+  width: min(560px, calc(100vw - 24px));
+  max-width: 560px;
+  overflow-x: hidden;
+}
+
+.water-breakdown-dialog > * {
+  min-width: 0;
+}
+
+.water-breakdown-rate,
+.water-breakdown-grand-total {
+  gap: 16px;
+  min-width: 0;
+}
+
+.water-breakdown-rate > span,
+.water-breakdown-grand-total > span,
+.water-breakdown-rate > strong,
+.water-breakdown-grand-total > strong {
+  min-width: 0;
+}
+
+.water-breakdown-rate > strong,
+.water-breakdown-grand-total > strong {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.water-breakdown-list {
+  min-width: 0;
+  margin-top: 2px;
+}
+
+.meter-reading-item.water-breakdown-item {
+  grid-template-columns: minmax(0, 1fr) auto minmax(90px, auto);
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 0;
+}
+
+.water-breakdown-item > * {
+  min-width: 0;
+}
+
+.water-breakdown-person {
+  overflow-wrap: anywhere;
+}
+
+.water-breakdown-period {
+  color: var(--app-text-secondary);
+  white-space: nowrap;
+}
+
+.water-breakdown-amount {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .water-breakdown-dialog {
+    width: calc(100vw - 12px);
+    max-height: calc(100dvh - 12px);
+    padding-inline: 16px;
+  }
+
+  .water-breakdown-rate,
+  .water-breakdown-grand-total {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 4px;
+  }
+
+  .water-breakdown-rate > strong,
+  .water-breakdown-grand-total > strong {
+    text-align: left;
+    font-size: calc(18px + var(--app-font-size-bump));
+    line-height: 1.35;
+  }
+
+  .meter-reading-item.water-breakdown-item {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "person person"
+      "period amount";
+    align-items: center;
+    gap: 4px 12px;
+    min-height: 0;
+    padding: 10px 0;
+  }
+
+  .water-breakdown-person {
+    grid-area: person;
+  }
+
+  .water-breakdown-period {
+    grid-area: period;
+    white-space: normal;
+  }
+
+  .water-breakdown-amount {
+    grid-area: amount;
+    align-self: end;
   }
 }

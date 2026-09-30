@@ -401,9 +401,13 @@ function utilityLines(
   const waterOccupants = water.occupants.filter(
     (occupant) => occupant.tenancyId === tenancyId,
   );
-  if (waterOccupants.length && !water.applicableRate)
+  const waterRoom = water.roomSummaries.find(
+    (summary) => summary.spaceId === waterOccupants[0]?.spaceId,
+  );
+  const waterRate = waterRoom?.applicableRate ?? water.applicableRate;
+  if (waterOccupants.length && !waterRate)
     missing.push(`Missing water rate for ${monthName(sourceMonth)}`);
-  const waterCalculated = water.applicableRate
+  const waterCalculated = waterRate
     ? waterOccupants.reduce(
         (sum, occupant) => sum.plus(occupant.amount ?? 0),
         new Prisma.Decimal(0),
@@ -460,7 +464,9 @@ function utilityLines(
       calculatedAmount: waterCalculated ? money(waterCalculated) : null,
       finalAmount: waterFinal ? money(waterFinal) : null,
       metadata: {
-        applicableRate: water.applicableRate,
+        applicableRate: waterRate,
+        rateOverridden: waterRoom?.rateOverridden ?? false,
+        overrideReason: waterRoom?.overrideReason ?? null,
         totalOccupantDays,
         occupants,
       },

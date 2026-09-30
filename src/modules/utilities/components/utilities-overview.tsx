@@ -145,6 +145,14 @@ export function UtilitiesOverview({
                           : row.closingStatus === "OPTIONAL"
                             ? "optional"
                             : "n-a";
+                  const electricityAmount =
+                    row.preview.finalAmount ?? row.preview.estimatedFinalAmount;
+                  const electricityUsage =
+                    row.preview.totalAttributableUsage ??
+                    row.preview.estimatedAttributableUsage;
+                  const isPartialEstimate =
+                    row.preview.completeness !== "COMPLETE" &&
+                    row.preview.estimatedFinalAmount !== null;
                   return (
                     <tr key={row.spaceId}>
                       <td>
@@ -179,8 +187,8 @@ export function UtilitiesOverview({
                         <div className="utility-estimate-cell">
                           <div className="utility-estimate-primary">
                             <strong>
-                              {row.preview.finalAmount
-                                ? formatVndLocale(row.preview.finalAmount, locale)
+                              {electricityAmount !== null
+                                ? formatVndLocale(electricityAmount, locale)
                                 : "—"}
                             </strong>
                             <ElectricityBreakdownDialog
@@ -189,7 +197,13 @@ export function UtilitiesOverview({
                             />
                           </div>
                           <div className="utility-subtle">
-                            {t("billableKwh", { value: row.preview.totalAttributableUsage ?? "0" })}
+                            {isPartialEstimate
+                              ? t("knownUsageEstimate", {
+                                  value: electricityUsage ?? "0",
+                                })
+                              : t("billableKwh", {
+                                  value: electricityUsage ?? "0",
+                                })}
                           </div>
                         </div>
                       </td>

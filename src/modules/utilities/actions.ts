@@ -13,7 +13,8 @@ import {
   saveMonthlyReading,
   updateMeterReading,
 } from "./server/meter.service";
-import { addRate, setElectricityOverride } from "./server/utility-rate.service";
+import { UtilityRateDomainError } from "./domain/rate-errors";
+import { addRate, setUtilityOverride } from "./server/utility-rate.service";
 const text = (data: FormData, key: string) =>
   String(data.get(key) ?? "").trim();
 const file = (data: FormData, key: string) => {
@@ -33,6 +34,16 @@ async function action(
     revalidatePath("/");
     return { ok: true, message: feedback(successKey) };
   } catch (error) {
+    if (error instanceof UtilityRateDomainError) {
+      const key = {
+        OVERRIDE_REASON_REQUIRED: "overrideReasonRequired",
+        OVERRIDE_UTILITY_INVALID: "overrideUtilityInvalid",
+        OVERRIDE_EXPIRE_INVALID: "overrideExpireInvalid",
+        OVERRIDE_RANGE_OVERLAP: "overrideRangeOverlap",
+        OVERRIDE_FINALIZED_PERIOD: "overrideFinalizedPeriod",
+      }[error.code];
+      return { ok: false, message: feedback(key) };
+    }
     return {
       ok: false,
       message:
@@ -204,9 +215,11 @@ export async function saveRateAction(_: ActionState, data: FormData) {
 export async function saveOverrideAction(_: ActionState, data: FormData) {
   return action(
     () =>
-      setElectricityOverride({
+      setUtilityOverride({
         spaceId: text(data, "spaceId"),
-        billingMonth: text(data, "billingMonth"),
+        utilityType: text(data, "utilityType") as "ELECTRICITY" | "WATER",
+        effectiveMonth: text(data, "effectiveMonth"),
+        expireMonth: text(data, "expireMonth") || null,
         rate: text(data, "rate"),
         reason: text(data, "reason"),
       }),

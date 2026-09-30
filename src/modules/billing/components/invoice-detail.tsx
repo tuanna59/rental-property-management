@@ -337,7 +337,11 @@ function ServicesTab({ invoice }: { invoice: Invoice }) {
           <ContextCard
             label={t("rate")}
             value={t("ratePerPersonMonth", { rate: formatVndLocale(String(metadata.applicableRate ?? 0), locale) })}
-            detail={t("fixedRate")}
+            detail={
+              metadata.rateOverridden
+                ? `${t("overrideRate")}${metadata.overrideReason ? ` · ${String(metadata.overrideReason)}` : ""}`
+                : t("fixedRate")
+            }
             icon={<Coins />}
           />
           <ContextCard

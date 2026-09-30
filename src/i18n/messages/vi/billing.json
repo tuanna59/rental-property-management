@@ -239,7 +239,7 @@
   "share": "Tỷ lệ",
   "includedLineOverride": "Đã bao gồm trong ghi đè dòng",
   "tenantAttributedInvoice": "Phân bổ cho người thuê trong hóa đơn này",
-  "roomMonthOverride": "Đơn giá riêng theo phòng/tháng",
+  "roomMonthOverride": "Đơn giá riêng theo phòng",
   "calculation": "Cách tính",
   "overrideReason": "Lý do ghi đè",
   "usageAttribution": "Phân bổ mức sử dụng",

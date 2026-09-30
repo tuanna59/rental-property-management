@@ -86,7 +86,9 @@ export function UtilityRates({
               <thead>
                 <tr>
                   <th>{t("room")}</th>
-                  <th>{t("month")}</th>
+                  <th>{t("utility")}</th>
+                  <th>{t("effectiveMonth")}</th>
+                  <th>{t("expireMonth")}</th>
                   <th>{t("rate")}</th>
                   <th>{t("reason")}</th>
                 </tr>
@@ -95,8 +97,23 @@ export function UtilityRates({
                 {data.overrides.map((item) => (
                   <tr key={item.id}>
                     <td className="utility-room">{item.space.name}</td>
-                    <td>{formatMonthShortLocale(item.billingMonth, locale)}</td>
-                    <td>{formatVndLocale(item.rate, locale)} / kWh</td>
+                    <td>
+                      {item.utilityType === "ELECTRICITY"
+                        ? t("electricity")
+                        : t("waterUtility")}
+                    </td>
+                    <td>{formatMonthShortLocale(item.effectiveFrom, locale)}</td>
+                    <td>
+                      {item.effectiveTo
+                        ? formatMonthShortLocale(item.effectiveTo, locale)
+                        : t("ongoing")}
+                    </td>
+                    <td>
+                      {formatVndLocale(item.rate, locale)} /{" "}
+                      {item.utilityType === "ELECTRICITY"
+                        ? "kWh"
+                        : t("personMonth")}
+                    </td>
                     <td>{item.reason}</td>
                   </tr>
                 ))}
@@ -269,6 +286,9 @@ function OverrideDialog({
 }) {
   const t = useTranslations("utilities");
   const [open, setOpen] = React.useState(false);
+  const [utilityType, setUtilityType] = React.useState<
+    "ELECTRICITY" | "WATER"
+  >("ELECTRICITY");
   const [state, action] = React.useActionState(
     saveOverrideAction,
     emptyActionState,
@@ -288,32 +308,62 @@ function OverrideDialog({
           </DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="dialog-form">
-          <div className="field">
-            <Label htmlFor="override-room">{t("room")}</Label>
-            <select id="override-room" name="spaceId" required>
-              <option value="">{t("chooseRoom")}</option>
-              {rooms.map((room) => (
-                <option key={room.id} value={room.id}>
-                  {room.name}
-                </option>
-              ))}
-            </select>
+          <div className="dialog-grid">
+            <div className="field">
+              <Label htmlFor="override-room">{t("room")}</Label>
+              <select id="override-room" name="spaceId" required>
+                <option value="">{t("chooseRoom")}</option>
+                {rooms.map((room) => (
+                  <option key={room.id} value={room.id}>
+                    {room.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <Label htmlFor="override-utility">{t("utility")}</Label>
+              <select
+                id="override-utility"
+                name="utilityType"
+                value={utilityType}
+                onChange={(event) =>
+                  setUtilityType(
+                    event.target.value as "ELECTRICITY" | "WATER",
+                  )
+                }
+                required
+              >
+                <option value="ELECTRICITY">{t("electricity")}</option>
+                <option value="WATER">{t("waterUtility")}</option>
+              </select>
+            </div>
           </div>
           <div className="dialog-grid">
             <Field
-              label={t("billingMonthLabel")}
-              name="billingMonth"
+              label={t("effectiveMonth")}
+              name="effectiveMonth"
               type="month"
               required
             />
             <Field
-              label={t("overrideRate")}
-              name="rate"
-              type="number"
-              step="0.001"
-              required
+              label={t("expireMonthOptional")}
+              name="expireMonth"
+              type="month"
             />
           </div>
+          <Field
+            label={
+              utilityType === "ELECTRICITY"
+                ? t("overrideRateElectricity")
+                : t("overrideRateWater")
+            }
+            name="rate"
+            type="number"
+            step="0.001"
+            required
+          />
+          <p className="utility-subtle">{t("overridePeriodHelp")}</p>
+          <p className="utility-subtle">{t("overrideFinalizedHelp")}</p>
           <Field label={t("reason")} name="reason" required />
           <p className={`dialog-message ${state.ok ? "success" : "error"}`}>
             {state.message}

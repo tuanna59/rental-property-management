@@ -18,6 +18,9 @@ type Water = {
   room: string;
   billablePeople: number;
   occupantDays: number;
+  applicableRate: string | null;
+  rateOverridden: boolean;
+  overrideReason: string | null;
   calculatedPreviewAmount: string | null;
   finalPreviewAmount: string | null;
   occupants: Array<{
@@ -47,29 +50,42 @@ export function WaterBreakdownDialog({ water }: { water: Water }) {
           <ChevronRight />
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="water-breakdown-dialog">
         <DialogHeader>
           <DialogTitle>{t("waterBreakdown", { room: water.room })}</DialogTitle>
           <DialogDescription>
             {t("waterCalculatedPerOccupant")}
           </DialogDescription>
         </DialogHeader>
-        <div className="meter-reading-list">
+        <div className="meter-breakdown-total water-breakdown-rate">
+          <span>{t("applicableRate")}</span>
+          <strong>
+            {water.applicableRate
+              ? `${formatVndLocale(water.applicableRate, locale)} / ${t("personMonth")}`
+              : t("noRate")}
+          </strong>
+        </div>
+        {water.rateOverridden && (
+          <p className="electricity-override-note">
+            {t("rateOverride")} · {water.overrideReason ?? t("noReasonProvided")}
+          </p>
+        )}
+        <div className="meter-reading-list water-breakdown-list">
           {water.occupants.map((occupant) => (
-            <div className="meter-reading-item" key={occupant.id}>
-              <strong>{occupant.personName}</strong>
-              <span>
+            <div className="meter-reading-item water-breakdown-item" key={occupant.id}>
+              <strong className="water-breakdown-person">{occupant.personName}</strong>
+              <span className="water-breakdown-period">
                 {occupant.fullMonth
                   ? t("fullMonth")
                   : t("days", { count: occupant.billableDays })}
               </span>
-              <strong>
+              <strong className="water-breakdown-amount">
                 {occupant.amount ? formatVndLocale(occupant.amount, locale) : t("noRate")}
               </strong>
             </div>
           ))}
         </div>
-        <div className="meter-breakdown-total">
+        <div className="meter-breakdown-total water-breakdown-grand-total">
           <span>{t("waterTotal", { days: water.occupantDays })}</span>
           <strong>
             {water.finalPreviewAmount

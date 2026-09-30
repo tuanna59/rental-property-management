@@ -66,11 +66,12 @@ export function MonthlyMeterEntry({
   const openRows = entries.filter(
     (entry) =>
       Boolean(entry.activeMeter) &&
-      entry.closingRequired &&
-      !entry.closingLocked,
+      entry.closingStatus === "NEEDS_CLOSING",
   );
   const closedRows = entries.filter(
-    (entry) => entry.closingLocked || entry.closingStatus === "LOCKED",
+    (entry) =>
+      entry.closingStatus === "CLOSING_SET" ||
+      entry.closingStatus === "LOCKED",
   );
   const visible =
     filter === "OPEN" ? openRows : filter === "CLOSED" ? closedRows : entries;
@@ -458,6 +459,18 @@ function MeterWorkflowStatus({
     const detail = entry.monthlyReading && closingMonth
       ? [t("closingForMonth", { month: closingMonth }), t("locked"), qualityText].filter(Boolean).join(" · ")
       : t("billingPeriodLocked");
+    return (
+      <div className="meter-workflow-status">
+        <span className="utility-status is-complete">{t("closed")}</span>
+        <span>{detail}</span>
+      </div>
+    );
+  }
+
+  if (entry.closingStatus === "CLOSING_SET") {
+    const detail = entry.monthlyReading && closingMonth
+      ? [t("closingForMonth", { month: closingMonth }), qualityText].filter(Boolean).join(" · ")
+      : t("closed");
     return (
       <div className="meter-workflow-status">
         <span className="utility-status is-complete">{t("closed")}</span>

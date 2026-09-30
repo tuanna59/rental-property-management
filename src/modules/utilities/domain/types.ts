@@ -66,9 +66,11 @@ export type AddRateInput = {
   effectiveFrom: BusinessDateInput;
   notes?: string;
 };
-export type ElectricityOverrideInput = {
+export type UtilityOverrideInput = {
   spaceId: string;
-  billingMonth: BusinessDateInput;
+  utilityType: "ELECTRICITY" | "WATER";
+  effectiveMonth: string;
+  expireMonth?: string | null;
   rate: DecimalInput;
   reason: string;
 };

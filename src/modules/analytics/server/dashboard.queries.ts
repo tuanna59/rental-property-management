@@ -225,7 +225,7 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
     const balance = total.minus(applied);
     billedAgainstFinalized = billedAgainstFinalized.plus(total);
     paidAgainstFinalized = paidAgainstFinalized.plus(applied);
-    if (balance.isPositive()) {
+    if (balance.greaterThan(0)) {
       outstandingAgainstFinalized = outstandingAgainstFinalized.plus(balance);
       if (applied.isZero()) unpaidInvoiceCount += 1;
       else partialInvoiceCount += 1;
@@ -266,7 +266,7 @@ export async function getDashboardProjection(): Promise<DashboardProjection | nu
     const total = invoiceTotal(invoice);
     const paid = paidTotal(invoice);
     const balance = total.minus(paid);
-    if (!balance.isPositive()) continue;
+    if (!balance.greaterThan(0)) continue;
     attention.push({
       id: `invoice:${invoice.id}`,
       type: "BILLING",

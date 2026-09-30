@@ -26,15 +26,37 @@ export function ElectricityBreakdownDialog({
 }) {
   const t = useTranslations("utilities");
   const locale = useLocale() as AppLocale;
-  if (preview.completeness !== "COMPLETE") return null;
+  const complete = preview.completeness === "COMPLETE";
+  const estimateAvailable =
+    !complete && preview.estimatedFinalAmount !== null;
+  if (!complete && !estimateAvailable) return null;
 
-  const physicalUsage = Number(preview.totalPhysicalUsage ?? 0);
-  const billableUsage = Number(preview.totalAttributableUsage ?? 0);
-  const vacantUsage = Number(preview.vacantUsage ?? 0);
+  const physicalUsage = Number(
+    complete
+      ? (preview.totalPhysicalUsage ?? preview.estimatedPhysicalUsage ?? 0)
+      : (preview.estimatedPhysicalUsage ?? 0),
+  );
+  const billableUsage = Number(
+    complete
+      ? (preview.totalAttributableUsage ?? 0)
+      : (preview.estimatedAttributableUsage ?? 0),
+  );
+  const vacantUsage = Number(
+    complete
+      ? (preview.vacantUsage ?? 0)
+      : (preview.estimatedVacantUsage ?? 0),
+  );
   const rate = Number(preview.applicableRate ?? 0);
-  const calculatedAmount = Number(preview.calculatedAmount ?? 0);
-  const serviceStarts = preview.tenantBreakdown.map((item) => item.startDate);
-  const serviceEnds = preview.tenantBreakdown.map((item) => item.endDate);
+  const calculatedAmount = Number(
+    complete
+      ? (preview.calculatedAmount ?? 0)
+      : (preview.estimatedCalculatedAmount ?? 0),
+  );
+  const visibleTenantSegments = preview.tenantBreakdown.filter(
+    (item) => complete || item.usageKnown,
+  );
+  const serviceStarts = visibleTenantSegments.map((item) => item.startDate);
+  const serviceEnds = visibleTenantSegments.map((item) => item.endDate);
   const serviceStart = serviceStarts.sort(
     (left, right) => left.getTime() - right.getTime(),
   )[0];
@@ -66,6 +88,11 @@ export function ElectricityBreakdownDialog({
               : ""}
             {` · ${t("tenantBillingExcludesVacant")}`}
           </DialogDescription>
+          {!complete && (
+            <p className="utility-estimate-note">
+              {t("estimateBasedOnKnownUsage")}
+            </p>
+          )}
         </DialogHeader>
 
         <div className="electricity-summary-grid">
@@ -137,7 +164,7 @@ export function ElectricityBreakdownDialog({
               className="electricity-allocation-bar"
               aria-label={t("usageAllocationAria")}
             >
-              {preview.tenantBreakdown.map((segment, index) => (
+              {visibleTenantSegments.map((segment, index) => (
                 <span
                   className="is-tenant"
                   key={`${segment.tenancyId}-${index}`}
@@ -172,7 +199,7 @@ export function ElectricityBreakdownDialog({
                 </tr>
               </thead>
               <tbody>
-                {preview.tenantBreakdown.map((segment, index) => (
+                {visibleTenantSegments.map((segment, index) => (
                   <tr key={`${segment.tenancyId}-${index}`}>
                     <td>
                       <strong>{segment.tenantName}</strong>

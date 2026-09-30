@@ -239,7 +239,7 @@
   "share": "Share",
   "includedLineOverride": "Included in line override",
   "tenantAttributedInvoice": "Tenant-attributed to this invoice",
-  "roomMonthOverride": "Room/month override",
+  "roomMonthOverride": "Room-specific rate override",
   "calculation": "Calculation",
   "overrideReason": "Override reason",
   "usageAttribution": "Usage attribution",

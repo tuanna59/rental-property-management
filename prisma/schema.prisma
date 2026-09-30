@@ -214,7 +214,7 @@ model Space {
   notes                    String?
   tenancies                Tenancy[]
   meters                   Meter[]
-  electricityRateOverrides ElectricityRateOverride[]
+  utilityRateOverrides     UtilityRateOverride[]
   maintenanceIssues        MaintenanceIssue[]
   expenses                 Expense[]
   assets                   Asset[]
@@ -504,17 +504,20 @@ model UtilityRate {
   @@index([propertyId, utilityType, effectiveFrom])
 }
 
-model ElectricityRateOverride {
-  id           String   @id @default(cuid())
-  spaceId      String
-  space        Space    @relation(fields: [spaceId], references: [id], onDelete: Restrict)
-  billingMonth DateTime @db.Date
-  rate         Decimal  @db.Decimal(16, 3)
-  reason       String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+model UtilityRateOverride {
+  id            String      @id @default(cuid())
+  spaceId       String
+  space         Space       @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  utilityType   UtilityType
+  rate          Decimal     @db.Decimal(16, 3)
+  effectiveFrom DateTime    @db.Date
+  effectiveTo   DateTime?   @db.Date
+  reason        String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
-  @@unique([spaceId, billingMonth])
+  @@unique([spaceId, utilityType, effectiveFrom])
+  @@index([spaceId, utilityType, effectiveFrom, effectiveTo])
 }
 
 model MaintenanceIssue {

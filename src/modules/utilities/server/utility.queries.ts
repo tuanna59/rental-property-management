@@ -31,6 +31,29 @@ async function rateAt(
   });
 }
 
+async function overrideAt(
+  spaceId: string,
+  utilityType: "ELECTRICITY" | "WATER",
+  at: Date,
+) {
+  return prisma.utilityRateOverride.findFirst({
+    where: {
+      spaceId,
+      utilityType,
+      effectiveFrom: { lte: at },
+      OR: [{ effectiveTo: null }, { effectiveTo: { gt: at } }],
+    },
+    orderBy: { effectiveFrom: "desc" },
+    select: {
+      id: true,
+      rate: true,
+      reason: true,
+      effectiveFrom: true,
+      effectiveTo: true,
+    },
+  });
+}
+
 const readingSelect = {
   id: true,
   readingDate: true,
@@ -918,6 +941,9 @@ export async function getMonthlyMeterEntries(
         "Recorded before the month ended. You can replace it with a later reading.",
       );
     }
+    if (!monthComplete) {
+      warnings.push("The month isn't over yet.",);
+    }
 
     return {
       spaceId: space.id,
@@ -1029,7 +1055,13 @@ export async function getElectricityPreview(
       totalAttributableUsage: null,
       totalPhysicalUsage: null,
       vacantUsage: null,
+      estimatedAttributableUsage: null,
+      estimatedPhysicalUsage: null,
+      estimatedVacantUsage: null,
       calculatedAmount: null,
+      finalAmount: null,
+      estimatedCalculatedAmount: null,
+      estimatedFinalAmount: null,
     };
   }
   const entry = (
@@ -1045,36 +1077,45 @@ export async function getElectricityPreview(
       totalAttributableUsage: null,
       totalPhysicalUsage: null,
       vacantUsage: null,
+      estimatedAttributableUsage: null,
+      estimatedPhysicalUsage: null,
+      estimatedVacantUsage: null,
       calculatedAmount: null,
+      finalAmount: null,
+      estimatedCalculatedAmount: null,
+      estimatedFinalAmount: null,
     };
   }
   const complete =
     entry.attributionStatus === "COMPLETE" && entry.closingReady;
-  const tenantUsage = complete
-    ? entry.tenancySegments
-        .filter((segment) => segment.kind === "TENANT" && segment.usageKnown)
-        .reduce(
-          (sum, segment) => sum.plus(segment.usage),
-          new Prisma.Decimal(0),
-        )
-    : null;
+
+  // Preview/estimate values are intentionally independent from billing readiness.
+  // Known closed segments can be priced while the room is still incomplete, but
+  // final billing fields below remain null until attribution/closing is complete.
+  const knownTenantSegments = entry.tenancySegments.filter(
+    (segment) => segment.kind === "TENANT" && segment.usageKnown,
+  );
+  const knownVacantSegments = entry.tenancySegments.filter(
+    (segment) => segment.kind === "VACANT" && segment.usageKnown,
+  );
+  const knownTenantUsage = knownTenantSegments.reduce(
+    (sum, segment) => sum.plus(segment.usage),
+    new Prisma.Decimal(0),
+  );
+  const knownVacantUsage = knownVacantSegments.reduce(
+    (sum, segment) => sum.plus(segment.usage),
+    new Prisma.Decimal(0),
+  );
+  const hasKnownTenantUsage = knownTenantSegments.length > 0;
+
+  const tenantUsage = complete ? knownTenantUsage : null;
   const physicalUsage = complete
     ? new Prisma.Decimal(
         entry.monthlyPhysicalUsage ?? entry.knownPhysicalUsage ?? 0,
       )
     : null;
-  const vacantUsage = complete
-    ? entry.tenancySegments
-        .filter((segment) => segment.kind === "VACANT" && segment.usageKnown)
-        .reduce(
-          (sum, segment) => sum.plus(segment.usage),
-          new Prisma.Decimal(0),
-        )
-    : null;
-  const override = await prisma.electricityRateOverride.findUnique({
-    where: { spaceId_billingMonth: { spaceId, billingMonth: start } },
-    select: { rate: true, reason: true },
-  });
+  const vacantUsage = complete ? knownVacantUsage : null;
+  const override = await overrideAt(spaceId, "ELECTRICITY", start);
   const applicable = override
     ? { rate: override.rate }
     : await rateAt(property.floor.propertyId, "ELECTRICITY", start);
@@ -1097,22 +1138,32 @@ export async function getElectricityPreview(
         tenancyId: segment.tenancyId,
         tenantName: segment.label,
         usage: segment.usage,
+        usageKnown: segment.usageKnown,
+        isOpen: segment.isOpen,
         share:
-          tenantUsage && !tenantUsage.isZero()
+          segment.usageKnown && hasKnownTenantUsage && !knownTenantUsage.isZero()
             ? new Prisma.Decimal(segment.usage)
-                .div(tenantUsage)
+                .div(knownTenantUsage)
                 .mul(100)
                 .toFixed(1)
             : "0",
-        amount: applicable
-          ? decimal(new Prisma.Decimal(segment.usage).mul(applicable.rate))
-          : null,
+        amount:
+          segment.usageKnown && applicable
+            ? decimal(new Prisma.Decimal(segment.usage).mul(applicable.rate))
+            : null,
         startDate: segment.startDate,
         endDate: segment.endDate,
       })),
     totalAttributableUsage: tenantUsage ? decimal(tenantUsage) : null,
     totalPhysicalUsage: physicalUsage ? decimal(physicalUsage) : null,
     vacantUsage: vacantUsage ? decimal(vacantUsage) : null,
+    estimatedAttributableUsage: hasKnownTenantUsage
+      ? decimal(knownTenantUsage)
+      : null,
+    estimatedPhysicalUsage: entry.knownPhysicalUsage,
+    estimatedVacantUsage: knownVacantSegments.length
+      ? decimal(knownVacantUsage)
+      : null,
     applicableRate: applicable ? decimal(applicable.rate) : null,
     rateOverridden: Boolean(override),
     overrideReason: override?.reason ?? null,
@@ -1128,6 +1179,14 @@ export async function getElectricityPreview(
       tenantUsage && applicable
         ? decimal(roundVnd(tenantUsage.mul(applicable.rate)))
         : null,
+    estimatedCalculatedAmount:
+      hasKnownTenantUsage && applicable
+        ? decimal(knownTenantUsage.mul(applicable.rate))
+        : null,
+    estimatedFinalAmount:
+      hasKnownTenantUsage && applicable
+        ? decimal(roundVnd(knownTenantUsage.mul(applicable.rate)))
+        : null,
   };
 }
 
@@ -1137,24 +1196,57 @@ export async function getWaterPreview(
 ) {
   const start = monthStart(date(month));
   const end = monthEndExclusive(start);
-  const rate = await rateAt(propertyId, "WATER", start);
-  const occupants = await prisma.tenancyOccupant.findMany({
-    where: {
-      startDate: { lt: end },
-      OR: [{ endDate: null }, { endDate: { gt: start } }],
-      tenancy: { space: { floor: { propertyId } } },
-    },
-    select: {
-      id: true,
-      role: true,
-      person: { select: { fullName: true } },
-      startDate: true,
-      endDate: true,
-      tenancy: {
-        select: { id: true, spaceId: true, space: { select: { name: true } } },
+  const [rate, occupants, activeOverrides] = await Promise.all([
+    rateAt(propertyId, "WATER", start),
+    prisma.tenancyOccupant.findMany({
+      where: {
+        startDate: { lt: end },
+        OR: [{ endDate: null }, { endDate: { gt: start } }],
+        tenancy: { space: { floor: { propertyId } } },
       },
-    },
-  });
+      select: {
+        id: true,
+        role: true,
+        person: { select: { fullName: true } },
+        startDate: true,
+        endDate: true,
+        tenancy: {
+          select: {
+            id: true,
+            spaceId: true,
+            space: { select: { name: true } },
+          },
+        },
+      },
+    }),
+    prisma.utilityRateOverride.findMany({
+      where: {
+        utilityType: "WATER",
+        effectiveFrom: { lte: start },
+        OR: [{ effectiveTo: null }, { effectiveTo: { gt: start } }],
+        space: { floor: { propertyId } },
+      },
+      orderBy: { effectiveFrom: "desc" },
+      select: {
+        spaceId: true,
+        rate: true,
+        reason: true,
+        effectiveFrom: true,
+        effectiveTo: true,
+      },
+    }),
+  ]);
+
+  const overrideBySpace = new Map<
+    string,
+    (typeof activeOverrides)[number]
+  >();
+  for (const override of activeOverrides) {
+    if (!overrideBySpace.has(override.spaceId)) {
+      overrideBySpace.set(override.spaceId, override);
+    }
+  }
+
   const details = occupants.map((occupant) => {
     const begins = occupant.startDate > start ? occupant.startDate : start;
     const finishes =
@@ -1166,6 +1258,8 @@ export async function getWaterPreview(
           0,
           Math.round((finishes.getTime() - begins.getTime()) / 86_400_000),
         );
+    const override = overrideBySpace.get(occupant.tenancy.spaceId);
+    const applicableRate = override?.rate ?? rate?.rate ?? null;
     return {
       id: occupant.id,
       role: occupant.role,
@@ -1179,23 +1273,36 @@ export async function getWaterPreview(
       serviceEnd: finishes,
       fullMonth,
       billableDays,
-      amount: rate
-        ? decimal(fullMonth ? rate.rate : rate.rate.div(30).mul(billableDays))
+      applicableRate: applicableRate ? decimal(applicableRate) : null,
+      rateOverridden: Boolean(override),
+      overrideReason: override?.reason ?? null,
+      amount: applicableRate
+        ? decimal(
+            fullMonth
+              ? applicableRate
+              : applicableRate.div(30).mul(billableDays),
+          )
         : null,
     };
   });
-  const amount = (items: typeof details) =>
-    rate
-      ? decimal(
-          items.reduce(
-            (sum, item) => sum.plus(item.amount ?? 0),
-            new Prisma.Decimal(0),
-          ),
-        )
-      : null;
+
+  const amount = (items: typeof details) => {
+    if (!items.length) return rate ? "0" : null;
+    if (items.some((item) => item.amount === null)) return null;
+    return decimal(
+      items.reduce(
+        (sum, item) => sum.plus(item.amount ?? 0),
+        new Prisma.Decimal(0),
+      ),
+    );
+  };
+
   const roomSummaries = [...new Set(details.map((item) => item.spaceId))].map(
     (spaceId) => {
       const roomDetails = details.filter((item) => item.spaceId === spaceId);
+      const override = overrideBySpace.get(spaceId);
+      const applicableRate = override?.rate ?? rate?.rate ?? null;
+      const calculatedPreviewAmount = amount(roomDetails);
       return {
         spaceId,
         room: roomDetails[0]?.room ?? "Room",
@@ -1205,37 +1312,30 @@ export async function getWaterPreview(
           0,
         ),
         occupants: roomDetails,
-        calculatedPreviewAmount: amount(roomDetails),
-        finalPreviewAmount: rate
-          ? decimal(
-              roundVnd(
-                roomDetails.reduce(
-                  (sum, item) => sum.plus(item.amount ?? 0),
-                  new Prisma.Decimal(0),
-                ),
-              ),
-            )
-          : null,
+        applicableRate: applicableRate ? decimal(applicableRate) : null,
+        rateOverridden: Boolean(override),
+        overrideReason: override?.reason ?? null,
+        calculatedPreviewAmount,
+        finalPreviewAmount:
+          calculatedPreviewAmount !== null
+            ? decimal(roundVnd(new Prisma.Decimal(calculatedPreviewAmount)))
+            : null,
       };
     },
   );
+
+  const calculatedPreviewAmount = amount(details);
   return {
     applicableRate: rate ? decimal(rate.rate) : null,
     billablePeople: details.length,
     occupantDays: details.reduce((sum, item) => sum + item.billableDays, 0),
     occupants: details,
     roomSummaries,
-    calculatedPreviewAmount: amount(details),
-    finalPreviewAmount: rate
-      ? decimal(
-          roundVnd(
-            details.reduce(
-              (sum, item) => sum.plus(item.amount ?? 0),
-              new Prisma.Decimal(0),
-            ),
-          ),
-        )
-      : null,
+    calculatedPreviewAmount,
+    finalPreviewAmount:
+      calculatedPreviewAmount !== null
+        ? decimal(roundVnd(new Prisma.Decimal(calculatedPreviewAmount)))
+        : null,
   };
 }
 
@@ -1244,10 +1344,14 @@ export async function getRates(propertyId: string) {
     where: { propertyId },
     orderBy: [{ utilityType: "asc" }, { effectiveFrom: "desc" }],
   });
-  const overrides = await prisma.electricityRateOverride.findMany({
+  const overrides = await prisma.utilityRateOverride.findMany({
     where: { space: { floor: { propertyId } } },
     include: { space: { select: { name: true } } },
-    orderBy: { billingMonth: "desc" },
+    orderBy: [
+      { effectiveFrom: "desc" },
+      { utilityType: "asc" },
+      { space: { name: "asc" } },
+    ],
   });
   return {
     rates: rates.map((rate) => ({ ...rate, rate: decimal(rate.rate) })),
@@ -1280,6 +1384,9 @@ export async function getUtilitiesOverview(
       billablePeople: 0,
       occupantDays: 0,
       occupants: [],
+      applicableRate: water.applicableRate,
+      rateOverridden: false,
+      overrideReason: null,
       calculatedPreviewAmount: water.applicableRate ? "0" : null,
       finalPreviewAmount: water.applicableRate ? "0" : null,
     },
