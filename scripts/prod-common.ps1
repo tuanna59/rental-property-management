@@ -2,6 +2,8 @@ $script:ProdRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $script:ProdEnvFile = Join-Path $script:ProdRepoRoot ".env.production"
 $script:ProdComposeFile = Join-Path $script:ProdRepoRoot "compose.prod.yml"
 $script:ProdProjectName = "rental-prod"
+$script:ProdPostgresServiceName = "postgres"
+$script:ProdAppServiceName = "app"
 
 function Get-ProductionEnvValue {
     param(
@@ -35,6 +37,41 @@ function Get-ProductionEnvValue {
     return $value
 }
 
+function Get-OptionalProductionEnvValue {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+
+        [Parameter(Mandatory = $true)]
+        [string]$DefaultValue
+    )
+
+    if (-not (Test-Path -LiteralPath $script:ProdEnvFile)) {
+        throw "Missing .env.production. Copy .env.production.example and configure it first."
+    }
+
+    $escapedName = [Regex]::Escape($Name)
+    $match = Get-Content -LiteralPath $script:ProdEnvFile |
+        Where-Object { $_ -match "^\s*$escapedName\s*=" } |
+        Select-Object -Last 1
+
+    if (-not $match) {
+        return $DefaultValue
+    }
+
+    $value = ($match -replace "^\s*$escapedName\s*=\s*", "").Trim()
+    if (($value.StartsWith('"') -and $value.EndsWith('"')) -or
+        ($value.StartsWith("'") -and $value.EndsWith("'"))) {
+        $value = $value.Substring(1, $value.Length - 2)
+    }
+
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        return $DefaultValue
+    }
+
+    return $value
+}
+
 function Assert-ProductionConfiguration {
     $appEnv = Get-ProductionEnvValue -Name "APP_ENV"
     if ($appEnv -ne "production") {
@@ -58,8 +95,8 @@ function Assert-ProductionConfiguration {
         throw "DATABASE_URL must use the postgres or postgresql scheme."
     }
 
-    if ($databaseUri.Host -ne "postgres") {
-        throw "Production DATABASE_URL must use the production Compose hostname 'postgres', not localhost or a DEV host."
+    if ($databaseUri.Host -ne $script:ProdPostgresServiceName) {
+        throw "Production DATABASE_URL must use the production Compose hostname '$script:ProdPostgresServiceName', not localhost or a DEV host."
     }
 
     $postgresDb = Get-ProductionEnvValue -Name "POSTGRES_DB"
