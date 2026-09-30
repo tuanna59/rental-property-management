@@ -67,7 +67,7 @@ export function EditMeterReadingDialog({
               label={t("reading")}
               name="readingValue"
               type="number"
-              step="0.001"
+              step="1"
               defaultValue={reading.readingValue}
               required
             />

@@ -770,9 +770,9 @@ function InvoicesTab({ invoices }: { invoices: TenantInvoice[] }) {
         <Link href={`/billing/invoices/${invoice.id}`} className="tenant-table-row" key={invoice.id}>
           <span>{invoice.type === "REGULAR" ? formatMonthShortLocale(invoice.billingPeriod, locale) : formatDateOnlyLocale(invoice.invoiceDate, locale)}</span>
           <span>{invoice.roomName}</span>
-          <span>{invoice.status === "FINALIZED" ? tb("finalized") : tb("draft")}</span>
+          <span>{invoice.status === "FINALIZED" ? tb("finalized") : invoice.status === "VOIDED" ? tb("voided") : tb("draft")}</span>
           <span>{formatVndLocale(invoice.amount, locale)}</span>
-          <span>{invoice.displayStatus === "Paid" ? tb("paid") : invoice.displayStatus === "Partial" ? tb("partial") : invoice.displayStatus === "Unpaid" ? tb("unpaid") : invoice.displayStatus}</span>
+          <span>{invoice.displayStatus === "Paid" ? tb("paid") : invoice.displayStatus === "Partial" ? tb("partial") : invoice.displayStatus === "Unpaid" ? tb("unpaid") : invoice.displayStatus === "Voided" ? tb("voided") : invoice.displayStatus}</span>
           <span>{formatVndLocale(invoice.balance, locale)}</span>
         </Link>
       ))}
@@ -1183,7 +1183,7 @@ function financialSummary(
   const utilityInvoice = invoices.find((invoice) => Number(invoice.utilities.total) > 0);
   return {
     invoiceCount: invoices.length,
-    outstandingCount: invoices.filter((invoice) => Number(invoice.balance) > 0).length,
+    outstandingCount: invoices.filter((invoice) => BigInt(invoice.balance) > BigInt(0)).length,
     paymentTotal: String(normalPayments.reduce((sum, payment) => sum + Number(payment.amount), 0)),
     lastPayment: normalPayments[0]?.paymentDate ?? null,
     depositHeld: primary?.depositHeld ?? "0",

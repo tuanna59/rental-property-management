@@ -1,9 +1,41 @@
-.billing-actions,
-.invoice-header-actions {
+.billing-actions {
   display: flex;
   gap: 0.55rem;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.invoice-header-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: flex-end;
+  justify-self: end;
+  max-width: 820px;
+}
+
+.invoice-action-group {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.invoice-action-group-primary {
+  padding-left: 0.65rem;
+  position: relative;
+}
+
+.invoice-action-group-primary:not(:empty)::before {
+  background: var(--app-border);
+  content: "";
+  height: 1.5rem;
+  left: 0;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
 }
 
 .billing-status {
@@ -136,16 +168,36 @@
 }
 
 .invoice-detail-header {
-  align-items: flex-end;
-  display: flex;
-  justify-content: space-between;
-  gap: 1.5rem;
+  align-items: end;
+  display: grid;
+  gap: 1.25rem 2rem;
+  grid-template-columns: minmax(280px, 1fr) auto;
 }
 
+.invoice-detail-heading {
+  min-width: 0;
+}
+
+.invoice-title-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.8rem;
+  margin: 0.2rem 0;
+}
+
+.invoice-title-row h1,
 .invoice-detail-header h1 {
   color: var(--app-text-primary);
   font-size: var(--app-page-title-size);
-  margin: 0.2rem 0;
+  margin: 0;
+}
+
+.invoice-title-statuses {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
 .invoice-detail-header p {
@@ -437,12 +489,20 @@
   margin: 0.35rem 0 0;
 }
 
-.invoice-paper-draft {
-  color: var(--app-warning);
+.invoice-paper-draft,
+.invoice-paper-voided {
   font-size: 0.72rem;
   font-weight: 750;
   letter-spacing: 0.08em;
   margin-top: 0.3rem;
+}
+
+.invoice-paper-draft {
+  color: var(--app-warning);
+}
+
+.invoice-paper-voided {
+  color: var(--app-danger);
 }
 
 .invoice-paper-details {
@@ -838,8 +898,15 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .invoice-detail-header {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-header-actions {
+    justify-content: flex-start;
+    justify-self: stretch;
+    max-width: none;
+    width: 100%;
   }
 }
 
@@ -855,11 +922,37 @@
   }
   .invoice-header-actions {
     align-items: stretch;
+    display: grid;
+    gap: 0.55rem;
     width: 100%;
   }
-  .invoice-header-actions > * {
-    flex: 1;
+
+  .invoice-action-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
   }
+
+  .invoice-action-group-primary {
+    border-top: 1px solid var(--app-border);
+    padding-left: 0;
+    padding-top: 0.55rem;
+  }
+
+  .invoice-action-group-primary:not(:empty)::before {
+    display: none;
+  }
+
+  .invoice-action-group > button,
+  .invoice-action-group > form,
+  .invoice-action-group > form > button {
+    width: 100%;
+  }
+
+  .invoice-action-group > form {
+    display: contents;
+  }
+
   .invoice-tab-panel {
     padding: 0.8rem;
   }
@@ -872,4 +965,72 @@
   .invoice-paper-line > :last-child {
     text-align: left;
   }
+}
+
+.invoice-history-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--app-radius-card);
+  background: var(--surface-subtle);
+}
+
+.invoice-history-notice.is-voided {
+  border-color: color-mix(in srgb, var(--app-danger) 34%, var(--border));
+  background: var(--app-danger-soft);
+}
+
+.invoice-history-notice > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.invoice-history-notice span,
+.invoice-action-note {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.invoice-action-note {
+  max-width: 260px;
+}
+
+@media (max-width: 720px) {
+  .invoice-history-notice {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+/* Post-finalization invoice adjustments */
+.invoice-paper-total {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  row-gap: 0.35rem;
+}
+
+.invoice-adjustment-history {
+  margin-bottom: 1.25rem;
+}
+
+.invoice-adjustment-preview {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.85rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-subtle);
+}
+
+.invoice-adjustment-preview > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.billing-adjusted-label {
+  display: block;
+  margin-top: 0.15rem;
 }

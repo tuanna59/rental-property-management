@@ -10,7 +10,7 @@ export type TenantInvoice = {
   billingPeriod: Date;
   invoiceDate: Date;
   type: "REGULAR" | "FINAL_SETTLEMENT";
-  status: "DRAFT" | "FINALIZED";
+  status: "DRAFT" | "FINALIZED" | "VOIDED";
   roomName: string;
   amount: string;
   balance: string;

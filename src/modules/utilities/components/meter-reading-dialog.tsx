@@ -66,7 +66,7 @@ export function MeterReadingDialog({ meterId }: { meterId: string }) {
               label={t("readingValue")}
               name="readingValue"
               type="number"
-              step="0.001"
+              step="1"
               required
             />
           </div>

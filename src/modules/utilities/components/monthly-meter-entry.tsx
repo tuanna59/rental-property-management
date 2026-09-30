@@ -276,7 +276,7 @@ function MeterEntryRow({
               <Input
                 name="readingValue"
                 type="number"
-                step="0.001"
+                step="1"
                 required
               />
               <span>kWh</span>
@@ -456,9 +456,14 @@ function MeterWorkflowStatus({
         : null;
 
   if (entry.closingLocked || entry.closingStatus === "LOCKED") {
-    const detail = entry.monthlyReading && closingMonth
-      ? [t("closingForMonth", { month: closingMonth }), t("locked"), qualityText].filter(Boolean).join(" · ")
+    const lockReason = entry.lockInvoice
+      ? t("lockedByFinalizedInvoice", {
+          month: formatMonthLocale(entry.lockInvoice.billingPeriod, locale),
+        })
       : t("billingPeriodLocked");
+    const detail = entry.monthlyReading && closingMonth
+      ? [t("closingForMonth", { month: closingMonth }), lockReason, qualityText].filter(Boolean).join(" · ")
+      : lockReason;
     return (
       <div className="meter-workflow-status">
         <span className="utility-status is-complete">{t("closed")}</span>
@@ -910,7 +915,7 @@ function InstallMeterDialog({
             label={t("initialReading")}
             name="initialReading"
             type="number"
-            step="0.001"
+            step="1"
             required
           />
           <div className="field">

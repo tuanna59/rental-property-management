@@ -19,15 +19,14 @@ type InvoiceLinePresentation = {
 
 export function invoicePresentation(invoice: Invoice, locale: AppLocale) {
   const t = billingTranslator(locale);
-  const month = invoice.billingPeriod.toISOString().slice(0, 7);
   const lines: InvoiceLinePresentation[] = [
     ...invoice.lines.map((line) => linePresentation(line, locale, t)),
     ...invoice.adjustments.map((adjustment) => ({
       id: adjustment.id,
       type: "ADJUSTMENT",
-      label: adjustment.type === "CREDIT" ? t("creditDiscount") : t("additionalCharge"),
-      detail: adjustment.description,
-      detailNote: adjustment.reason || null,
+      label: adjustment.type === "CREDIT" ? t("creditAdjustment") : t("debitAdjustment"),
+      detail: adjustment.reason || adjustment.description,
+      detailNote: null,
       quantity: "—",
       rate: "—",
       amount: `${adjustment.type === "CREDIT" ? "−" : ""}${formatVndLocale(adjustment.amount, locale)}`,
@@ -36,10 +35,15 @@ export function invoicePresentation(invoice: Invoice, locale: AppLocale) {
 
   return {
     propertyName: invoice.propertyName,
-    invoiceNumber: `${invoice.type === "FINAL_SETTLEMENT" ? "FS" : "INV"}-${month}-${sanitizeSegment(invoice.room).toUpperCase()}`,
+    invoiceNumber: `${invoice.type === "FINAL_SETTLEMENT" ? "FS" : "INV"}-${invoice.id.slice(-6).toUpperCase()}`,
     documentTitle:
       invoice.type === "FINAL_SETTLEMENT" ? t("finalSettlementDocument") : t("invoiceDocument"),
-    statusLabel: invoice.status === "DRAFT" ? t("draftWatermark") : t("finalizedLabel"),
+    statusLabel:
+      invoice.status === "DRAFT"
+        ? t("draftWatermark")
+        : invoice.status === "VOIDED"
+          ? t("voided")
+          : t("finalizedLabel"),
     billTo: invoice.renterName,
     room: invoice.room,
     billingLabel:
@@ -53,8 +57,14 @@ export function invoicePresentation(invoice: Invoice, locale: AppLocale) {
         ? formatDateOnlyLocale(invoice.invoiceDate, locale)
         : null,
     lines,
+    originalTotal: invoice.originalTotal,
+    adjustmentNet: invoice.adjustmentNet,
     total: invoice.total,
+    paid: invoice.totalPaid,
+    outstanding: invoice.balance,
+    hasAdjustments: invoice.hasAdjustments,
     isDraft: invoice.status === "DRAFT",
+    isVoided: invoice.status === "VOIDED",
   };
 }
 
@@ -64,7 +74,7 @@ export function exportInvoicePng(invoice: Invoice, locale: AppLocale) {
   const canvas = document.createElement("canvas");
   const rowHeight = 104;
   canvas.width = 1600;
-  canvas.height = Math.max(980, 650 + presentation.lines.length * rowHeight);
+  canvas.height = Math.max(980, 650 + presentation.lines.length * rowHeight + (presentation.hasAdjustments ? 170 : 0));
   const context = canvas.getContext("2d");
   if (!context) return;
 
@@ -100,8 +110,8 @@ export function exportInvoicePng(invoice: Invoice, locale: AppLocale) {
   context.fillStyle = colors.muted;
   context.font = `650 23px ${font}`;
   context.fillText(`#${presentation.invoiceNumber}`, 1520, 122);
-  if (presentation.isDraft) {
-    context.fillStyle = "#8b6a2d";
+  if (presentation.isDraft || presentation.isVoided) {
+    context.fillStyle = presentation.isVoided ? "#9c3c2f" : "#8b6a2d";
     context.font = `700 17px ${font}`;
     context.fillText(presentation.statusLabel, 1520, 151);
   }
@@ -195,16 +205,44 @@ export function exportInvoicePng(invoice: Invoice, locale: AppLocale) {
   y += 16;
   const totalWidth = 650;
   const totalX = 1528 - totalWidth;
+  const totalHeight = presentation.hasAdjustments ? 260 : 104;
   context.fillStyle = colors.greenDark;
-  roundRect(context, totalX, y, totalWidth, 104, 4);
+  roundRect(context, totalX, y, totalWidth, totalHeight, 4);
   context.fill();
   context.fillStyle = colors.white;
-  context.font = `700 28px ${font}`;
-  context.fillText(t("totalPaymentUpper"), totalX + 38, y + 65);
-  context.textAlign = "right";
-  context.font = `800 36px ${font}`;
-  context.fillText(formatVndLocale(presentation.total, locale), 1490, y + 66);
-  context.textAlign = "left";
+  if (presentation.hasAdjustments) {
+    context.font = `600 20px ${font}`;
+    context.fillText(t("originalTotal"), totalX + 38, y + 42);
+    context.textAlign = "right";
+    context.fillText(formatVndLocale(presentation.originalTotal, locale), 1490, y + 42);
+    context.textAlign = "left";
+    context.fillText(t("adjustments"), totalX + 38, y + 82);
+    context.textAlign = "right";
+    context.fillText(formatVndLocale(presentation.adjustmentNet, locale), 1490, y + 82);
+    context.textAlign = "left";
+    context.font = `700 24px ${font}`;
+    context.fillText(t("adjustedTotal"), totalX + 38, y + 132);
+    context.textAlign = "right";
+    context.font = `800 30px ${font}`;
+    context.fillText(formatVndLocale(presentation.total, locale), 1490, y + 132);
+    context.textAlign = "left";
+    context.font = `600 20px ${font}`;
+    context.fillText(t("paid"), totalX + 38, y + 180);
+    context.textAlign = "right";
+    context.fillText(formatVndLocale(presentation.paid, locale), 1490, y + 180);
+    context.textAlign = "left";
+    context.fillText(t("outstanding"), totalX + 38, y + 220);
+    context.textAlign = "right";
+    context.fillText(formatVndLocale(presentation.outstanding, locale), 1490, y + 220);
+    context.textAlign = "left";
+  } else {
+    context.font = `700 28px ${font}`;
+    context.fillText(t("totalPaymentUpper"), totalX + 38, y + 65);
+    context.textAlign = "right";
+    context.font = `800 36px ${font}`;
+    context.fillText(formatVndLocale(presentation.total, locale), 1490, y + 66);
+    context.textAlign = "left";
+  }
 
   // Footer
   const footerY = canvas.height - 70;
@@ -214,7 +252,11 @@ export function exportInvoicePng(invoice: Invoice, locale: AppLocale) {
   context.fillStyle = colors.muted;
   context.font = `400 16px ${font}`;
   context.fillText(
-    presentation.isDraft ? t("draftPreviewFooter") : t("electronicInvoiceCreated"),
+    presentation.isDraft
+      ? t("draftPreviewFooter")
+      : presentation.isVoided
+        ? t("voidedInvoiceFooter")
+        : t("electronicInvoiceCreated"),
     72,
     footerY + 5,
   );

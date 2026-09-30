@@ -12,6 +12,7 @@ import {
   getWaterPreview,
 } from "@/modules/utilities/server/utility.queries";
 import { resolveRegularBillingPeriods } from "../domain/billing-policy";
+import { calculateInvoiceFinancials } from "../domain/invoice-financials";
 
 const money = (value: Prisma.Decimal) => value.toString();
 const DAY = 86_400_000;
@@ -73,7 +74,7 @@ export async function getBillingCandidates(
         select: { person: { select: { fullName: true } } },
       },
       invoices: {
-        where: { billingPeriod },
+        where: { billingPeriod, status: { not: "VOIDED" } },
         select: { id: true, status: true, type: true },
       },
     },
@@ -489,6 +490,14 @@ const invoiceInclude = {
   payments: {
     orderBy: [{ paymentDate: "desc" as const }, { createdAt: "desc" as const }],
   },
+  replacesInvoice: {
+    select: { id: true, status: true },
+  },
+  replacementInvoices: {
+    orderBy: { createdAt: "desc" as const },
+    take: 1,
+    select: { id: true, status: true },
+  },
 } satisfies Prisma.InvoiceInclude;
 
 type InvoiceRow = Prisma.InvoiceGetPayload<{ include: typeof invoiceInclude }>;
@@ -519,22 +528,13 @@ export async function getInvoice(invoiceId: string) {
 }
 
 function projectInvoice(invoice: InvoiceRow) {
-  const total = invoice.lines
-    .reduce((sum, line) => sum.plus(line.finalAmount), new Prisma.Decimal(0))
-    .plus(
-      invoice.adjustments.reduce(
-        (sum, adjustment) =>
-          adjustment.type === "CHARGE"
-            ? sum.plus(adjustment.amount)
-            : sum.minus(adjustment.amount),
-        new Prisma.Decimal(0),
-      ),
-    );
-  const paid = invoice.payments.reduce(
-    (sum, payment) => sum.plus(payment.amount),
-    new Prisma.Decimal(0),
-  );
-  const balance = total.minus(paid);
+  const financials = calculateInvoiceFinancials({
+    lineAmounts: invoice.lines.map((line) => line.finalAmount),
+    adjustments: invoice.adjustments,
+    payments: invoice.payments,
+  });
+  const activeBalance =
+    invoice.status === "VOIDED" ? "0" : financials.outstanding;
   return {
     id: invoice.id,
     tenancyId: invoice.tenancyId,
@@ -548,6 +548,11 @@ function projectInvoice(invoice: InvoiceRow) {
     room: invoice.roomNameSnapshot,
     renterName: invoice.renterNameSnapshot,
     finalizedAt: invoice.finalizedAt,
+    voidedAt: invoice.voidedAt,
+    voidReason: invoice.voidReason,
+    replacesInvoiceId: invoice.replacesInvoiceId,
+    replacesInvoice: invoice.replacesInvoice,
+    replacementInvoice: invoice.replacementInvoices[0] ?? null,
     createdAt: invoice.createdAt,
     updatedAt: invoice.updatedAt,
     lines: invoice.lines.map((line) => ({
@@ -559,21 +564,27 @@ function projectInvoice(invoice: InvoiceRow) {
       ...adjustment,
       amount: money(adjustment.amount),
       signedAmount:
-        adjustment.type === "CHARGE"
-          ? money(adjustment.amount)
-          : money(adjustment.amount.negated()),
+        adjustment.type === "CREDIT"
+          ? money(adjustment.amount.negated())
+          : money(adjustment.amount),
     })),
     payments: invoice.payments.map((payment) => ({
       ...payment,
       amount: money(payment.amount),
     })),
-    total: money(total),
-    totalPaid: money(paid),
-    balance: money(balance),
-    paymentStatus: paid.isZero()
-      ? ("UNPAID" as const)
-      : balance.isZero()
-        ? ("PAID" as const)
-        : ("PARTIAL" as const),
+    originalTotal: financials.originalTotal,
+    creditTotal: financials.creditTotal,
+    debitTotal: financials.debitTotal,
+    adjustmentNet: financials.adjustmentNet,
+    effectiveTotal: financials.effectiveTotal,
+    total: financials.effectiveTotal,
+    totalPaid: financials.paidAmount,
+    balance: activeBalance,
+    maximumCredit: financials.maximumCredit,
+    hasAdjustments: invoice.adjustments.length > 0,
+    paymentStatus:
+      invoice.status === "VOIDED"
+        ? ("VOIDED" as const)
+        : financials.paymentStatus,
   };
 }

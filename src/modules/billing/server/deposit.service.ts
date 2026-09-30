@@ -2,6 +2,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { positiveWholeVnd } from "@/lib/money";
 import { tenancyTransaction } from "@/modules/tenancy/server/transaction";
 import { date } from "@/modules/utilities/domain/validation";
+import { calculateInvoiceFinancials } from "../domain/invoice-financials";
 
 type BaseInput = {
   tenancyId: string;
@@ -97,24 +98,14 @@ export async function applyDepositToInvoice(
     )
       throw new Error("Choose a finalized invoice for this tenancy.");
     const held = await heldBalance(tx, input.tenancyId);
-    const total = invoice.lines
-      .reduce((sum, line) => sum.plus(line.finalAmount), new Prisma.Decimal(0))
-      .plus(
-        invoice.adjustments.reduce(
-          (sum, adjustment) =>
-            adjustment.type === "CHARGE"
-              ? sum.plus(adjustment.amount)
-              : sum.minus(adjustment.amount),
-          new Prisma.Decimal(0),
-        ),
-      );
-    const paid = invoice.payments.reduce(
-      (sum, payment) => sum.plus(payment.amount),
-      new Prisma.Decimal(0),
-    );
+    const financials = calculateInvoiceFinancials({
+      lineAmounts: invoice.lines.map((line) => line.finalAmount),
+      adjustments: invoice.adjustments,
+      payments: invoice.payments,
+    });
     if (amount.greaterThan(held))
       throw new Error("Application cannot exceed the held deposit.");
-    if (amount.greaterThan(total.minus(paid)))
+    if (amount.greaterThan(new Prisma.Decimal(financials.outstanding)))
       throw new Error("Application cannot exceed the invoice balance.");
     const transaction = await tx.depositTransaction.create({
       data: {

@@ -174,7 +174,7 @@ export function MoveInDialog({
                 label={t("currentReading")}
                 name="electricityReading"
                 type="number"
-                step="0.001"
+                step="1"
               />
               <PrivateAttachmentPicker
                 name="electricityPhoto"
@@ -264,7 +264,7 @@ export function MoveOutDialog({ space }: { space: DashboardSpace }) {
                 label={t("finalReading")}
                 name="electricityReading"
                 type="number"
-                step="0.001"
+                step="1"
               />
               <div className="grid gap-2">
                 <Label htmlFor={`move-out-source-${space.id}`}>{t("source")}</Label>

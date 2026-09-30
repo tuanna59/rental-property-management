@@ -326,5 +326,6 @@
     "overrideFinalizedPeriod": "This rate change affects a month that already has a finalized invoice. Choose an effective period after finalized billing."
   },
   "overrideFinalizedHelp": "Finalized invoice months are locked. Room-specific rates can only change periods that have not been finalized.",
-  "estimateBasedOnKnownUsage": "Estimate uses known tenant-attributed usage only. Incomplete data is not ready for billing."
+  "estimateBasedOnKnownUsage": "Estimate uses known tenant-attributed usage only. Incomplete data is not ready for billing.",
+  "lockedByFinalizedInvoice": "Locked by finalized invoice for {month}"
 }

@@ -256,7 +256,7 @@ function RateDialog({
               }
               name="rate"
               type="number"
-              step="0.001"
+              step="1"
               required
             />
             <Field
@@ -359,7 +359,7 @@ function OverrideDialog({
             }
             name="rate"
             type="number"
-            step="0.001"
+            step="1"
             required
           />
           <p className="utility-subtle">{t("overridePeriodHelp")}</p>

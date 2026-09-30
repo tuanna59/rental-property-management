@@ -24,6 +24,7 @@ async function refreshDraftInvoices(scope: DraftScope) {
       tenancyId: true,
       billingPeriod: true,
       type: true,
+      replacesInvoiceId: true,
       tenancy: {
         select: {
           space: {
@@ -62,6 +63,9 @@ async function refreshDraftInvoices(scope: DraftScope) {
     );
 
     if (!candidate || candidate.readiness !== "READY") {
+      // Correction drafts start as a faithful copy of the voided invoice and
+      // must survive while the operator fixes the unlocked source data.
+      if (draft.replacesInvoiceId) continue;
       await prisma.$transaction([
         prisma.invoiceMeterEvidence.deleteMany({ where: { invoiceId: draft.id } }),
         prisma.invoiceAdjustment.deleteMany({ where: { invoiceId: draft.id } }),

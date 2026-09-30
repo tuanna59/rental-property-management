@@ -11,7 +11,9 @@ export function BillingStatusBadge({ status }: { status: string }) {
     status === "HELD" ||
     status === "COMPLETE"
       ? "is-complete"
-      : status === "MISSING_DATA" ||
+      : status === "VOIDED"
+        ? "is-incomplete"
+        : status === "MISSING_DATA" ||
           status === "UNPAID" ||
           status === "NEEDS_SETTLEMENT" ||
           status === "INCOMPLETE"
@@ -24,9 +26,10 @@ export function BillingStatusBadge({ status }: { status: string }) {
   return <span className={`utility-status billing-status ${tone}`}>{label}</span>;
 }
 
-const STATUS_KEYS: Record<string, "ready" | "finalized" | "paid" | "held" | "missingData" | "unpaid" | "needsSettlement" | "partial" | "draft" | "complete" | "incomplete" | "estimated" | "measured" | "overridden"> = {
+const STATUS_KEYS: Record<string, "ready" | "finalized" | "voided" | "paid" | "held" | "missingData" | "unpaid" | "needsSettlement" | "partial" | "draft" | "complete" | "incomplete" | "estimated" | "measured" | "overridden"> = {
   READY: "ready",
   FINALIZED: "finalized",
+  VOIDED: "voided",
   PAID: "paid",
   HELD: "held",
   MISSING_DATA: "missingData",

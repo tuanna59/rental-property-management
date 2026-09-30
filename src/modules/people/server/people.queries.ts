@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { calculateInvoiceFinancials } from "@/modules/billing/domain/invoice-financials";
 
 import type { PersonRecord } from "../domain/types";
 import { projectRentalState } from "../domain/rental-state";
@@ -143,7 +144,7 @@ export async function getPeopleDirectory(search = "") {
                       metadata: true,
                     },
                   },
-                  adjustments: { select: { amount: true } },
+                  adjustments: { select: { type: true, amount: true } },
                   payments: {
                     orderBy: { paymentDate: "desc" },
                     select: {
@@ -243,20 +244,14 @@ export async function getPeopleDirectory(search = "") {
               : null,
         })),
         invoices: membership.tenancy.invoices.map((invoice) => {
-          const total =
-            invoice.lines.reduce(
-              (sum, item) => sum + Number(item.finalAmount),
-              0,
-            ) +
-            invoice.adjustments.reduce(
-              (sum, item) => sum + Number(item.amount),
-              0,
-            );
-          const paid = invoice.payments.reduce(
-            (sum, payment) => sum + Number(payment.amount),
-            0,
-          );
-          const balance = Math.max(total - paid, 0);
+          const financials = calculateInvoiceFinancials({
+            lineAmounts: invoice.lines.map((item) => item.finalAmount),
+            adjustments: invoice.adjustments,
+            payments: invoice.payments,
+          });
+          const total = financials.effectiveTotal;
+          const paid = financials.paidAmount;
+          const balance = invoice.status === "VOIDED" ? "0" : financials.outstanding;
           const electricityLines = invoice.lines.filter(
             (line) => line.type === "ELECTRICITY",
           );
@@ -281,16 +276,18 @@ export async function getPeopleDirectory(search = "") {
             type: invoice.type,
             status: invoice.status,
             roomName: invoice.roomNameSnapshot,
-            amount: String(total),
-            balance: String(balance),
+            amount: total,
+            balance,
             displayStatus:
-              balance === 0 && total > 0
-                ? "Paid"
-                : paid > 0
-                  ? "Partial"
-                  : invoice.status === "FINALIZED"
-                    ? "Unpaid"
-                    : "Draft",
+              invoice.status === "VOIDED"
+                ? "Voided"
+                : financials.paymentStatus === "PAID"
+                  ? "Paid"
+                  : financials.paymentStatus === "PARTIAL"
+                    ? "Partial"
+                    : invoice.status === "FINALIZED"
+                      ? "Unpaid"
+                      : "Draft",
             utilities: {
               electricityCharge: String(electricityCharge),
               electricityUsage,

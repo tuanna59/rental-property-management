@@ -73,6 +73,7 @@ const readingSelect = {
   invoiceEvidence: {
     where: { invoice: { status: "FINALIZED" } },
     select: {
+      role: true,
       invoice: {
         select: {
           id: true,
@@ -744,16 +745,15 @@ export async function getMonthlyMeterEntries(
         tenancy.moveInDate < end &&
         (!tenancy.moveOutDate || tenancy.moveOutDate > start),
     );
-    const selectedMonthLockEvidence = space.meters
-      .flatMap((meter) => meter.readings)
-      .flatMap((reading) => reading.invoiceEvidence)
-      .find((evidence) => sameDay(monthStart(evidence.invoice.billingPeriod), start));
-
     const monthlyReading = activeMeter?.readings.find((reading) =>
       reading.monthlyClosings.some((closing) =>
         sameDay(closing.billingMonth, start),
       ),
     );
+    // Lock the selected meter month only when its actual closing/source reading
+    // is consumed by an active FINALIZED invoice. Invoice calendar month and
+    // electricity source month are intentionally different concepts.
+    const selectedMonthLockEvidence = monthlyReading?.invoiceEvidence[0] ?? null;
     const previousClosingAssignment = activeMeter?.readings
       .flatMap((reading) =>
         reading.monthlyClosings.map((closing) => ({

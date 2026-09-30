@@ -117,28 +117,32 @@ export async function recordReading(input: RecordReadingInput) {
 
     if (selectedBillingMonth) {
       const billingMonth = selectedBillingMonth;
-      const [selectedMonthDependency, previousClosing, currentClosing] =
-        await Promise.all([
-          tx.invoiceMeterEvidence.findFirst({
-            where: {
-              reading: { meterId: meter.id },
-              invoice: { status: "FINALIZED", billingPeriod: billingMonth },
+      const [previousClosing, currentClosing] = await Promise.all([
+        tx.meterMonthlyClosing.findFirst({
+          where: { meterId: meter.id, billingMonth: { lt: billingMonth } },
+          orderBy: { billingMonth: "desc" },
+          select: { reading: { select: { readingDate: true } } },
+        }),
+        tx.meterMonthlyClosing.findUnique({
+          where: { meterId_billingMonth: { meterId: meter.id, billingMonth } },
+          select: {
+            reading: {
+              select: {
+                id: true,
+                readingDate: true,
+                invoiceEvidence: {
+                  where: { invoice: { status: "FINALIZED" } },
+                  take: 1,
+                  select: { id: true },
+                },
+              },
             },
-            select: { id: true },
-          }),
-          tx.meterMonthlyClosing.findFirst({
-            where: { meterId: meter.id, billingMonth: { lt: billingMonth } },
-            orderBy: { billingMonth: "desc" },
-            select: { reading: { select: { readingDate: true } } },
-          }),
-          tx.meterMonthlyClosing.findUnique({
-            where: { meterId_billingMonth: { meterId: meter.id, billingMonth } },
-            select: { reading: { select: { readingDate: true } } },
-          }),
-        ]);
-      if (selectedMonthDependency) {
+          },
+        }),
+      ]);
+      if (currentClosing?.reading.invoiceEvidence.length) {
         throw new Error(
-          "This billing month is locked by finalized billing data.",
+          "This meter closing is locked by finalized billing data.",
         );
       }
       const minimumDate = [
@@ -451,28 +455,28 @@ export async function markAllEligibleMonthlyClosings(input: {
         continue;
       }
 
-      const [existingClosing, selectedMonthDependency] = await Promise.all([
-        tx.meterMonthlyClosing.findUnique({
-          where: {
-            meterId_billingMonth: {
-              meterId: assignment.meterId,
-              billingMonth,
+      const existingClosing = await tx.meterMonthlyClosing.findUnique({
+        where: {
+          meterId_billingMonth: {
+            meterId: assignment.meterId,
+            billingMonth,
+          },
+        },
+        select: {
+          readingId: true,
+          reading: {
+            select: {
+              readingDate: true,
+              invoiceEvidence: {
+                where: { invoice: { status: "FINALIZED" } },
+                take: 1,
+                select: { id: true },
+              },
             },
           },
-          select: {
-            readingId: true,
-            reading: { select: { readingDate: true } },
-          },
-        }),
-        tx.invoiceMeterEvidence.findFirst({
-          where: {
-            reading: { meterId: assignment.meterId },
-            invoice: { status: "FINALIZED", billingPeriod: billingMonth },
-          },
-          select: { id: true },
-        }),
-      ]);
-      if (selectedMonthDependency) {
+        },
+      });
+      if (existingClosing?.reading.invoiceEvidence.length) {
         skipped += 1;
         continue;
       }

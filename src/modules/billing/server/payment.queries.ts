@@ -6,6 +6,7 @@ import {
 } from "@/modules/utilities/domain/rules";
 import { date } from "@/modules/utilities/domain/validation";
 import { getInvoices } from "./billing.queries";
+import { calculateInvoiceFinancials } from "../domain/invoice-financials";
 
 export async function getPayments(propertyId: string, month?: string | Date) {
   const start = month ? monthStart(date(month)) : null;
@@ -27,22 +28,11 @@ export async function getPayments(propertyId: string, month?: string | Date) {
     },
   });
   return payments.map((payment) => {
-    const total = payment.invoice.lines
-      .reduce((sum, line) => sum.plus(line.finalAmount), new Prisma.Decimal(0))
-      .plus(
-        payment.invoice.adjustments.reduce(
-          (sum, adjustment) =>
-            adjustment.type === "CHARGE"
-              ? sum.plus(adjustment.amount)
-              : sum.minus(adjustment.amount),
-          new Prisma.Decimal(0),
-        ),
-      );
-    const paid = payment.invoice.payments.reduce(
-      (sum, item) => sum.plus(item.amount),
-      new Prisma.Decimal(0),
-    );
-    const balance = total.minus(paid);
+    const financials = calculateInvoiceFinancials({
+      lineAmounts: payment.invoice.lines.map((line) => line.finalAmount),
+      adjustments: payment.invoice.adjustments,
+      payments: payment.invoice.payments,
+    });
     return {
       id: payment.id,
       invoiceId: payment.invoiceId,
@@ -57,14 +47,11 @@ export async function getPayments(propertyId: string, month?: string | Date) {
       invoiceType: payment.invoice.type,
       room: payment.invoice.roomNameSnapshot,
       renterName: payment.invoice.renterNameSnapshot,
-      invoiceTotal: total.toString(),
-      totalPaid: paid.toString(),
-      balance: balance.toString(),
-      paymentStatus: paid.isZero()
-        ? ("UNPAID" as const)
-        : balance.isZero()
-          ? ("PAID" as const)
-          : ("PARTIAL" as const),
+      invoiceOriginalTotal: financials.originalTotal,
+      invoiceTotal: financials.effectiveTotal,
+      totalPaid: financials.paidAmount,
+      balance: financials.outstanding,
+      paymentStatus: financials.paymentStatus,
     };
   });
 }

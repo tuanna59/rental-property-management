@@ -4,6 +4,7 @@ import { toDateOnly } from "@/lib/presentation";
 import { assetsDb } from "@/modules/assets/server/assets-db";
 import { operationsDb } from "@/modules/operations/server/operations-db";
 import { getBuildingVisualProjection } from "@/modules/property/server/property.queries";
+import { calculateInvoiceFinancials } from "@/modules/billing/domain/invoice-financials";
 
 import type {
   DashboardAttentionGroup,
@@ -19,7 +20,7 @@ function businessToday() { const now = new Date(); return new Date(Date.UTC(now.
 function monthStart(year: number, monthIndex: number) { return new Date(Date.UTC(year, monthIndex, 1)); }
 function monthKey(value: Date) { return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, "0")}`; }
 function monthLabel(value: Date) { return new Intl.DateTimeFormat("en", { month: "short", year: "numeric", timeZone: "UTC" }).format(value); }
-function invoiceTotal(invoice: { lines: Array<{ finalAmount: Prisma.Decimal }>; adjustments: Array<{ type: string; amount: Prisma.Decimal }> }) { return invoice.lines.reduce((sum, line) => sum.plus(line.finalAmount), ZERO()).plus(invoice.adjustments.reduce((sum, adjustment) => adjustment.type === "CHARGE" ? sum.plus(adjustment.amount) : sum.minus(adjustment.amount), ZERO())); }
+function invoiceTotal(invoice: { lines: Array<{ finalAmount: Prisma.Decimal }>; adjustments: Array<{ type: string; amount: Prisma.Decimal }> }) { const financials = calculateInvoiceFinancials({ lineAmounts: invoice.lines.map((line) => line.finalAmount), adjustments: invoice.adjustments }); return new Prisma.Decimal(financials.effectiveTotal); }
 function paidTotal(invoice: { payments: Array<{ amount: Prisma.Decimal }> }) { return invoice.payments.reduce((sum, payment) => sum.plus(payment.amount), ZERO()); }
 function severityRank(value: DashboardAttentionSeverity) { return { BLOCKING: 0, URGENT: 1, WARNING: 2, INFO: 3 }[value]; }
 function dateOnly(value: Date | null | undefined) { return value ? toDateOnly(value) : null; }

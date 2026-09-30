@@ -225,7 +225,9 @@ function OccupancyReport({ view }: { view: ReportsProjection }) {
         <MetricCard label={t("occupancy.moveIns")} value={formatNumberLocale(data.summary.moveIns, locale)} icon={Users} />
         <MetricCard label={t("occupancy.moveOuts")} value={formatNumberLocale(data.summary.moveOuts, locale)} icon={Users} />
       </div>
-      <article className="analytics-card report-chart-card"><SectionHeading kicker={`${view.year}`} title={t("occupancy.monthlyRate")} /><OccupancyTrendChart points={data.monthly} locale={locale} ariaLabel={t("occupancy.chartAria")} /></article>
+      <div className="report-panel">
+        <article className="analytics-card report-chart-card"><SectionHeading kicker={`${view.year}`} title={t("occupancy.monthlyRate")} /><OccupancyTrendChart points={data.monthly} locale={locale} ariaLabel={t("occupancy.chartAria")} /></article>
+      </div>
       <ReportTable headers={[t("common.room"), t("tabs.occupancy"), t("occupancy.occupiedDays"), t("occupancy.vacantDays")]}>
         {data.roomBreakdown.map((row) => <tr key={row.spaceId}><td>{row.room}</td><td><strong>{formatPercentLocale(row.occupancyRate, locale)}</strong></td><td>{formatNumberLocale(row.occupiedDays, locale)}</td><td>{formatNumberLocale(row.vacantDays, locale)}</td></tr>)}
       </ReportTable>

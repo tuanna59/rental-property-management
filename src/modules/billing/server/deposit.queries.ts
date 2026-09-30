@@ -1,5 +1,6 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { calculateInvoiceFinancials } from "../domain/invoice-financials";
 
 export async function getDepositOverview(propertyId: string) {
   const tenancies = await prisma.tenancy.findMany({
@@ -60,33 +61,20 @@ export async function getDepositOverview(propertyId: string) {
             : "HELD";
     const invoices = tenancy.invoices
       .map((invoice) => {
-        const total = invoice.lines
-          .reduce(
-            (value, line) => value.plus(line.finalAmount),
-            new Prisma.Decimal(0),
-          )
-          .plus(
-            invoice.adjustments.reduce(
-              (value, adjustment) =>
-                adjustment.type === "CHARGE"
-                  ? value.plus(adjustment.amount)
-                  : value.minus(adjustment.amount),
-              new Prisma.Decimal(0),
-            ),
-          );
-        const paid = invoice.payments.reduce(
-          (value, payment) => value.plus(payment.amount),
-          new Prisma.Decimal(0),
-        );
+        const financials = calculateInvoiceFinancials({
+          lineAmounts: invoice.lines.map((line) => line.finalAmount),
+          adjustments: invoice.adjustments,
+          payments: invoice.payments,
+        });
         return {
           id: invoice.id,
           room: invoice.roomNameSnapshot,
           billingPeriod: invoice.billingPeriod,
           invoiceType: invoice.type,
-          balance: total.minus(paid).toString(),
+          balance: financials.outstanding,
         };
       })
-      .filter((invoice) => new Prisma.Decimal(invoice.balance).isPositive());
+      .filter((invoice) => BigInt(invoice.balance) > BigInt(0));
 
     let running = new Prisma.Decimal(0);
     const history = tenancy.depositTransactions

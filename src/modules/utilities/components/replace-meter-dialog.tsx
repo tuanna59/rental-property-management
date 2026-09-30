@@ -66,7 +66,7 @@ export function ReplaceMeterDialog({ spaceId }: { spaceId: string }) {
                 label={t("finalReading")}
                 name="oldMeterFinalReading"
                 type="number"
-                step="0.001"
+                step="1"
                 placeholder={t("optional")}
               />
               <div className="field">
@@ -109,7 +109,7 @@ export function ReplaceMeterDialog({ spaceId }: { spaceId: string }) {
                 label={t("initialReading")}
                 name="newMeterInitialReading"
                 type="number"
-                step="0.001"
+                step="1"
                 required
               />
             </div>

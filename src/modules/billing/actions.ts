@@ -1,17 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getActionFeedback } from "@/i18n/action-feedback";
 import type { ActionState } from "@/lib/action-state";
 import {
-  addInvoiceAdjustment,
-  deleteInvoiceAdjustment,
+  addFinalizedInvoiceAdjustment,
   finalizeInvoice,
   generateAllReady,
   generateInvoice,
   updateDraftLine,
-  updateInvoiceAdjustment,
+  voidInvoice,
+  correctInvoice,
 } from "./server/billing.service";
+import { BillingDomainError } from "./domain/errors";
 import { recordPayment, updatePayment } from "./server/payment.service";
 import {
   addDepositDeduction,
@@ -22,6 +24,40 @@ import {
 
 const text = (data: FormData, key: string) =>
   String(data.get(key) ?? "").trim();
+function revalidateBillingViews() {
+  revalidatePath("/billing/invoices");
+  revalidatePath("/billing/invoices/[invoiceId]", "page");
+  revalidatePath("/billing/payments");
+  revalidatePath("/billing/deposits");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
+  revalidatePath("/utilities");
+  revalidatePath("/utilities/meters");
+}
+
+function billingErrorMessage(
+  error: unknown,
+  feedback: (key: string, values?: Record<string, string | number | Date>) => string,
+) {
+  if (error instanceof BillingDomainError) {
+    const key = {
+      VOID_REASON_REQUIRED: "voidReasonRequired",
+      INVOICE_NOT_FINALIZED: "voidFinalizedOnly",
+      INVOICE_ALREADY_VOIDED: "invoiceAlreadyVoided",
+      INVOICE_HAS_PAYMENTS: "invoiceHasPaymentsCannotVoid",
+      CORRECTION_ALREADY_EXISTS: "correctionAlreadyExists",
+      ACTIVE_INVOICE_EXISTS: "activeInvoiceExists",
+      INVOICE_HAS_ADJUSTMENTS: "invoiceHasAdjustmentsCannotVoid",
+      ADJUSTMENT_REASON_REQUIRED: "adjustmentReasonRequired",
+      ADJUSTMENT_FINALIZED_ONLY: "adjustmentFinalizedOnly",
+      ADJUSTMENT_OVERPAYMENT: "adjustmentWouldOverpay",
+      ADJUSTMENT_IMMUTABLE: "adjustmentImmutable",
+    }[error.code];
+    return feedback(key);
+  }
+  return error instanceof Error ? error.message : feedback("saveFailed");
+}
+
 async function action(
   work: () => Promise<unknown>,
   successKey: string,
@@ -29,18 +65,10 @@ async function action(
   const feedback = await getActionFeedback("billing");
   try {
     await work();
-    revalidatePath("/billing/invoices");
-    revalidatePath("/billing/payments");
-    revalidatePath("/billing/deposits");
+    revalidateBillingViews();
     return { ok: true, message: feedback(successKey) };
   } catch (error) {
-    return {
-      ok: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : feedback("saveFailed"),
-    };
+    return { ok: false, message: billingErrorMessage(error, feedback) };
   }
 }
 
@@ -56,53 +84,21 @@ export async function generateInvoiceAction(_: ActionState, data: FormData) {
     "draftGenerated",
   );
 }
-export async function addInvoiceAdjustmentAction(
+export async function addFinalizedInvoiceAdjustmentAction(
   _: ActionState,
   data: FormData,
 ) {
   return action(
     () =>
-      addInvoiceAdjustment(text(data, "invoiceId"), {
-        type: text(data, "type") as "CHARGE" | "CREDIT",
-        description: text(data, "description"),
+      addFinalizedInvoiceAdjustment(text(data, "invoiceId"), {
+        type: text(data, "type") as "CREDIT" | "DEBIT",
         amount: text(data, "amount"),
         reason: text(data, "reason"),
       }),
     "adjustmentAdded",
   );
 }
-export async function updateInvoiceAdjustmentAction(
-  _: ActionState,
-  data: FormData,
-) {
-  return action(
-    () =>
-      updateInvoiceAdjustment(
-        text(data, "invoiceId"),
-        text(data, "adjustmentId"),
-        {
-          type: text(data, "type") as "CHARGE" | "CREDIT",
-          description: text(data, "description"),
-          amount: text(data, "amount"),
-          reason: text(data, "reason"),
-        },
-      ),
-    "adjustmentUpdated",
-  );
-}
-export async function deleteInvoiceAdjustmentAction(
-  _: ActionState,
-  data: FormData,
-) {
-  return action(
-    () =>
-      deleteInvoiceAdjustment(
-        text(data, "invoiceId"),
-        text(data, "adjustmentId"),
-      ),
-    "adjustmentRemoved",
-  );
-}
+
 export async function generateAllReadyAction(_: ActionState, data: FormData) {
   return action(
     () =>
@@ -131,6 +127,32 @@ export async function finalizeInvoiceAction(_: ActionState, data: FormData) {
     "invoiceFinalized",
   );
 }
+export async function voidInvoiceAction(_: ActionState, data: FormData) {
+  return action(
+    () => voidInvoice(text(data, "invoiceId"), text(data, "reason")),
+    "invoiceVoided",
+  );
+}
+
+export async function correctInvoiceAction(
+  _: ActionState,
+  data: FormData,
+): Promise<ActionState> {
+  const feedback = await getActionFeedback("billing");
+  let replacementId: string;
+  try {
+    const replacement = await correctInvoice(
+      text(data, "invoiceId"),
+      text(data, "reason"),
+    );
+    replacementId = replacement.id;
+    revalidateBillingViews();
+  } catch (error) {
+    return { ok: false, message: billingErrorMessage(error, feedback) };
+  }
+  redirect(`/billing/invoices/${replacementId}`);
+}
+
 export async function recordPaymentAction(_: ActionState, data: FormData) {
   return action(
     () =>

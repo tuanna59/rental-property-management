@@ -8,6 +8,8 @@ import {
 import { tenancyTransaction } from "@/modules/tenancy/server/transaction";
 import { getBillingCandidates } from "./billing.queries";
 import { refreshDraftInvoice } from "./draft-refresh";
+import { BillingDomainError } from "../domain/errors";
+import { calculateInvoiceFinancials } from "../domain/invoice-financials";
 
 export async function generateInvoice(
   propertyId: string,
@@ -22,8 +24,23 @@ export async function generateInvoice(
   );
   if (!candidate || candidate.status !== "READY")
     throw new Error("This billing candidate is not ready.");
-  return tenancyTransaction(async (tx) =>
-    tx.invoice.create({
+  return tenancyTransaction(async (tx) => {
+    const active = await tx.invoice.findFirst({
+      where: {
+        tenancyId,
+        billingPeriod: candidate.billingPeriod,
+        type: candidate.invoiceType,
+        status: { not: "VOIDED" },
+      },
+      select: { id: true },
+    });
+    if (active) {
+      throw new BillingDomainError(
+        "ACTIVE_INVOICE_EXISTS",
+        "An active invoice already exists for this billing period.",
+      );
+    }
+    return tx.invoice.create({
       data: {
         tenancyId,
         billingPeriod: candidate.billingPeriod,
@@ -51,8 +68,8 @@ export async function generateInvoice(
           }),
         },
       },
-    }),
-  );
+    });
+  });
 }
 
 export async function generateAllReady(
@@ -99,80 +116,116 @@ export async function updateDraftLine(
   });
 }
 
-type AdjustmentInput = {
-  type: "CHARGE" | "CREDIT";
-  description: string;
+type FinalizedAdjustmentInput = {
+  type: "CREDIT" | "DEBIT";
   amount: string;
-  reason?: string;
+  reason: string;
 };
 
-function adjustmentData(input: AdjustmentInput) {
-  if (!input.description.trim()) throw new Error("A description is required.");
-  return {
-    type: input.type,
-    description: input.description.trim(),
-    amount: roundMoneyAmount(positiveWholeVnd(input.amount)),
-    // Prisma currently stores adjustment reason as a required string.
-    // Keep an empty string for an omitted optional reason and hide it in presentation.
-    reason: input.reason?.trim() ?? "",
-  };
+function requiredAdjustmentReason(reason: string) {
+  const value = reason.trim();
+  if (!value) {
+    throw new BillingDomainError(
+      "ADJUSTMENT_REASON_REQUIRED",
+      "A reason is required for an invoice adjustment.",
+    );
+  }
+  if (value.length > 500) {
+    throw new BillingDomainError(
+      "ADJUSTMENT_REASON_REQUIRED",
+      "Adjustment reason must be 500 characters or fewer.",
+    );
+  }
+  return value;
 }
 
-export async function addInvoiceAdjustment(
+export async function addFinalizedInvoiceAdjustment(
   invoiceId: string,
-  input: AdjustmentInput,
+  input: FinalizedAdjustmentInput,
 ) {
+  if (input.type !== "CREDIT" && input.type !== "DEBIT") {
+    throw new BillingDomainError(
+      "ADJUSTMENT_FINALIZED_ONLY",
+      "Adjustment type must be CREDIT or DEBIT.",
+    );
+  }
+  const amount = positiveWholeVnd(input.amount);
+  const reason = requiredAdjustmentReason(input.reason);
   return tenancyTransaction(async (tx) => {
     const invoice = await tx.invoice.findUnique({
       where: { id: invoiceId },
-      select: { status: true },
+      include: {
+        lines: { select: { finalAmount: true } },
+        adjustments: { select: { type: true, amount: true } },
+        payments: { select: { amount: true } },
+      },
     });
-    if (!invoice || invoice.status !== "DRAFT")
-      throw new Error("Only draft invoices can be changed.");
+    if (!invoice || invoice.status !== "FINALIZED") {
+      throw new BillingDomainError(
+        "ADJUSTMENT_FINALIZED_ONLY",
+        "Only finalized invoices can receive post-finalization adjustments.",
+      );
+    }
+
+    const current = calculateInvoiceFinancials({
+      lineAmounts: invoice.lines.map((line) => line.finalAmount),
+      adjustments: invoice.adjustments,
+      payments: invoice.payments,
+    });
+    if (input.type === "CREDIT") {
+      const nextEffectiveTotal =
+        BigInt(current.effectiveTotal) - BigInt(amount.toString());
+      if (nextEffectiveTotal < BigInt(current.paidAmount)) {
+        throw new BillingDomainError(
+          "ADJUSTMENT_OVERPAYMENT",
+          "This adjustment would create an overpayment. Refund or tenant credit handling is not available yet.",
+        );
+      }
+    }
+
     return tx.invoiceAdjustment.create({
-      data: { invoiceId, ...adjustmentData(input) },
-    });
-  });
-}
-
-export async function updateInvoiceAdjustment(
-  invoiceId: string,
-  adjustmentId: string,
-  input: AdjustmentInput,
-) {
-  return tenancyTransaction(async (tx) => {
-    const invoice = await tx.invoice.findUnique({
-      where: { id: invoiceId },
-      select: { status: true },
-    });
-    if (!invoice || invoice.status !== "DRAFT")
-      throw new Error("Only draft invoices can be changed.");
-    return tx.invoiceAdjustment.update({
-      where: { id: adjustmentId, invoiceId },
-      data: adjustmentData(input),
-    });
-  });
-}
-
-export async function deleteInvoiceAdjustment(
-  invoiceId: string,
-  adjustmentId: string,
-) {
-  return tenancyTransaction(async (tx) => {
-    const invoice = await tx.invoice.findUnique({
-      where: { id: invoiceId },
-      select: { status: true },
-    });
-    if (!invoice || invoice.status !== "DRAFT")
-      throw new Error("Only draft invoices can be changed.");
-    return tx.invoiceAdjustment.delete({
-      where: { id: adjustmentId, invoiceId },
+      data: {
+        invoiceId,
+        type: input.type,
+        amount,
+        description:
+          input.type === "CREDIT" ? "Credit adjustment" : "Debit adjustment",
+        reason,
+      },
     });
   });
 }
 
 export async function finalizeInvoice(invoiceId: string) {
   await refreshDraftInvoice(invoiceId);
+  const draft = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: {
+      status: true,
+      tenancyId: true,
+      billingPeriod: true,
+      type: true,
+      tenancy: {
+        select: { space: { select: { floor: { select: { propertyId: true } } } } },
+      },
+    },
+  });
+  if (!draft || draft.status !== "DRAFT")
+    throw new Error("Only draft invoices can be finalized.");
+  const candidate = (
+    await getBillingCandidates(
+      draft.tenancy.space.floor.propertyId,
+      draft.billingPeriod,
+    )
+  ).find(
+    (item) =>
+      item.tenancyId === draft.tenancyId && item.invoiceType === draft.type,
+  );
+  if (!candidate || candidate.readiness !== "READY") {
+    throw new Error(
+      "This invoice cannot be finalized until its current billing source data is ready.",
+    );
+  }
   return tenancyTransaction(async (tx) => {
     const invoice = await tx.invoice.findUnique({
       where: { id: invoiceId },
@@ -259,6 +312,174 @@ export async function finalizeInvoice(invoiceId: string) {
     return tx.invoice.update({
       where: { id: invoiceId },
       data: { status: "FINALIZED", finalizedAt: new Date() },
+    });
+  });
+}
+
+function paidAmount(payments: Array<{ amount: Prisma.Decimal }>) {
+  return payments.reduce(
+    (sum, payment) => sum.plus(payment.amount),
+    new Prisma.Decimal(0),
+  );
+}
+
+function requiredVoidReason(reason: string) {
+  const value = reason.trim();
+  if (!value) {
+    throw new BillingDomainError(
+      "VOID_REASON_REQUIRED",
+      "A reason is required to void an invoice.",
+    );
+  }
+  return value;
+}
+
+function assertVoidEligible(invoice: {
+  status: "DRAFT" | "FINALIZED" | "VOIDED";
+  payments: Array<{ amount: Prisma.Decimal }>;
+  adjustments: Array<{ id?: string }>;
+}) {
+  if (invoice.status === "VOIDED") {
+    throw new BillingDomainError(
+      "INVOICE_ALREADY_VOIDED",
+      "This invoice has already been voided.",
+    );
+  }
+  if (invoice.status !== "FINALIZED") {
+    throw new BillingDomainError(
+      "INVOICE_NOT_FINALIZED",
+      "Only finalized invoices can be voided or corrected.",
+    );
+  }
+  if (paidAmount(invoice.payments).greaterThan(0)) {
+    throw new BillingDomainError(
+      "INVOICE_HAS_PAYMENTS",
+      "This invoice already has payments and cannot be voided. Use an adjustment instead.",
+    );
+  }
+  if (invoice.adjustments.length > 0) {
+    throw new BillingDomainError(
+      "INVOICE_HAS_ADJUSTMENTS",
+      "This invoice already has adjustments and cannot be voided or replaced.",
+    );
+  }
+}
+
+export async function voidInvoice(invoiceId: string, reason: string) {
+  const voidReason = requiredVoidReason(reason);
+  return tenancyTransaction(async (tx) => {
+    const invoice = await tx.invoice.findUnique({
+      where: { id: invoiceId },
+      select: {
+        id: true,
+        status: true,
+        payments: { select: { amount: true } },
+        adjustments: { select: { id: true } },
+      },
+    });
+    if (!invoice) {
+      throw new BillingDomainError(
+        "INVOICE_NOT_FINALIZED",
+        "Invoice was not found.",
+      );
+    }
+    assertVoidEligible(invoice);
+    return tx.invoice.update({
+      where: { id: invoiceId },
+      data: {
+        status: "VOIDED",
+        voidedAt: new Date(),
+        voidReason,
+      },
+    });
+  });
+}
+
+export async function correctInvoice(invoiceId: string, reason: string) {
+  const voidReason = requiredVoidReason(reason);
+  return tenancyTransaction(async (tx) => {
+    const original = await tx.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        lines: { orderBy: { type: "asc" } },
+        adjustments: { orderBy: { createdAt: "asc" } },
+        payments: { select: { amount: true } },
+        replacementInvoices: { select: { id: true }, take: 1 },
+      },
+    });
+    if (!original) {
+      throw new BillingDomainError(
+        "INVOICE_NOT_FINALIZED",
+        "Invoice was not found.",
+      );
+    }
+    assertVoidEligible(original);
+    if (original.replacementInvoices.length) {
+      throw new BillingDomainError(
+        "CORRECTION_ALREADY_EXISTS",
+        "A replacement invoice already exists for this invoice.",
+      );
+    }
+
+    const activePeer = await tx.invoice.findFirst({
+      where: {
+        tenancyId: original.tenancyId,
+        billingPeriod: original.billingPeriod,
+        type: original.type,
+        status: { not: "VOIDED" },
+        id: { not: original.id },
+      },
+      select: { id: true },
+    });
+    if (activePeer) {
+      throw new BillingDomainError(
+        "ACTIVE_INVOICE_EXISTS",
+        "Another active invoice already exists for this billing period.",
+      );
+    }
+
+    const voidedAt = new Date();
+    await tx.invoice.update({
+      where: { id: original.id },
+      data: { status: "VOIDED", voidedAt, voidReason },
+    });
+
+    return tx.invoice.create({
+      data: {
+        tenancyId: original.tenancyId,
+        billingPeriod: original.billingPeriod,
+        invoiceDate: original.invoiceDate,
+        type: original.type,
+        serviceStart: original.serviceStart,
+        serviceEnd: original.serviceEnd,
+        status: "DRAFT",
+        propertyNameSnapshot: original.propertyNameSnapshot,
+        roomNameSnapshot: original.roomNameSnapshot,
+        renterNameSnapshot: original.renterNameSnapshot,
+        replacesInvoiceId: original.id,
+        lines: {
+          create: original.lines.map((line) => ({
+            type: line.type,
+            description: line.description,
+            sourceBillingMonth: line.sourceBillingMonth,
+            servicePeriodStart: line.servicePeriodStart,
+            servicePeriodEnd: line.servicePeriodEnd,
+            calculatedAmount: line.calculatedAmount,
+            finalAmount: line.finalAmount,
+            isOverridden: line.isOverridden,
+            overrideReason: line.overrideReason,
+            metadata: line.metadata as Prisma.InputJsonValue,
+          })),
+        },
+        adjustments: {
+          create: original.adjustments.map((adjustment) => ({
+            type: adjustment.type,
+            description: adjustment.description,
+            amount: adjustment.amount,
+            reason: adjustment.reason,
+          })),
+        },
+      },
     });
   });
 }

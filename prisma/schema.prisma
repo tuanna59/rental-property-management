@@ -48,6 +48,7 @@ enum UtilityType {
 enum InvoiceStatus {
   DRAFT
   FINALIZED
+  VOIDED
 }
 
 enum InvoiceType {
@@ -62,8 +63,8 @@ enum InvoiceLineType {
 }
 
 enum InvoiceAdjustmentType {
-  CHARGE
   CREDIT
+  DEBIT
 }
 
 enum InvoiceMeterEvidenceRole {
@@ -297,6 +298,11 @@ model Invoice {
   roomNameSnapshot     String
   renterNameSnapshot   String
   finalizedAt          DateTime?
+  voidedAt             DateTime?
+  voidReason           String?
+  replacesInvoiceId    String?                @unique
+  replacesInvoice      Invoice?               @relation("InvoiceReplacement", fields: [replacesInvoiceId], references: [id], onDelete: Restrict)
+  replacementInvoices  Invoice[]              @relation("InvoiceReplacement")
   lines                InvoiceLine[]
   adjustments          InvoiceAdjustment[]
   payments             Payment[]
@@ -305,7 +311,9 @@ model Invoice {
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
 
-  @@unique([tenancyId, billingPeriod, type])
+  /// One active (non-VOIDED) invoice per tenancy/billingPeriod/type is enforced
+  /// by the PostgreSQL partial unique index created in migration 20260930103100.
+  @@index([tenancyId, billingPeriod, type, status])
   @@index([billingPeriod, type, status])
 }
 

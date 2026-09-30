@@ -326,5 +326,6 @@
     "overrideFinalizedPeriod": "Thay đổi đơn giá này ảnh hưởng đến tháng đã có hóa đơn được chốt. Hãy chọn kỳ hiệu lực sau các tháng đã chốt hóa đơn."
   },
   "overrideFinalizedHelp": "Các tháng đã chốt hóa đơn sẽ bị khóa. Đơn giá riêng chỉ có thể thay đổi các kỳ chưa được chốt hóa đơn.",
-  "estimateBasedOnKnownUsage": "Ước tính chỉ dùng phần điện đã biết và đã phân bổ cho người thuê. Dữ liệu chưa đầy đủ chưa thể dùng để chốt hóa đơn."
+  "estimateBasedOnKnownUsage": "Ước tính chỉ dùng phần điện đã biết và đã phân bổ cho người thuê. Dữ liệu chưa đầy đủ chưa thể dùng để chốt hóa đơn.",
+  "lockedByFinalizedInvoice": "Được khóa bởi hóa đơn đã chốt {month}"
 }

@@ -19,7 +19,7 @@ import { exportInvoicePng } from "./invoice-export";
 
 type Candidates = Awaited<ReturnType<typeof getBillingCandidates>>;
 type Invoices = Awaited<ReturnType<typeof getInvoices>>;
-type Filter = "ALL" | "DRAFT" | "FINALIZED" | "UNPAID" | "PARTIAL" | "PAID";
+type Filter = "ALL" | "DRAFT" | "FINALIZED" | "VOIDED" | "UNPAID" | "PARTIAL" | "PAID";
 
 export function InvoiceDashboard({
   propertyId,
@@ -43,13 +43,12 @@ export function InvoiceDashboard({
   const finalized = invoices.filter(
     (invoice) => invoice.status === "FINALIZED",
   );
-  const outstanding = finalized.reduce(
-    (sum, invoice) => sum + Number(invoice.balance),
-    0,
-  );
+  const outstanding = finalized
+    .reduce((sum, invoice) => sum + BigInt(invoice.balance), BigInt(0))
+    .toString();
   const filtered = invoices.filter((invoice) => {
     if (filter === "ALL") return true;
-    if (filter === "DRAFT" || filter === "FINALIZED")
+    if (filter === "DRAFT" || filter === "FINALIZED" || filter === "VOIDED")
       return invoice.status === filter;
     return invoice.status === "FINALIZED" && invoice.paymentStatus === filter;
   });
@@ -86,7 +85,7 @@ export function InvoiceDashboard({
         />
         <SummaryCard
           label={t("outstanding")}
-          value={formatVndLocale(String(outstanding), locale)}
+          value={formatVndLocale(outstanding, locale)}
           detail={t("acrossFinalized")}
           icon={<WalletCards />}
         />
@@ -200,6 +199,7 @@ export function InvoiceDashboard({
               "ALL",
               "DRAFT",
               "FINALIZED",
+              "VOIDED",
               "UNPAID",
               "PARTIAL",
               "PAID",
@@ -278,6 +278,11 @@ export function InvoiceDashboard({
                     </td>
                     <td>
                       <strong>{formatVndLocale(invoice.total, locale)}</strong>
+                      {invoice.hasAdjustments && (
+                        <small className="utility-subtle billing-adjusted-label">
+                          {t("adjusted")}
+                        </small>
+                      )}
                     </td>
                     <td>
                       {invoice.status === "FINALIZED" ? (
@@ -297,7 +302,7 @@ export function InvoiceDashboard({
                           {invoice.status === "DRAFT" ? t("continue") : t("view")}
                         </Link>
                       </Button>
-                      {invoice.status === "FINALIZED" && (
+                      {(invoice.status === "FINALIZED" || invoice.status === "VOIDED") && (
                         <Button
                           size="sm"
                           variant="ghost"
@@ -446,5 +451,5 @@ function conciseIssue(issue: string, t: ReturnType<typeof useTranslations<"billi
   return t("missingData");
 }
 function statusLabel(value: Filter, t: ReturnType<typeof useTranslations<"billing">>) {
-  return ({ ALL: t("all"), DRAFT: t("draft"), FINALIZED: t("finalized"), UNPAID: t("unpaid"), PARTIAL: t("partial"), PAID: t("paid") })[value];
+  return ({ ALL: t("all"), DRAFT: t("draft"), FINALIZED: t("finalized"), VOIDED: t("voided"), UNPAID: t("unpaid"), PARTIAL: t("partial"), PAID: t("paid") })[value];
 }

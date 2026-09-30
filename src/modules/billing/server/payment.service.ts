@@ -2,6 +2,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { positiveWholeVnd } from "@/lib/money";
 import { date } from "@/modules/utilities/domain/validation";
 import { tenancyTransaction } from "@/modules/tenancy/server/transaction";
+import { calculateInvoiceFinancials } from "../domain/invoice-financials";
 
 type PaymentInput = {
   invoiceId: string;
@@ -21,22 +22,12 @@ export async function recordPayment(input: PaymentInput) {
     });
     if (!invoice || invoice.status !== "FINALIZED")
       throw new Error("Only finalized invoices can receive payments.");
-    const total = invoice.lines
-      .reduce((sum, line) => sum.plus(line.finalAmount), new Prisma.Decimal(0))
-      .plus(
-        invoice.adjustments.reduce(
-          (sum, adjustment) =>
-            adjustment.type === "CHARGE"
-              ? sum.plus(adjustment.amount)
-              : sum.minus(adjustment.amount),
-          new Prisma.Decimal(0),
-        ),
-      );
-    const paid = invoice.payments.reduce(
-      (sum, payment) => sum.plus(payment.amount),
-      new Prisma.Decimal(0),
-    );
-    if (amount.greaterThan(total.minus(paid)))
+    const financials = calculateInvoiceFinancials({
+      lineAmounts: invoice.lines.map((line) => line.finalAmount),
+      adjustments: invoice.adjustments,
+      payments: invoice.payments,
+    });
+    if (amount.greaterThan(new Prisma.Decimal(financials.outstanding)))
       throw new Error("Payment cannot exceed the remaining balance.");
     return tx.payment.create({
       data: {
@@ -67,24 +58,12 @@ export async function updatePayment(
     });
     if (!existing || existing.invoice.status !== "FINALIZED")
       throw new Error("Payment was not found.");
-    const total = existing.invoice.lines
-      .reduce((sum, line) => sum.plus(line.finalAmount), new Prisma.Decimal(0))
-      .plus(
-        existing.invoice.adjustments.reduce(
-          (sum, adjustment) =>
-            adjustment.type === "CHARGE"
-              ? sum.plus(adjustment.amount)
-              : sum.minus(adjustment.amount),
-          new Prisma.Decimal(0),
-        ),
-      );
-    const otherPaid = existing.invoice.payments
-      .filter((payment) => payment.id !== paymentId)
-      .reduce(
-        (sum, payment) => sum.plus(payment.amount),
-        new Prisma.Decimal(0),
-      );
-    if (amount.greaterThan(total.minus(otherPaid)))
+    const financials = calculateInvoiceFinancials({
+      lineAmounts: existing.invoice.lines.map((line) => line.finalAmount),
+      adjustments: existing.invoice.adjustments,
+      payments: existing.invoice.payments.filter((payment) => payment.id !== paymentId),
+    });
+    if (amount.greaterThan(new Prisma.Decimal(financials.outstanding)))
       throw new Error("Payment cannot exceed the remaining balance.");
     return tx.payment.update({
       where: { id: paymentId },

@@ -89,7 +89,7 @@ export function BoundaryReadingDialog({
               label={t("reading")}
               name="readingValue"
               type="number"
-              step="0.001"
+              step="1"
               required
             />
             <div className="field">

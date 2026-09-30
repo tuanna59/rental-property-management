@@ -15,7 +15,6 @@ import {
   Pencil,
   Plus,
   Receipt,
-  Trash2,
   User,
   Zap,
 } from "lucide-react";
@@ -26,23 +25,25 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
+  DialogClose,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { emptyActionState } from "@/lib/action-state";
 import type { AppLocale } from "@/i18n/config";
 import { formatDateOnlyLocale, formatMonthLocale, formatNumberLocale, formatPercentLocale, formatVndLocale } from "@/i18n/format";
 import {
-  addInvoiceAdjustmentAction,
-  deleteInvoiceAdjustmentAction,
+  addFinalizedInvoiceAdjustmentAction,
   finalizeInvoiceAction,
   overrideInvoiceLineAction,
   recordPaymentAction,
   updatePaymentAction,
-  updateInvoiceAdjustmentAction,
+  voidInvoiceAction,
+  correctInvoiceAction,
 } from "../actions";
 import type { getInvoice } from "../server/billing.queries";
 import { BillingStatusBadge } from "./billing-status";
@@ -61,7 +62,7 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
   return (
     <div className="utilities-content invoice-detail-page">
       <header className="invoice-detail-header">
-        <div>
+        <div className="invoice-detail-heading">
           <Link
             className="billing-back-link"
             href={`/billing/invoices?month=${invoice.billingPeriod.toISOString().slice(0, 7)}`}
@@ -74,11 +75,19 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
               : t("finalSettlementEyebrow")}{" "}
             · {invoice.room}
           </p>
-          <h1>
-            {invoice.type === "REGULAR"
-              ? formatMonthLocale(invoice.billingPeriod, locale)
-              : t("finalSettlement")}
-          </h1>
+          <div className="invoice-title-row">
+            <h1>
+              {invoice.type === "REGULAR"
+                ? formatMonthLocale(invoice.billingPeriod, locale)
+                : t("finalSettlement")}
+            </h1>
+            <div className="invoice-title-statuses">
+              <BillingStatusBadge status={invoice.status} />
+              {invoice.status === "FINALIZED" && (
+                <BillingStatusBadge status={invoice.paymentStatus} />
+              )}
+            </div>
+          </div>
           <p>
             {invoice.type === "REGULAR"
               ? t("regularInvoice")
@@ -86,24 +95,39 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
           </p>
         </div>
         <div className="invoice-header-actions">
-          <BillingStatusBadge status={invoice.status} />
-          {invoice.status === "FINALIZED" && (
-            <BillingStatusBadge status={invoice.paymentStatus} />
-          )}
-          <InvoicePreviewDialog invoice={invoice} />
-          {invoice.status === "DRAFT" ? (
-            <FinalizeButton invoiceId={invoice.id} />
-          ) : (
-            <Button onClick={() => exportInvoicePng(invoice, locale)}>
-              <Download /> {t("exportPng")}
-            </Button>
-          )}
-          {invoice.status === "FINALIZED" &&
-            invoice.paymentStatus !== "PAID" && (
-              <PaymentDialog invoice={invoice} />
+          <div className="invoice-action-group invoice-action-group-utility">
+            <InvoicePreviewDialog invoice={invoice} />
+            {invoice.status !== "DRAFT" && (
+              <Button
+                variant="outline"
+                onClick={() => exportInvoicePng(invoice, locale)}
+              >
+                <Download /> {t("exportPng")}
+              </Button>
             )}
+          </div>
+          <div className="invoice-action-group invoice-action-group-primary">
+            {invoice.status === "DRAFT" && (
+              <FinalizeButton invoiceId={invoice.id} />
+            )}
+            {invoice.status === "FINALIZED" &&
+              (BigInt(invoice.totalPaid) > BigInt(0) || invoice.hasAdjustments) && (
+                <FinalizedAdjustmentDialog invoice={invoice} />
+              )}
+            {invoice.status === "FINALIZED" &&
+              BigInt(invoice.totalPaid) === BigInt(0) &&
+              !invoice.hasAdjustments && (
+                <InvoiceCorrectionActions invoice={invoice} />
+              )}
+            {invoice.status === "FINALIZED" &&
+              invoice.paymentStatus !== "PAID" && (
+                <PaymentDialog invoice={invoice} />
+              )}
+          </div>
         </div>
       </header>
+
+      <InvoiceRelationshipNotice invoice={invoice} />
 
       <section className="invoice-context-grid">
         <ContextCard
@@ -129,12 +153,16 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
           icon={<Calendar />}
         />
         <ContextCard
-          label={t("total")}
+          label={invoice.hasAdjustments ? t("adjustedTotal") : t("total")}
           value={formatVndLocale(invoice.total, locale)}
           detail={
             invoice.status === "FINALIZED"
-              ? t("paidBalance", { paid: formatVndLocale(invoice.totalPaid, locale), balance: formatVndLocale(invoice.balance, locale) })
-              : t("draftPaymentHelp")
+              ? invoice.hasAdjustments
+                ? t("originalTotalShort", { total: formatVndLocale(invoice.originalTotal, locale) })
+                : t("paidBalance", { paid: formatVndLocale(invoice.totalPaid, locale), balance: formatVndLocale(invoice.balance, locale) })
+              : invoice.status === "VOIDED"
+                ? t("voidedHistoricalInvoice")
+                : t("draftPaymentHelp")
           }
           icon={<FileText />}
         />
@@ -176,9 +204,6 @@ function ChargesTab({ invoice }: { invoice: Invoice }) {
           <h3>{t("charges")}</h3>
 <p className="utility-subtle">{t("chargesSubtitle")}</p>
         </div>
-        {invoice.status === "DRAFT" && (
-          <AdjustmentDialog invoiceId={invoice.id} />
-        )}
       </div>
       <div className="utility-table-wrap">
         <table className="utility-table invoice-charge-table">
@@ -232,8 +257,10 @@ function ChargesTab({ invoice }: { invoice: Invoice }) {
                 </td>
                 <td>—</td>
                 <td>
-                  {adjustment.description}
-                  {adjustment.reason?.trim() && (
+                  {invoice.status === "FINALIZED"
+                    ? adjustment.reason
+                    : adjustment.description}
+                  {invoice.status !== "FINALIZED" && adjustment.reason?.trim() && (
                     <div className="utility-subtle">{adjustment.reason}</div>
                   )}
                 </td>
@@ -249,32 +276,42 @@ function ChargesTab({ invoice }: { invoice: Invoice }) {
                   </strong>
                 </td>
                 <td>
-                  {adjustment.type === "CHARGE"
-                    ? t("additionalCharge")
-                    : t("creditDiscount")}
+                  {adjustment.type === "DEBIT"
+                    ? t("debitAdjustment")
+                    : t("creditAdjustment")}
                 </td>
                 <td>
-                  {invoice.status === "DRAFT" ? (
-                    <div className="billing-actions">
-                      <AdjustmentDialog
-                        invoiceId={invoice.id}
-                        adjustment={adjustment}
-                      />
-                      <DeleteAdjustmentButton
-                        invoiceId={invoice.id}
-                        adjustmentId={adjustment.id}
-                      />
-                    </div>
-                  ) : (
-                    <span className="utility-subtle">{t("readOnly")}</span>
-                  )}
+                  <span className="utility-subtle">{t("readOnly")}</span>
                 </td>
               </tr>
             ))}
           </tbody>
           <tfoot>
+            {invoice.hasAdjustments && (
+              <>
+                <tr>
+                  <td colSpan={4}>{t("originalTotal")}</td>
+                  <td>
+                    <strong>{formatVndLocale(invoice.originalTotal, locale)}</strong>
+                  </td>
+                  <td colSpan={2} />
+                </tr>
+                <tr>
+                  <td colSpan={4}>{t("adjustments")}</td>
+                  <td>
+                    <strong>
+                      {BigInt(invoice.adjustmentNet) > BigInt(0) ? "+" : ""}
+                      {formatVndLocale(invoice.adjustmentNet, locale)}
+                    </strong>
+                  </td>
+                  <td colSpan={2} />
+                </tr>
+              </>
+            )}
             <tr>
-              <td colSpan={4}>{t("invoiceTotal")}</td>
+              <td colSpan={4}>
+                {invoice.hasAdjustments ? t("adjustedTotal") : t("invoiceTotal")}
+              </td>
               <td>
                 <strong>{formatVndLocale(invoice.total, locale)}</strong>
               </td>
@@ -594,10 +631,19 @@ function PaymentsTab({ invoice }: { invoice: Invoice }) {
     <>
       <div className="evidence-summary service-summary">
         <ContextCard
-          label={t("invoiceTotal")}
-          value={formatVndLocale(invoice.total, locale)}
+          label={invoice.hasAdjustments ? t("originalTotal") : t("invoiceTotal")}
+          value={formatVndLocale(invoice.originalTotal, locale)}
           detail={t("finalBilledValue")}
         />
+        {invoice.hasAdjustments && (
+          <ContextCard
+            label={t("adjustedTotal")}
+            value={formatVndLocale(invoice.total, locale)}
+            detail={t("adjustmentNetDetail", {
+              amount: formatVndLocale(invoice.adjustmentNet, locale),
+            })}
+          />
+        )}
         <ContextCard
           label={t("paid")}
           value={formatVndLocale(invoice.totalPaid, locale)}
@@ -609,6 +655,47 @@ function PaymentsTab({ invoice }: { invoice: Invoice }) {
           detail={paymentStatusLabel(invoice.paymentStatus, t)}
         />
       </div>
+      {invoice.adjustments.length > 0 && (
+        <section className="invoice-adjustment-history">
+          <div className="section-heading-row">
+            <div>
+              <h3>{t("adjustmentHistory")}</h3>
+              <p className="utility-subtle">{t("adjustmentHistoryHelp")}</p>
+            </div>
+          </div>
+          <div className="utility-table-wrap">
+            <table className="utility-table">
+              <thead>
+                <tr>
+                  <th>{t("date")}</th>
+                  <th>{t("type")}</th>
+                  <th>{t("amount")}</th>
+                  <th>{t("reason")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoice.adjustments.map((adjustment) => (
+                  <tr key={adjustment.id}>
+                    <td>{formatDateOnlyLocale(adjustment.createdAt, locale)}</td>
+                    <td>
+                      {adjustment.type === "CREDIT"
+                        ? t("creditAdjustment")
+                        : t("debitAdjustment")}
+                    </td>
+                    <td>
+                      <strong>
+                        {adjustment.type === "CREDIT" ? "−" : "+"}
+                        {formatVndLocale(adjustment.amount, locale)}
+                      </strong>
+                    </td>
+                    <td>{adjustment.reason || adjustment.description}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
       <div className="section-heading-row">
         <div>
           <h3>{t("paymentHistory")}</h3>
@@ -707,7 +794,7 @@ function HistoryTab({ invoice }: { invoice: Invoice }) {
     ...invoice.adjustments.map((adjustment) => ({
       date: adjustment.createdAt,
       title: t("adjustmentAdded"),
-      detail: `${adjustment.description} · ${adjustment.type === "CREDIT" ? "−" : ""}${formatVndLocale(adjustment.amount, locale)}`,
+      detail: `${adjustment.type === "CREDIT" ? t("creditAdjustment") : t("debitAdjustment")} · ${adjustment.type === "CREDIT" ? "−" : "+"}${formatVndLocale(adjustment.amount, locale)} · ${adjustment.reason || adjustment.description}`,
     })),
     ...(invoice.finalizedAt
       ? [
@@ -715,6 +802,15 @@ function HistoryTab({ invoice }: { invoice: Invoice }) {
             date: invoice.finalizedAt,
             title: t("invoiceFinalized"),
             detail: t("snapshotImmutable"),
+          },
+        ]
+      : []),
+    ...(invoice.voidedAt
+      ? [
+          {
+            date: invoice.voidedAt,
+            title: t("invoiceVoided"),
+            detail: invoice.voidReason ?? t("voided"),
           },
         ]
       : []),
@@ -757,7 +853,9 @@ function InvoicePreviewDialog({ invoice }: { invoice: Invoice }) {
           <DialogDescription>
             {invoice.status === "DRAFT"
               ? t("draftPreview")
-              : t("finalizedCanonicalInvoice")}
+              : invoice.status === "VOIDED"
+                ? t("voidedHistoricalInvoice")
+                : t("finalizedCanonicalInvoice")}
           </DialogDescription>
         </DialogHeader>
         <article className="invoice-paper">
@@ -776,6 +874,9 @@ function InvoicePreviewDialog({ invoice }: { invoice: Invoice }) {
               <p>#{presentation.invoiceNumber}</p>
               {presentation.isDraft && (
                 <span className="invoice-paper-draft">{t("draftWatermark")}</span>
+              )}
+              {presentation.isVoided && (
+                <span className="invoice-paper-voided">{t("voided")}</span>
               )}
             </div>
           </header>
@@ -832,8 +933,26 @@ function InvoicePreviewDialog({ invoice }: { invoice: Invoice }) {
 
           <div className="invoice-paper-total-row">
             <div className="invoice-paper-total">
-              <span>{t("totalPayment")}</span>
-              <strong>{formatVndLocale(presentation.total, locale)}</strong>
+              {presentation.hasAdjustments && (
+                <>
+                  <span>{t("originalTotal")}</span>
+                  <strong>{formatVndLocale(presentation.originalTotal, locale)}</strong>
+                  <span>{t("adjustments")}</span>
+                  <strong>{formatVndLocale(presentation.adjustmentNet, locale)}</strong>
+                  <span>{t("adjustedTotal")}</span>
+                  <strong>{formatVndLocale(presentation.total, locale)}</strong>
+                  <span>{t("paid")}</span>
+                  <strong>{formatVndLocale(presentation.paid, locale)}</strong>
+                  <span>{t("outstanding")}</span>
+                  <strong>{formatVndLocale(presentation.outstanding, locale)}</strong>
+                </>
+              )}
+              {!presentation.hasAdjustments && (
+                <>
+                  <span>{t("totalPayment")}</span>
+                  <strong>{formatVndLocale(presentation.total, locale)}</strong>
+                </>
+              )}
             </div>
           </div>
 
@@ -843,7 +962,9 @@ function InvoicePreviewDialog({ invoice }: { invoice: Invoice }) {
               <span>
                 {presentation.isDraft
                   ? t("draftPreviewFooter")
-                  : t("finalizedInvoiceFooter")}
+                  : presentation.isVoided
+                    ? t("voidedInvoiceFooter")
+                    : t("finalizedInvoiceFooter")}
               </span>
             </div>
             <p>
@@ -853,7 +974,7 @@ function InvoicePreviewDialog({ invoice }: { invoice: Invoice }) {
             </p>
           </footer>
         </article>
-        {invoice.status === "FINALIZED" && (
+        {(invoice.status === "FINALIZED" || invoice.status === "VOIDED") && (
           <DialogFooter>
             <Button onClick={() => exportInvoicePng(invoice, locale)}>
               <Download /> {t("downloadPng")}
@@ -925,76 +1046,105 @@ function OverrideDialog({
   );
 }
 
-function AdjustmentDialog({
-  invoiceId,
-  adjustment,
-}: {
-  invoiceId: string;
-  adjustment?: Invoice["adjustments"][number];
-}) {
+function FinalizedAdjustmentDialog({ invoice }: { invoice: Invoice }) {
   const t = useTranslations("billing");
+  const tCommon = useTranslations("common");
+  const locale = useLocale() as AppLocale;
+  const [type, setType] = React.useState<"CREDIT" | "DEBIT">(
+    BigInt(invoice.maximumCredit) > BigInt(0) ? "CREDIT" : "DEBIT",
+  );
+  const [amount, setAmount] = React.useState("");
   const [state, action] = React.useActionState(
-    adjustment ? updateInvoiceAdjustmentAction : addInvoiceAdjustmentAction,
+    addFinalizedInvoiceAdjustmentAction,
     emptyActionState,
   );
+
+  const amountValue = /^\d+$/.test(amount) ? BigInt(amount) : BigInt(0);
+  const currentTotal = BigInt(invoice.total);
+  const paid = BigInt(invoice.totalPaid);
+  const nextTotal =
+    type === "CREDIT" ? currentTotal - amountValue : currentTotal + amountValue;
+  const remaining = nextTotal > paid ? nextTotal - paid : BigInt(0);
+
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button size="sm" variant={adjustment ? "ghost" : "outline"}>
-          {adjustment ? <Pencil /> : <Plus />}
-          {adjustment ? t("edit") : t("addAdjustment")}
+        <Button variant="outline">
+          <Plus /> {t("addAdjustment")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            {adjustment ? t("editAdjustment") : t("addAdjustment")}
-          </DialogTitle>
-          <DialogDescription>
-            {t("addAdjustmentDescription")}
-          </DialogDescription>
+          <DialogTitle>{t("addAdjustment")}</DialogTitle>
+          <DialogDescription>{t("finalizedAdjustmentDescription")}</DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="dialog-form">
-          <input type="hidden" name="invoiceId" value={invoiceId} />
-          {adjustment && (
-            <input type="hidden" name="adjustmentId" value={adjustment.id} />
-          )}
+          <input type="hidden" name="invoiceId" value={invoice.id} />
           <div className="field">
             <Label>{t("type")}</Label>
-            <select name="type" defaultValue={adjustment?.type ?? "CHARGE"}>
-              <option value="CHARGE">{t("additionalCharge")}</option>
-              <option value="CREDIT">{t("creditDiscount")}</option>
+            <select
+              name="type"
+              value={type}
+              onChange={(event) =>
+                setType(event.target.value as "CREDIT" | "DEBIT")
+              }
+            >
+              <option value="CREDIT">{t("creditAdjustment")}</option>
+              <option value="DEBIT">{t("debitAdjustment")}</option>
             </select>
           </div>
-          <Field
-            label={t("description")}
-            name="description"
-            defaultValue={adjustment?.description ?? ""}
-            required
-          />
           <Field
             label={t("amount")}
             name="amount"
             type="number"
             min="1"
             step="1"
-            defaultValue={adjustment?.amount ?? ""}
+            max={type === "CREDIT" ? invoice.maximumCredit : undefined}
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
             required
           />
-          <Field
-            label={t("reasonOptional")}
-            name="reason"
-            defaultValue={adjustment?.reason ?? ""}
-          />
+          {type === "CREDIT" && (
+            <small className="utility-subtle">
+              {t("maximumCreditValue", {
+                amount: formatVndLocale(invoice.maximumCredit, locale),
+              })}
+            </small>
+          )}
+          <Field label={t("reason")} name="reason" maxLength={500} required />
+          <div className="invoice-adjustment-preview">
+            <Info
+              label={t("originalTotal")}
+              value={formatVndLocale(invoice.originalTotal, locale)}
+            />
+            <Info
+              label={t("currentAdjustments")}
+              value={formatVndLocale(invoice.adjustmentNet, locale)}
+            />
+            <Info
+              label={t("newAdjustment")}
+              value={`${type === "CREDIT" ? "−" : "+"}${formatVndLocale(amountValue.toString(), locale)}`}
+            />
+            <Info
+              label={t("newAmountDue")}
+              value={formatVndLocale(nextTotal.toString(), locale)}
+            />
+            <Info label={t("paid")} value={formatVndLocale(invoice.totalPaid, locale)} />
+            <Info
+              label={t("remaining")}
+              value={formatVndLocale(remaining.toString(), locale)}
+            />
+          </div>
           {state.message && (
             <p className={state.ok ? "form-success" : "form-error"}>
               {state.message}
             </p>
           )}
           <DialogFooter>
-            <Button type="submit">
-              {adjustment ? t("saveAdjustment") : t("addAdjustment")}
-            </Button>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">{tCommon("cancel")}</Button>
+            </DialogClose>
+            <Button type="submit">{t("addAdjustment")}</Button>
           </DialogFooter>
         </PreservingActionForm>
       </DialogContent>
@@ -1002,31 +1152,128 @@ function AdjustmentDialog({
   );
 }
 
-function DeleteAdjustmentButton({
-  invoiceId,
-  adjustmentId,
-}: {
-  invoiceId: string;
-  adjustmentId: string;
-}) {
+function InvoiceRelationshipNotice({ invoice }: { invoice: Invoice }) {
   const t = useTranslations("billing");
+  const locale = useLocale() as AppLocale;
+  if (
+    invoice.status !== "VOIDED" &&
+    !invoice.replacesInvoice &&
+    !invoice.replacementInvoice
+  ) {
+    return null;
+  }
+  return (
+    <section className={`invoice-history-notice${invoice.status === "VOIDED" ? " is-voided" : ""}`}>
+      <div>
+        <strong>{invoice.status === "VOIDED" ? t("voided") : t("replacementInvoice")}</strong>
+        {invoice.status === "VOIDED" && invoice.voidedAt && (
+          <span>{t("voidedOn", { date: formatDateOnlyLocale(invoice.voidedAt, locale) })}</span>
+        )}
+        {invoice.status === "VOIDED" && invoice.voidReason && (
+          <span>{t("voidReasonValue", { reason: invoice.voidReason })}</span>
+        )}
+        {invoice.replacesInvoice && (
+          <span>{t("correctionOfInvoice")}</span>
+        )}
+      </div>
+      <div className="billing-actions">
+        {invoice.replacesInvoice && (
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/billing/invoices/${invoice.replacesInvoice.id}`}>{t("viewOriginal")}</Link>
+          </Button>
+        )}
+        {invoice.replacementInvoice && (
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/billing/invoices/${invoice.replacementInvoice.id}`}>{t("viewReplacement")}</Link>
+          </Button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function InvoiceCorrectionActions({ invoice }: { invoice: Invoice }) {
+  return (
+    <>
+      <VoidInvoiceDialog invoiceId={invoice.id} />
+      <CorrectInvoiceDialog invoiceId={invoice.id} />
+    </>
+  );
+}
+
+function VoidInvoiceDialog({ invoiceId }: { invoiceId: string }) {
+  const t = useTranslations("billing");
+  const tc = useTranslations("common");
   const [state, action] = React.useActionState(
-    deleteInvoiceAdjustmentAction,
+    voidInvoiceAction,
     emptyActionState,
   );
   return (
-    <form action={action} className="billing-inline-form">
-      <input type="hidden" name="invoiceId" value={invoiceId} />
-      <input type="hidden" name="adjustmentId" value={adjustmentId} />
-      <Button size="sm" variant="ghost" aria-label={t("removeAdjustment")}>
-        <Trash2 />
-      </Button>
-      {state.message && (
-        <small className={state.ok ? "form-success" : "form-error"}>
-          {state.message}
-        </small>
-      )}
-    </form>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">{t("voidInvoice")}</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("voidInvoice")}</DialogTitle>
+          <DialogDescription>{t("voidInvoiceDescription")}</DialogDescription>
+        </DialogHeader>
+        <PreservingActionForm action={action} className="dialog-form">
+          <input type="hidden" name="invoiceId" value={invoiceId} />
+          <div className="field-group">
+            <Label htmlFor={`void-reason-${invoiceId}`}>{t("voidReason")}</Label>
+            <Textarea id={`void-reason-${invoiceId}`} name="reason" required />
+          </div>
+          {state.message && (
+            <p className={state.ok ? "form-success" : "form-error"}>{state.message}</p>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">{tc("cancel")}</Button>
+            </DialogClose>
+            <Button type="submit" variant="danger">{t("voidInvoice")}</Button>
+          </DialogFooter>
+        </PreservingActionForm>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CorrectInvoiceDialog({ invoiceId }: { invoiceId: string }) {
+  const t = useTranslations("billing");
+  const tc = useTranslations("common");
+  const [state, action] = React.useActionState(
+    correctInvoiceAction,
+    emptyActionState,
+  );
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">{t("correctInvoice")}</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("correctInvoice")}</DialogTitle>
+          <DialogDescription>{t("correctInvoiceDescription")}</DialogDescription>
+        </DialogHeader>
+        <PreservingActionForm action={action} className="dialog-form">
+          <input type="hidden" name="invoiceId" value={invoiceId} />
+          <div className="field-group">
+            <Label htmlFor={`correct-reason-${invoiceId}`}>{t("voidReason")}</Label>
+            <Textarea id={`correct-reason-${invoiceId}`} name="reason" required />
+          </div>
+          {state.message && (
+            <p className={state.ok ? "form-success" : "form-error"}>{state.message}</p>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">{tc("cancel")}</Button>
+            </DialogClose>
+            <Button type="submit">{t("createCorrection")}</Button>
+          </DialogFooter>
+        </PreservingActionForm>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1077,7 +1324,7 @@ function PaymentDialog({ invoice }: { invoice: Invoice }) {
               required
             />
           </div>
-          <SelectMethod defaultValue="CASH" />
+          <SelectMethod defaultValue="BANK_TRANSFER" />
           <Field label={t("reference")} name="reference" />
           <Field label={t("notes")} name="notes" />
           {state.message && (
@@ -1256,7 +1503,7 @@ function roleLabel(value: string, t: ReturnType<typeof useTranslations<"billing"
   return value.toLowerCase().replaceAll("_", " ");
 }
 function paymentStatusLabel(value: string, t: ReturnType<typeof useTranslations<"billing">>) {
-  return ({ PAID: t("paid"), PARTIAL: t("partial"), UNPAID: t("unpaid") } as Record<string,string>)[value] ?? value.toLowerCase();
+  return ({ PAID: t("paid"), PARTIAL: t("partial"), UNPAID: t("unpaid"), VOIDED: t("voided") } as Record<string,string>)[value] ?? value.toLowerCase();
 }
 function paymentMethodLabel(value: string, t: ReturnType<typeof useTranslations<"billing">>) {
   if (value === "CASH") return t("cash");
