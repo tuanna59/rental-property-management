@@ -86,9 +86,17 @@ export async function recordReading(input: RecordReadingInput) {
   }
   const readingDate = date(input.readingDate),
     readingValue = new Prisma.Decimal(reading(input.readingValue));
+  const selectedBillingMonth = input.billingMonth
+    ? monthStart(date(input.billingMonth))
+    : null;
   const today = todayBusinessDate();
   if (readingDate > today) {
     throw new Error("Meter readings cannot be recorded in the future.");
+  }
+  if (selectedBillingMonth && readingDate < selectedBillingMonth) {
+    throw new Error(
+      "The reading date cannot be before the selected billing month.",
+    );
   }
   if (input.source === "ESTIMATED")
     requiredText(input.reason || "", "Estimated readings require a reason.");
@@ -107,8 +115,8 @@ export async function recordReading(input: RecordReadingInput) {
       );
     }
 
-    if (input.billingMonth) {
-      const billingMonth = monthStart(date(input.billingMonth));
+    if (selectedBillingMonth) {
+      const billingMonth = selectedBillingMonth;
       const [selectedMonthDependency, previousClosing, currentClosing] =
         await Promise.all([
           tx.invoiceMeterEvidence.findFirst({
@@ -147,15 +155,50 @@ export async function recordReading(input: RecordReadingInput) {
       }
     }
 
+    const existingMonthlyReading = selectedBillingMonth
+      ? await tx.meterReading.findUnique({
+          where: {
+            meterId_billingMonth: {
+              meterId: meter.id,
+              billingMonth: selectedBillingMonth,
+            },
+          },
+          select: { id: true, readingType: true },
+        })
+      : null;
+    if (existingMonthlyReading) {
+      if (
+        existingMonthlyReading.readingType !== "MANUAL" &&
+        existingMonthlyReading.readingType !== "MONTHLY"
+      ) {
+        throw new Error(
+          "The selected billing month already has a managed lifecycle reading.",
+        );
+      }
+      await assertReadingCoreEditable(tx, existingMonthlyReading.id);
+    }
+
     if (input.source === "MEASURED") {
       const [prior, next] = await Promise.all([
         tx.meterReading.findFirst({
-          where: { meterId: meter.id, readingDate: { lte: readingDate } },
+          where: {
+            meterId: meter.id,
+            readingDate: { lte: readingDate },
+            ...(existingMonthlyReading
+              ? { id: { not: existingMonthlyReading.id } }
+              : {}),
+          },
           orderBy: [{ readingDate: "desc" }, { createdAt: "desc" }],
           select: { readingValue: true },
         }),
         tx.meterReading.findFirst({
-          where: { meterId: meter.id, readingDate: { gte: readingDate } },
+          where: {
+            meterId: meter.id,
+            readingDate: { gte: readingDate },
+            ...(existingMonthlyReading
+              ? { id: { not: existingMonthlyReading.id } }
+              : {}),
+          },
           orderBy: [{ readingDate: "asc" }, { createdAt: "asc" }],
           select: { readingValue: true },
         }),
@@ -168,9 +211,28 @@ export async function recordReading(input: RecordReadingInput) {
       }
     }
     const photoStorageKey = await saveMeterPhoto(meter.id, input.photo);
+    if (existingMonthlyReading) {
+      return tx.meterReading.update({
+        where: { id: existingMonthlyReading.id },
+        data: {
+          readingDate,
+          readingValue,
+          source: input.source,
+          notes: input.notes || null,
+          reason: input.reason || null,
+          ...(photoStorageKey
+            ? {
+                photoStorageKey,
+                evidencePhotos: { create: { storageKey: photoStorageKey } },
+              }
+            : {}),
+        },
+      });
+    }
     return tx.meterReading.create({
       data: {
         meterId: meter.id,
+        billingMonth: selectedBillingMonth,
         readingDate,
         readingValue,
         readingType: input.readingType,
@@ -217,6 +279,7 @@ async function monthlyClosingCandidate(
         select: {
           id: true,
           readingDate: true,
+          billingMonth: true,
           readingType: true,
           monthlyClosings: { select: { billingMonth: true } },
           invoiceEvidence: {
@@ -236,6 +299,7 @@ async function monthlyClosingCandidate(
     readings: meter.readings.map((reading) => ({
       id: reading.id,
       readingDate: reading.readingDate,
+      billingMonth: reading.billingMonth,
       readingType: reading.readingType,
       closingMonths: reading.monthlyClosings.map(
         (closing) => closing.billingMonth,
@@ -267,6 +331,7 @@ async function assertMonthlyClosingAssignment(
     select: {
       id: true,
       readingDate: true,
+      billingMonth: true,
       meter: { select: { installedAt: true, removedAt: true } },
     },
   });
@@ -284,6 +349,12 @@ async function assertMonthlyClosingAssignment(
   }
   if (selected.readingDate < billingMonth) {
     throw new Error("A monthly closing reading cannot be before its billing month.");
+  }
+  if (
+    selected.billingMonth &&
+    monthStart(selected.billingMonth).getTime() !== billingMonth.getTime()
+  ) {
+    throw new Error("This reading belongs to a different billing month.");
   }
 
   const [otherMonth, previous, next] = await Promise.all([
@@ -609,6 +680,7 @@ export async function saveMonthlyReading(input: SaveMonthlyReadingInput) {
     const created = await tx.meterReading.create({
       data: {
         meterId: meter.id,
+        billingMonth,
         readingDate,
         readingValue,
         readingType: "MANUAL",

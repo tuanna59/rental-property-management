@@ -3,6 +3,7 @@ import { monthEndExclusive, monthStart } from "./rules";
 type ClosingCandidateReading = {
   id: string;
   readingDate: Date;
+  billingMonth: Date | null;
   readingType: string;
   closingMonths: Date[];
   locked: boolean;
@@ -26,6 +27,25 @@ export type ClosingDateQuality =
   | { kind: "VERY_LATE"; offsetDays: number; warning: string };
 
 const DAY = 86_400_000;
+
+function inferredBillingMonth(readingDate: Date) {
+  const currentMonth = monthStart(readingDate);
+  const previousMonth = new Date(
+    Date.UTC(currentMonth.getUTCFullYear(), currentMonth.getUTCMonth() - 1, 1),
+  );
+  const previousExpected = new Date(currentMonth.getTime() - DAY);
+  const currentExpected = new Date(
+    monthEndExclusive(currentMonth).getTime() - DAY,
+  );
+  const previousDistance = Math.abs(
+    readingDate.getTime() - previousExpected.getTime(),
+  );
+  const currentDistance = Math.abs(
+    readingDate.getTime() - currentExpected.getTime(),
+  );
+
+  return previousDistance < currentDistance ? previousMonth : currentMonth;
+}
 
 export function isMonthlyClosingRequired(input: {
   billingMonth: Date;
@@ -109,15 +129,20 @@ export function resolveMonthlyClosingCandidate(input: {
   const anchorDate = previousClosing?.readingDate ?? input.meterInstalledAt;
 
   const eligible = input.readings
-    .filter(
-      (reading) =>
+    .filter((reading) => {
+      const ownerMonth = reading.billingMonth
+        ? monthStart(reading.billingMonth)
+        : inferredBillingMonth(reading.readingDate);
+      return (
         reading.readingType === "MANUAL" &&
         !reading.locked &&
         reading.closingMonths.length === 0 &&
+        ownerMonth.getTime() === cycleStart.getTime() &&
         reading.readingDate >= anchorDate &&
         reading.readingDate >= cycleStart &&
-        (!laterClosing || reading.readingDate < laterClosing.readingDate),
-    )
+        (!laterClosing || reading.readingDate < laterClosing.readingDate)
+      );
+    })
     .sort(
       (left, right) => left.readingDate.getTime() - right.readingDate.getTime(),
     );

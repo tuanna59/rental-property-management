@@ -209,6 +209,7 @@ function MeterEntryRow({
   const minimumReadingDate = entry.manualReadingMinDate
     ? dateOnly(entry.manualReadingMinDate)
     : dateOnly(meter.installedAt);
+  const defaultReadingDate = defaultReadingDateForMonth(month);
   const openOverlay = (next: RowOverlay) => {
     setMenuOpen(false);
     window.setTimeout(() => setOverlay(next), 0);
@@ -298,7 +299,7 @@ function MeterEntryRow({
             type="date"
             min={minimumReadingDate}
             max={todayDate()}
-            defaultValue={todayDate()}
+            defaultValue={defaultReadingDate}
             required
           />
         )}
@@ -934,6 +935,17 @@ const todayDate = () => {
   const day = String(now.getDate()).padStart(2, "0");
   return `${now.getFullYear()}-${month}-${day}`;
 };
+function defaultReadingDateForMonth(month: string) {
+  const today = todayDate();
+  const [year, monthNumber] = month.split("-").map(Number);
+  if (!year || !monthNumber) return today;
+  const monthStartValue = `${month}-01`;
+  if (today < monthStartValue) return today;
+  const monthEnd = new Date(Date.UTC(year, monthNumber, 0))
+    .toISOString()
+    .slice(0, 10);
+  return today > monthEnd ? monthEnd : today;
+}
 function validMonth(value: string | null): value is string {
   return Boolean(value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value));
 }

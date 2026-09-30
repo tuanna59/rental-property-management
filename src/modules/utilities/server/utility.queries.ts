@@ -195,7 +195,7 @@ function computePhysicalMeterSegment(
   const startReading =
     meter.installedAt >= start
       ? installReading
-      : (previousClosing ?? priorPhysicalReading ?? readingAtCycleStart);
+      : (previousClosing ?? readingAtCycleStart ?? priorPhysicalReading);
 
   const removalReading =
     meter.removedAt && meter.removedAt < end
@@ -216,9 +216,7 @@ function computePhysicalMeterSegment(
           (reading) =>
             reading.id !== startReading.id &&
             reading.readingDate >= startReading.readingDate &&
-            (knownWindowEnd === end
-              ? reading.readingDate < knownWindowEnd
-              : reading.readingDate <= knownWindowEnd),
+            reading.readingDate <= knownWindowEnd,
         )
         .at(-1)
     : undefined;
@@ -755,6 +753,7 @@ export async function getMonthlyMeterEntries(
           readings: activeMeter.readings.map((reading) => ({
             id: reading.id,
             readingDate: reading.readingDate,
+            billingMonth: reading.billingMonth,
             readingType: reading.readingType,
             closingMonths: reading.monthlyClosings.map(
               (closing) => closing.billingMonth,
@@ -780,17 +779,22 @@ export async function getMonthlyMeterEntries(
         ? resolvedClosingCandidateReading
         : undefined;
 
+    const selectedMonthReading = activeMeter?.readings
+      .filter(
+        (reading) =>
+          reading.billingMonth !== null &&
+          sameDay(monthStart(reading.billingMonth), start),
+      )
+      .at(-1);
     const selectedWindowEnd =
       monthlyReading && monthlyReading.readingDate > end
         ? monthlyReading.readingDate
         : end;
-    const latestReading = activeMeter?.readings
-      .filter((reading) =>
-        selectedWindowEnd === end
-          ? reading.readingDate < selectedWindowEnd
-          : reading.readingDate <= selectedWindowEnd,
-      )
-      .at(-1);
+    const latestReading =
+      selectedMonthReading ??
+      activeMeter?.readings
+        .filter((reading) => reading.readingDate <= selectedWindowEnd)
+        .at(-1);
 
     const meterSegments = space.meters.map((meter) =>
       computePhysicalMeterSegment(meter, space.tenancies, start, end),
