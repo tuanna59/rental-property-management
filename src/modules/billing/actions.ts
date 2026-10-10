@@ -5,11 +5,14 @@ import { redirect } from "next/navigation";
 import { getActionFeedback } from "@/i18n/action-feedback";
 import type { ActionState } from "@/lib/action-state";
 import {
+  addDraftInvoiceAdjustment,
   addFinalizedInvoiceAdjustment,
   finalizeInvoice,
   generateAllReady,
   generateInvoice,
+  updateDraftInvoiceAdjustment,
   updateDraftLine,
+  removeDraftInvoiceAdjustment,
   voidInvoice,
   correctInvoice,
 } from "./server/billing.service";
@@ -52,6 +55,9 @@ function billingErrorMessage(
       ADJUSTMENT_FINALIZED_ONLY: "adjustmentFinalizedOnly",
       ADJUSTMENT_OVERPAYMENT: "adjustmentWouldOverpay",
       ADJUSTMENT_IMMUTABLE: "adjustmentImmutable",
+      DRAFT_ADJUSTMENT_ONLY: "draftAdjustmentOnly",
+      DRAFT_ADJUSTMENT_EXISTS: "draftAdjustmentExists",
+      DRAFT_ADJUSTMENT_NOT_FOUND: "draftAdjustmentNotFound",
     }[error.code];
     return feedback(key);
   }
@@ -84,6 +90,54 @@ export async function generateInvoiceAction(_: ActionState, data: FormData) {
     "draftGenerated",
   );
 }
+export async function addDraftInvoiceAdjustmentAction(
+  _: ActionState,
+  data: FormData,
+) {
+  return action(
+    () =>
+      addDraftInvoiceAdjustment(text(data, "invoiceId"), {
+        direction: text(data, "direction") as "DECREASE" | "INCREASE",
+        amount: text(data, "amount"),
+        reason: text(data, "reason"),
+      }),
+    "draftAdjustmentAdded",
+  );
+}
+
+export async function updateDraftInvoiceAdjustmentAction(
+  _: ActionState,
+  data: FormData,
+) {
+  return action(
+    () =>
+      updateDraftInvoiceAdjustment(
+        text(data, "invoiceId"),
+        text(data, "lineId"),
+        {
+          direction: text(data, "direction") as "DECREASE" | "INCREASE",
+          amount: text(data, "amount"),
+          reason: text(data, "reason"),
+        },
+      ),
+    "draftAdjustmentUpdated",
+  );
+}
+
+export async function removeDraftInvoiceAdjustmentAction(
+  _: ActionState,
+  data: FormData,
+) {
+  return action(
+    () =>
+      removeDraftInvoiceAdjustment(
+        text(data, "invoiceId"),
+        text(data, "lineId"),
+      ),
+    "draftAdjustmentRemoved",
+  );
+}
+
 export async function addFinalizedInvoiceAdjustmentAction(
   _: ActionState,
   data: FormData,
@@ -95,7 +149,7 @@ export async function addFinalizedInvoiceAdjustmentAction(
         amount: text(data, "amount"),
         reason: text(data, "reason"),
       }),
-    "adjustmentAdded",
+    "billingAdjustmentAdded",
   );
 }
 

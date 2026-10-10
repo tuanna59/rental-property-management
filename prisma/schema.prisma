@@ -60,6 +60,7 @@ enum InvoiceLineType {
   RENT
   ELECTRICITY
   WATER
+  ADJUSTMENT
 }
 
 enum InvoiceAdjustmentType {

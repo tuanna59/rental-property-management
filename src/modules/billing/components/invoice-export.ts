@@ -19,19 +19,9 @@ type InvoiceLinePresentation = {
 
 export function invoicePresentation(invoice: Invoice, locale: AppLocale) {
   const t = billingTranslator(locale);
-  const lines: InvoiceLinePresentation[] = [
-    ...invoice.lines.map((line) => linePresentation(line, locale, t)),
-    ...invoice.adjustments.map((adjustment) => ({
-      id: adjustment.id,
-      type: "ADJUSTMENT",
-      label: adjustment.type === "CREDIT" ? t("creditAdjustment") : t("debitAdjustment"),
-      detail: adjustment.reason || adjustment.description,
-      detailNote: null,
-      quantity: "—",
-      rate: "—",
-      amount: `${adjustment.type === "CREDIT" ? "−" : ""}${formatVndLocale(adjustment.amount, locale)}`,
-    })),
-  ];
+  const lines: InvoiceLinePresentation[] = invoice.lines.map((line) =>
+    linePresentation(line, locale, t),
+  );
 
   return {
     propertyName: invoice.propertyName,
@@ -216,7 +206,7 @@ export function exportInvoicePng(invoice: Invoice, locale: AppLocale) {
     context.textAlign = "right";
     context.fillText(formatVndLocale(presentation.originalTotal, locale), 1490, y + 42);
     context.textAlign = "left";
-    context.fillText(t("adjustments"), totalX + 38, y + 82);
+    context.fillText(t("postFinalizationAdjustments"), totalX + 38, y + 82);
     context.textAlign = "right";
     context.fillText(formatVndLocale(presentation.adjustmentNet, locale), 1490, y + 82);
     context.textAlign = "left";
@@ -279,6 +269,19 @@ function linePresentation(
   const period = line.sourceBillingMonth
     ? formatMonthLocale(line.sourceBillingMonth, locale)
     : "—";
+
+  if (line.type === "ADJUSTMENT") {
+    return {
+      id: line.id,
+      type: line.type,
+      label: t("adjustmentLabel"),
+      detail: line.description,
+      detailNote: null,
+      quantity: "—",
+      rate: "—",
+      amount: formatVndLocale(line.finalAmount, locale),
+    };
+  }
 
   if (line.type === "RENT") {
     const fullMonth = Boolean(metadata.fullMonth);

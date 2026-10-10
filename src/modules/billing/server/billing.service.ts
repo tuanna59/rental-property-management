@@ -105,14 +105,157 @@ export async function updateDraftLine(
     });
     if (!invoice || invoice.status !== "DRAFT")
       throw new Error("Only draft invoices can be changed.");
-    return tx.invoiceLine.update({
+    const line = await tx.invoiceLine.findFirst({
       where: { id: lineId, invoiceId },
+      select: { id: true, type: true },
+    });
+    if (!line) throw new Error("Invoice line was not found.");
+    if (line.type === "ADJUSTMENT") {
+      throw new Error(
+        "Manual adjustment lines must be changed through the draft adjustment action.",
+      );
+    }
+    return tx.invoiceLine.update({
+      where: { id: line.id },
       data: {
         finalAmount: amount,
         isOverridden: true,
         overrideReason: overrideReason.trim(),
       },
     });
+  });
+}
+
+type DraftAdjustmentInput = {
+  direction: "DECREASE" | "INCREASE";
+  amount: string;
+  reason: string;
+};
+
+function draftAdjustmentValues(input: DraftAdjustmentInput) {
+  if (input.direction !== "DECREASE" && input.direction !== "INCREASE") {
+    throw new BillingDomainError(
+      "DRAFT_ADJUSTMENT_ONLY",
+      "Draft adjustment direction must be DECREASE or INCREASE.",
+    );
+  }
+  const amount = positiveWholeVnd(input.amount);
+  const reason = input.reason.trim();
+  if (!reason || reason.length > 500) {
+    throw new BillingDomainError(
+      "ADJUSTMENT_REASON_REQUIRED",
+      "A reason of 500 characters or fewer is required for an invoice adjustment.",
+    );
+  }
+  const signedAmount =
+    input.direction === "DECREASE" ? amount.negated() : amount;
+  return { signedAmount, reason };
+}
+
+async function requireDraftInvoice(
+  tx: Prisma.TransactionClient,
+  invoiceId: string,
+) {
+  const invoice = await tx.invoice.findUnique({
+    where: { id: invoiceId },
+    select: { status: true },
+  });
+  if (!invoice || invoice.status !== "DRAFT") {
+    throw new BillingDomainError(
+      "DRAFT_ADJUSTMENT_ONLY",
+      "Draft invoice adjustments can only be changed while the invoice is DRAFT.",
+    );
+  }
+}
+
+export async function addDraftInvoiceAdjustment(
+  invoiceId: string,
+  input: DraftAdjustmentInput,
+) {
+  const { signedAmount, reason } = draftAdjustmentValues(input);
+  return tenancyTransaction(async (tx) => {
+    await requireDraftInvoice(tx, invoiceId);
+    const existing = await tx.invoiceLine.findFirst({
+      where: { invoiceId, type: "ADJUSTMENT" },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new BillingDomainError(
+        "DRAFT_ADJUSTMENT_EXISTS",
+        "This draft already has a manual adjustment.",
+      );
+    }
+    return tx.invoiceLine.create({
+      data: {
+        invoiceId,
+        type: "ADJUSTMENT",
+        description: reason,
+        sourceBillingMonth: null,
+        servicePeriodStart: null,
+        servicePeriodEnd: null,
+        calculatedAmount: signedAmount,
+        finalAmount: signedAmount,
+        isOverridden: false,
+        overrideReason: null,
+        metadata: {
+          origin: "DRAFT_MANUAL_ADJUSTMENT",
+          direction: input.direction,
+        },
+      },
+    });
+  });
+}
+
+export async function updateDraftInvoiceAdjustment(
+  invoiceId: string,
+  lineId: string,
+  input: DraftAdjustmentInput,
+) {
+  const { signedAmount, reason } = draftAdjustmentValues(input);
+  return tenancyTransaction(async (tx) => {
+    await requireDraftInvoice(tx, invoiceId);
+    const line = await tx.invoiceLine.findFirst({
+      where: { id: lineId, invoiceId, type: "ADJUSTMENT" },
+      select: { id: true },
+    });
+    if (!line) {
+      throw new BillingDomainError(
+        "DRAFT_ADJUSTMENT_NOT_FOUND",
+        "Draft invoice adjustment was not found.",
+      );
+    }
+    return tx.invoiceLine.update({
+      where: { id: line.id },
+      data: {
+        description: reason,
+        calculatedAmount: signedAmount,
+        finalAmount: signedAmount,
+        metadata: {
+          origin: "DRAFT_MANUAL_ADJUSTMENT",
+          direction: input.direction,
+        },
+      },
+    });
+  });
+}
+
+export async function removeDraftInvoiceAdjustment(
+  invoiceId: string,
+  lineId: string,
+) {
+  return tenancyTransaction(async (tx) => {
+    await requireDraftInvoice(tx, invoiceId);
+    const line = await tx.invoiceLine.findFirst({
+      where: { id: lineId, invoiceId, type: "ADJUSTMENT" },
+      select: { id: true },
+    });
+    if (!line) {
+      throw new BillingDomainError(
+        "DRAFT_ADJUSTMENT_NOT_FOUND",
+        "Draft invoice adjustment was not found.",
+      );
+    }
+    return tx.invoiceLine.delete({ where: { id: line.id } });
   });
 }
 
@@ -469,14 +612,6 @@ export async function correctInvoice(invoiceId: string, reason: string) {
             isOverridden: line.isOverridden,
             overrideReason: line.overrideReason,
             metadata: line.metadata as Prisma.InputJsonValue,
-          })),
-        },
-        adjustments: {
-          create: original.adjustments.map((adjustment) => ({
-            type: adjustment.type,
-            description: adjustment.description,
-            amount: adjustment.amount,
-            reason: adjustment.reason,
           })),
         },
       },

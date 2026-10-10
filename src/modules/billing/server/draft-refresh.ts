@@ -35,6 +35,7 @@ async function refreshDraftInvoices(scope: DraftScope) {
       lines: {
         select: {
           type: true,
+          description: true,
           sourceBillingMonth: true,
           finalAmount: true,
           isOverridden: true,
@@ -75,12 +76,13 @@ async function refreshDraftInvoices(scope: DraftScope) {
       continue;
     }
 
+    const draftAdjustment = draft.lines.find((line) => line.type === "ADJUSTMENT");
     const overrides = new Map(
       draft.lines
-        .filter((line) => line.isOverridden)
+        .filter((line) => line.type !== "ADJUSTMENT" && line.isOverridden)
         .map((line) => [lineKey(line.type, line.sourceBillingMonth), line]),
     );
-    const freshLines = candidate.lines.map((line) => {
+    const freshLines: Prisma.InvoiceLineCreateManyInput[] = candidate.lines.map((line) => {
       if (line.calculatedAmount === null || line.finalAmount === null) {
         throw new Error("A refreshed draft is missing required billing data.");
       }
@@ -101,8 +103,29 @@ async function refreshDraftInvoices(scope: DraftScope) {
         metadata: line.metadata as Prisma.InputJsonValue,
       };
     });
+    if (draftAdjustment) {
+      freshLines.push({
+        invoiceId: draft.id,
+        type: draftAdjustment.type,
+        description: draftAdjustment.description,
+        sourceBillingMonth: draftAdjustment.sourceBillingMonth,
+        servicePeriodStart: null,
+        servicePeriodEnd: null,
+        calculatedAmount: draftAdjustment.finalAmount,
+        finalAmount: draftAdjustment.finalAmount,
+        isOverridden: false,
+        overrideReason: null,
+        metadata: {
+          origin: "DRAFT_MANUAL_ADJUSTMENT",
+          direction: draftAdjustment.finalAmount.isNegative() ? "DECREASE" : "INCREASE",
+        } as Prisma.InputJsonValue,
+      });
+    }
 
     await prisma.$transaction(async (tx) => {
+      // InvoiceAdjustment is reserved for post-finalization CREDIT / DEBIT.
+      // A DRAFT must never carry those records into finalization.
+      await tx.invoiceAdjustment.deleteMany({ where: { invoiceId: draft.id } });
       await tx.invoiceLine.deleteMany({ where: { invoiceId: draft.id } });
       if (freshLines.length) {
         await tx.invoiceLine.createMany({ data: freshLines });

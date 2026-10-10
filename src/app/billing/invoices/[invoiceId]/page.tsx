@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import { BillingShell } from "@/modules/billing/components/billing-shell";
 import { InvoiceDetail } from "@/modules/billing/components/invoice-detail";
-import { getInvoice } from "@/modules/billing/server/billing.queries";
+import {
+  getInvoice,
+  getInvoiceMonthNavigation,
+} from "@/modules/billing/server/billing.queries";
 import { getPrimaryPropertyDashboard } from "@/modules/property/server/property.queries";
 
 export const dynamic = "force-dynamic";
@@ -16,9 +19,16 @@ export default async function InvoiceDetailPage({
   if (!property) return null;
   const invoice = await getInvoice(invoiceId);
   if (!invoice) notFound();
+
+  const monthInvoices = await getInvoiceMonthNavigation(
+    property.id,
+    invoice.billingPeriod,
+    invoice.id,
+  );
+
   return (
     <BillingShell>
-      <InvoiceDetail invoice={invoice} />
+      <InvoiceDetail invoice={invoice} monthInvoices={monthInvoices} />
     </BillingShell>
   );
 }

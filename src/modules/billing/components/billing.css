@@ -167,6 +167,76 @@
   max-width: 1500px;
 }
 
+.invoice-detail-toolbar {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  min-width: 0;
+}
+
+.invoice-detail-toolbar .billing-back-link {
+  margin-bottom: 0;
+  flex: 0 0 auto;
+}
+
+.invoice-month-navigator {
+  align-items: center;
+  display: flex;
+  gap: 0.3rem;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.invoice-month-counter {
+  color: var(--app-text-muted);
+  font-size: 0.72rem;
+  line-height: 1;
+  min-width: 2.1rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.invoice-month-select {
+  height: 2rem;
+  min-width: 220px;
+  padding-left: 0.65rem;
+  padding-right: 0.55rem;
+  width: min(300px, 30vw);
+}
+
+.invoice-month-select-value {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invoice-month-select-content {
+  max-width: min(320px, calc(100vw - 2rem));
+}
+
+.invoice-month-select-item {
+  font-size: 0.78rem;
+  padding-bottom: 0.45rem;
+  padding-top: 0.45rem;
+}
+
+.invoice-month-nav-button {
+  height: 2rem;
+  min-height: 2rem;
+  width: 2rem;
+}
+
+.invoice-month-nav-button svg {
+  height: 0.9rem;
+  width: 0.9rem;
+}
+
 .invoice-detail-header {
   align-items: end;
   display: grid;
@@ -294,6 +364,10 @@
 .section-heading-row h3,
 .section-heading-row p {
   margin: 0;
+}
+
+.invoice-tab-panel > .section-heading-row {
+  margin-top: 0;
 }
 
 .payment-dialog-summary,
@@ -892,6 +966,22 @@
 }
 
 @media (max-width: 1050px) {
+  .invoice-detail-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .invoice-month-navigator {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .invoice-month-select {
+    flex: 0 1 300px;
+    min-width: 0;
+    width: auto;
+  }
+
   .billing-summary,
   .invoice-context-grid,
   .evidence-summary {
@@ -911,6 +1001,21 @@
 }
 
 @media (max-width: 700px) {
+  .invoice-month-navigator {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    width: 100%;
+  }
+
+  .invoice-month-select {
+    max-width: none;
+    width: 100%;
+  }
+
+  .invoice-month-counter {
+    display: none;
+  }
+
   .billing-summary,
   .invoice-context-grid,
   .evidence-summary,
@@ -969,6 +1074,7 @@
 
 .invoice-history-notice {
   display: flex;
+  margin-top: 1rem;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
@@ -1033,4 +1139,17 @@
 .billing-adjusted-label {
   display: block;
   margin-top: 0.15rem;
+}
+
+.invoice-inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.invoice-inline-action-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }

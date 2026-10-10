@@ -9,7 +9,10 @@ export type BillingDomainErrorCode =
   | "ADJUSTMENT_REASON_REQUIRED"
   | "ADJUSTMENT_FINALIZED_ONLY"
   | "ADJUSTMENT_OVERPAYMENT"
-  | "ADJUSTMENT_IMMUTABLE";
+  | "ADJUSTMENT_IMMUTABLE"
+  | "DRAFT_ADJUSTMENT_ONLY"
+  | "DRAFT_ADJUSTMENT_EXISTS"
+  | "DRAFT_ADJUSTMENT_NOT_FOUND";
 
 export class BillingDomainError extends Error {
   constructor(

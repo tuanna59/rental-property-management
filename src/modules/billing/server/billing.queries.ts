@@ -527,10 +527,53 @@ export async function getInvoice(invoiceId: string) {
   return invoice ? projectInvoice(invoice) : null;
 }
 
+export async function getInvoiceMonthNavigation(
+  propertyId: string,
+  month: string | Date,
+  currentInvoiceId?: string,
+) {
+  const billingPeriod = monthStart(date(month));
+  const invoices = await prisma.invoice.findMany({
+    where: {
+      billingPeriod,
+      tenancy: { space: { floor: { propertyId } } },
+    },
+    orderBy: [
+      { roomNameSnapshot: "asc" },
+      { createdAt: "asc" },
+    ],
+    select: {
+      id: true,
+      roomNameSnapshot: true,
+      renterNameSnapshot: true,
+      type: true,
+      status: true,
+    },
+  });
+
+  // Keep normal month navigation focused on active invoices. If the user is
+  // viewing a historical voided invoice, keep that one in the list so the
+  // current selection still has a stable position.
+  return invoices
+    .filter(
+      (invoice) =>
+        invoice.status !== "VOIDED" || invoice.id === currentInvoiceId,
+    )
+    .map((invoice) => ({
+      id: invoice.id,
+      room: invoice.roomNameSnapshot,
+      renterName: invoice.renterNameSnapshot,
+      type: invoice.type,
+      status: invoice.status,
+    }));
+}
+
 function projectInvoice(invoice: InvoiceRow) {
+  const postFinalizationAdjustments =
+    invoice.status === "DRAFT" ? [] : invoice.adjustments;
   const financials = calculateInvoiceFinancials({
     lineAmounts: invoice.lines.map((line) => line.finalAmount),
-    adjustments: invoice.adjustments,
+    adjustments: postFinalizationAdjustments,
     payments: invoice.payments,
   });
   const activeBalance =
@@ -560,7 +603,7 @@ function projectInvoice(invoice: InvoiceRow) {
       calculatedAmount: money(line.calculatedAmount),
       finalAmount: money(line.finalAmount),
     })),
-    adjustments: invoice.adjustments.map((adjustment) => ({
+    adjustments: postFinalizationAdjustments.map((adjustment) => ({
       ...adjustment,
       amount: money(adjustment.amount),
       signedAmount:
@@ -581,7 +624,7 @@ function projectInvoice(invoice: InvoiceRow) {
     totalPaid: financials.paidAmount,
     balance: activeBalance,
     maximumCredit: financials.maximumCredit,
-    hasAdjustments: invoice.adjustments.length > 0,
+    hasAdjustments: postFinalizationAdjustments.length > 0,
     paymentStatus:
       invoice.status === "VOIDED"
         ? ("VOIDED" as const)

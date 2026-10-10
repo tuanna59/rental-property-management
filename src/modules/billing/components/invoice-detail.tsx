@@ -3,9 +3,12 @@
 import * as React from "react";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
   Coins,
   Download,
   Droplets,
@@ -31,16 +34,26 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { emptyActionState } from "@/lib/action-state";
 import type { AppLocale } from "@/i18n/config";
 import { formatDateOnlyLocale, formatMonthLocale, formatNumberLocale, formatPercentLocale, formatVndLocale } from "@/i18n/format";
 import {
+  addDraftInvoiceAdjustmentAction,
   addFinalizedInvoiceAdjustmentAction,
   finalizeInvoiceAction,
   overrideInvoiceLineAction,
+  removeDraftInvoiceAdjustmentAction,
   recordPaymentAction,
+  updateDraftInvoiceAdjustmentAction,
   updatePaymentAction,
   voidInvoiceAction,
   correctInvoiceAction,
@@ -53,22 +66,42 @@ import {
 } from "./invoice-export";
 
 type Invoice = NonNullable<Awaited<ReturnType<typeof getInvoice>>>;
+type InvoiceMonthNavigationItem = {
+  id: string;
+  room: string;
+  renterName: string;
+  type: Invoice["type"];
+  status: Invoice["status"];
+};
 type Tab = "charges" | "services" | "electricity" | "payments" | "history";
 
-export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
+export function InvoiceDetail({
+  invoice,
+  monthInvoices,
+}: {
+  invoice: Invoice;
+  monthInvoices: InvoiceMonthNavigationItem[];
+}) {
   const t = useTranslations("billing");
   const locale = useLocale() as AppLocale;
   const [tab, setTab] = React.useState<Tab>("charges");
   return (
     <div className="utilities-content invoice-detail-page">
+      <div className="invoice-detail-toolbar">
+        <Link
+          className="billing-back-link"
+          href={`/billing/invoices?month=${invoice.billingPeriod.toISOString().slice(0, 7)}`}
+        >
+          <ArrowLeft /> {t("backToInvoices")}
+        </Link>
+        <InvoiceMonthNavigator
+          invoice={invoice}
+          monthInvoices={monthInvoices}
+        />
+      </div>
+
       <header className="invoice-detail-header">
         <div className="invoice-detail-heading">
-          <Link
-            className="billing-back-link"
-            href={`/billing/invoices?month=${invoice.billingPeriod.toISOString().slice(0, 7)}`}
-          >
-            <ArrowLeft /> {t("backToInvoices")}
-          </Link>
           <p className="utilities-eyebrow">
             {invoice.type === "REGULAR"
               ? t("regularInvoiceEyebrow")
@@ -194,16 +227,133 @@ export function InvoiceDetail({ invoice }: { invoice: Invoice }) {
   );
 }
 
+function InvoiceMonthNavigator({
+  invoice,
+  monthInvoices,
+}: {
+  invoice: Invoice;
+  monthInvoices: InvoiceMonthNavigationItem[];
+}) {
+  const t = useTranslations("billing");
+  const router = useRouter();
+  const currentIndex = Math.max(
+    0,
+    monthInvoices.findIndex((item) => item.id === invoice.id),
+  );
+  const current = monthInvoices[currentIndex]!;
+  const previous = currentIndex > 0 ? monthInvoices[currentIndex - 1] : null;
+  const next =
+    currentIndex < monthInvoices.length - 1
+      ? monthInvoices[currentIndex + 1]
+      : null;
+
+  if (monthInvoices.length <= 1) return null;
+
+  const goToInvoice = (invoiceId: string) => {
+    if (invoiceId === invoice.id) return;
+    router.push(`/billing/invoices/${invoiceId}`);
+  };
+
+  return (
+    <div className="invoice-month-navigator" aria-label={t("monthInvoiceNavigation")}>
+      <Button
+        type="button"
+        size="icon"
+        variant="outline"
+        className="invoice-month-nav-button"
+        aria-label={t("previousInvoice")}
+        title={previous ? `${t("previousInvoice")}: ${previous.room}` : t("previousInvoice")}
+        disabled={!previous}
+        onClick={() => previous && goToInvoice(previous.id)}
+      >
+        <ChevronLeft />
+      </Button>
+      <Select value={invoice.id} onValueChange={goToInvoice}>
+        <SelectTrigger
+          className="invoice-month-select"
+          aria-label={t("jumpToInvoice")}
+          title={t("monthInvoices")}
+        >
+          <span className="invoice-month-select-value">
+            {invoiceNavigationLabel(current, t)}
+          </span>
+        </SelectTrigger>
+        <SelectContent className="invoice-month-select-content">
+          {monthInvoices.map((item) => (
+            <SelectItem
+              key={item.id}
+              value={item.id}
+              className="invoice-month-select-item"
+            >
+              {invoiceNavigationLabel(item, t)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <span className="invoice-month-counter">
+        {t("invoicePosition", {
+          current: currentIndex + 1,
+          total: monthInvoices.length,
+        })}
+      </span>
+      <Button
+        type="button"
+        size="icon"
+        variant="outline"
+        className="invoice-month-nav-button"
+        aria-label={t("nextInvoice")}
+        title={next ? `${t("nextInvoice")}: ${next.room}` : t("nextInvoice")}
+        disabled={!next}
+        onClick={() => next && goToInvoice(next.id)}
+      >
+        <ChevronRight />
+      </Button>
+    </div>
+  );
+}
+
+function invoiceNavigationLabel(
+  item: InvoiceMonthNavigationItem,
+  t: ReturnType<typeof useTranslations<"billing">>,
+) {
+  const parts = [item.room, item.renterName];
+  if (item.type !== "REGULAR") {
+    parts.push(invoiceTypeNavigationLabel(item.type, t));
+  }
+  parts.push(invoiceStatusNavigationLabel(item.status, t));
+  return parts.join(" · ");
+}
+
+function invoiceTypeNavigationLabel(
+  type: Invoice["type"],
+  t: ReturnType<typeof useTranslations<"billing">>,
+) {
+  return type === "REGULAR" ? t("regular") : t("finalSettlement");
+}
+
+function invoiceStatusNavigationLabel(
+  status: Invoice["status"],
+  t: ReturnType<typeof useTranslations<"billing">>,
+) {
+  if (status === "DRAFT") return t("draft");
+  if (status === "FINALIZED") return t("finalized");
+  return t("voided");
+}
+
 function ChargesTab({ invoice }: { invoice: Invoice }) {
   const t = useTranslations("billing");
   const locale = useLocale() as AppLocale;
+  const draftAdjustment = invoice.lines.find((line) => line.type === "ADJUSTMENT");
   return (
     <>
       <div className="section-heading-row">
         <div>
           <h3>{t("charges")}</h3>
-<p className="utility-subtle">{t("chargesSubtitle")}</p>
+          <p className="utility-subtle">{t("chargesSubtitle")}</p>
         </div>
+        {invoice.status === "DRAFT" && !draftAdjustment && (
+          <DraftAdjustmentDialog invoiceId={invoice.id} />
+        )}
       </div>
       <div className="utility-table-wrap">
         <table className="utility-table invoice-charge-table">
@@ -219,72 +369,56 @@ function ChargesTab({ invoice }: { invoice: Invoice }) {
             </tr>
           </thead>
           <tbody>
-            {invoice.lines.map((line) => (
-              <tr key={line.id}>
-                <td>
-                  <strong>{chargeTypeLabel(line.type, t)}</strong>
-                </td>
-                <td>
-                  {line.sourceBillingMonth
-                    ? formatMonthLocale(line.sourceBillingMonth, locale)
-                    : "—"}
-                </td>
-                <td>{chargeDetail(line.type, line.metadata, t, locale)}</td>
-                <td>{formatVndLocale(line.calculatedAmount, locale)}</td>
-                <td>
-                  <strong>{formatVndLocale(line.finalAmount, locale)}</strong>
-                </td>
-                <td>
-                  {line.isOverridden ? (
-                    <BillingStatusBadge status="OVERRIDDEN" />
-                  ) : (
-                    <span className="utility-subtle">{t("rounded")}</span>
-                  )}
-                </td>
-                <td>
-                  {invoice.status === "DRAFT" ? (
-                    <OverrideDialog invoiceId={invoice.id} line={line} />
-                  ) : (
-                    <span className="utility-subtle">{t("readOnly")}</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {invoice.adjustments.map((adjustment) => (
-              <tr key={adjustment.id}>
-                <td>
-                  <strong>{t("adjustment")}</strong>
-                </td>
-                <td>—</td>
-                <td>
-                  {invoice.status === "FINALIZED"
-                    ? adjustment.reason
-                    : adjustment.description}
-                  {invoice.status !== "FINALIZED" && adjustment.reason?.trim() && (
-                    <div className="utility-subtle">{adjustment.reason}</div>
-                  )}
-                </td>
-                <td>—</td>
-                <td>
-                  <strong
-                    className={
-                      adjustment.type === "CREDIT" ? "deposit-negative" : ""
-                    }
-                  >
-                    {adjustment.type === "CREDIT" ? "−" : ""}
-                    {formatVndLocale(adjustment.amount, locale)}
-                  </strong>
-                </td>
-                <td>
-                  {adjustment.type === "DEBIT"
-                    ? t("debitAdjustment")
-                    : t("creditAdjustment")}
-                </td>
-                <td>
-                  <span className="utility-subtle">{t("readOnly")}</span>
-                </td>
-              </tr>
-            ))}
+            {invoice.lines.map((line) => {
+              const isDraftAdjustment = line.type === "ADJUSTMENT";
+              const isDecrease = isDraftAdjustment && BigInt(line.finalAmount) < BigInt(0);
+              return (
+                <tr key={line.id}>
+                  <td>
+                    <strong>{chargeTypeLabel(line.type, t)}</strong>
+                  </td>
+                  <td>
+                    {line.sourceBillingMonth
+                      ? formatMonthLocale(line.sourceBillingMonth, locale)
+                      : "—"}
+                  </td>
+                  <td>{chargeDetail(line.type, line.description, line.metadata, t, locale)}</td>
+                  <td>
+                    {isDraftAdjustment
+                      ? "—"
+                      : formatVndLocale(line.calculatedAmount, locale)}
+                  </td>
+                  <td>
+                    <strong className={isDecrease ? "deposit-negative" : ""}>
+                      {formatVndLocale(line.finalAmount, locale)}
+                    </strong>
+                  </td>
+                  <td>
+                    {isDraftAdjustment ? (
+                      isDecrease ? t("draftAdjustmentDecrease") : t("draftAdjustmentIncrease")
+                    ) : line.isOverridden ? (
+                      <BillingStatusBadge status="OVERRIDDEN" />
+                    ) : (
+                      <span className="utility-subtle">{t("rounded")}</span>
+                    )}
+                  </td>
+                  <td>
+                    {invoice.status === "DRAFT" ? (
+                      isDraftAdjustment ? (
+                        <div className="invoice-inline-actions">
+                          <DraftAdjustmentDialog invoiceId={invoice.id} line={line} />
+                          <DraftAdjustmentRemoveButton invoiceId={invoice.id} lineId={line.id} />
+                        </div>
+                      ) : (
+                        <OverrideDialog invoiceId={invoice.id} line={line} />
+                      )
+                    ) : (
+                      <span className="utility-subtle">{t("readOnly")}</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
           <tfoot>
             {invoice.hasAdjustments && (
@@ -297,7 +431,7 @@ function ChargesTab({ invoice }: { invoice: Invoice }) {
                   <td colSpan={2} />
                 </tr>
                 <tr>
-                  <td colSpan={4}>{t("adjustments")}</td>
+                  <td colSpan={4}>{t("postFinalizationAdjustments")}</td>
                   <td>
                     <strong>
                       {BigInt(invoice.adjustmentNet) > BigInt(0) ? "+" : ""}
@@ -937,7 +1071,7 @@ function InvoicePreviewDialog({ invoice }: { invoice: Invoice }) {
                 <>
                   <span>{t("originalTotal")}</span>
                   <strong>{formatVndLocale(presentation.originalTotal, locale)}</strong>
-                  <span>{t("adjustments")}</span>
+                  <span>{t("postFinalizationAdjustments")}</span>
                   <strong>{formatVndLocale(presentation.adjustmentNet, locale)}</strong>
                   <span>{t("adjustedTotal")}</span>
                   <strong>{formatVndLocale(presentation.total, locale)}</strong>
@@ -1046,6 +1180,108 @@ function OverrideDialog({
   );
 }
 
+function DraftAdjustmentDialog({
+  invoiceId,
+  line,
+}: {
+  invoiceId: string;
+  line?: Invoice["lines"][number];
+}) {
+  const t = useTranslations("billing");
+  const tCommon = useTranslations("common");
+  const editing = Boolean(line);
+  const signedAmount = line ? BigInt(line.finalAmount) : BigInt(0);
+  const defaultDirection = signedAmount < BigInt(0) ? "DECREASE" : "INCREASE";
+  const defaultAmount = line
+    ? (signedAmount < BigInt(0) ? -signedAmount : signedAmount).toString()
+    : "";
+  const [state, action] = React.useActionState(
+    editing ? updateDraftInvoiceAdjustmentAction : addDraftInvoiceAdjustmentAction,
+    emptyActionState,
+  );
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="sm" variant={editing ? "ghost" : "outline"}>
+          {editing ? <Pencil /> : <Plus />}
+          {editing ? t("editDraftAdjustment") : t("addDraftAdjustment")}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {editing ? t("editDraftAdjustment") : t("addDraftAdjustment")}
+          </DialogTitle>
+          <DialogDescription>{t("draftAdjustmentDescription")}</DialogDescription>
+        </DialogHeader>
+        <PreservingActionForm action={action} className="dialog-form">
+          <input type="hidden" name="invoiceId" value={invoiceId} />
+          {line && <input type="hidden" name="lineId" value={line.id} />}
+          <div className="field">
+            <Label>{t("type")}</Label>
+            <select name="direction" defaultValue={defaultDirection}>
+              <option value="DECREASE">{t("draftAdjustmentDecrease")}</option>
+              <option value="INCREASE">{t("draftAdjustmentIncrease")}</option>
+            </select>
+          </div>
+          <Field
+            label={t("amount")}
+            name="amount"
+            type="number"
+            min="1"
+            step="1"
+            defaultValue={defaultAmount}
+            required
+          />
+          <Field
+            label={t("reason")}
+            name="reason"
+            maxLength={500}
+            defaultValue={line?.description ?? ""}
+            required
+          />
+          {state.message && (
+            <p className={state.ok ? "form-success" : "form-error"}>
+              {state.message}
+            </p>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">{tCommon("cancel")}</Button>
+            </DialogClose>
+            <Button type="submit">{t("saveDraftAdjustment")}</Button>
+          </DialogFooter>
+        </PreservingActionForm>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DraftAdjustmentRemoveButton({
+  invoiceId,
+  lineId,
+}: {
+  invoiceId: string;
+  lineId: string;
+}) {
+  const t = useTranslations("billing");
+  const [state, action] = React.useActionState(
+    removeDraftInvoiceAdjustmentAction,
+    emptyActionState,
+  );
+  return (
+    <PreservingActionForm action={action} className="invoice-inline-action-form">
+      <input type="hidden" name="invoiceId" value={invoiceId} />
+      <input type="hidden" name="lineId" value={lineId} />
+      <Button type="submit" size="sm" variant="ghost">
+        {t("removeDraftAdjustment")}
+      </Button>
+      {state.message && !state.ok && <span className="form-error">{state.message}</span>}
+    </PreservingActionForm>
+  );
+}
+
 function FinalizedAdjustmentDialog({ invoice }: { invoice: Invoice }) {
   const t = useTranslations("billing");
   const tCommon = useTranslations("common");
@@ -1070,12 +1306,12 @@ function FinalizedAdjustmentDialog({ invoice }: { invoice: Invoice }) {
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline">
-          <Plus /> {t("addAdjustment")}
+          <Plus /> {t("addBillingAdjustment")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t("addAdjustment")}</DialogTitle>
+          <DialogTitle>{t("addBillingAdjustment")}</DialogTitle>
           <DialogDescription>{t("finalizedAdjustmentDescription")}</DialogDescription>
         </DialogHeader>
         <PreservingActionForm action={action} className="dialog-form">
@@ -1144,7 +1380,7 @@ function FinalizedAdjustmentDialog({ invoice }: { invoice: Invoice }) {
             <DialogClose asChild>
               <Button type="button" variant="outline">{tCommon("cancel")}</Button>
             </DialogClose>
-            <Button type="submit">{t("addAdjustment")}</Button>
+            <Button type="submit">{t("addBillingAdjustment")}</Button>
           </DialogFooter>
         </PreservingActionForm>
       </DialogContent>
@@ -1512,11 +1748,13 @@ function paymentMethodLabel(value: string, t: ReturnType<typeof useTranslations<
 }
 function chargeDetail(
   type: string,
+  description: string,
   metadata: unknown,
   t: ReturnType<typeof useTranslations<"billing">>,
   locale: AppLocale,
 ) {
   const item = metadata as Record<string, unknown>;
+  if (type === "ADJUSTMENT") return description;
   if (type === "RENT")
     return item.fullMonth
       ? t("rentDetail", { amount: formatVndLocale(String(item.monthlyRentVnd ?? 0), locale) })
